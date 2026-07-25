@@ -28,19 +28,6 @@ import { cn } from '@/lib/cn';
 import { useRecordBall, useResumeInnings, useScorerState, useUndoBall } from './queries';
 import { useOfflineBallQueue } from './useOfflineBallQueue';
 
-/**
- * The scoring console — the one screen that has to work at a ground, on a phone,
- * one-handed, between deliveries.
- *
- * Phone: the state you need to read is pinned at the top, the pad is anchored at
- * the bottom in the thumb zone, and undo is always one tap away.
- * Desktop: three columns — the card on the left, the pad in the middle, the log on
- * the right — with keyboard shortcuts so a laptop scorer never touches the mouse.
- *
- * Every tap is validated locally with the same `validateBall` the server runs
- * inside its lock, so an impossible ball is refused instantly rather than after a
- * round trip. The server remains the authority; this only saves the trip.
- */
 export function ScoringPage() {
   const { matchId = '' } = useParams();
 
@@ -151,7 +138,7 @@ export function ScoringPage() {
     );
   }
 
-  const optimisticState = queue.pending.reduce(
+  const optimisticState = queue.items.reduce(
     (current, item, index) =>
       applyBall(current, optimisticEvent(current, item.input, index), context),
     state,
@@ -167,7 +154,7 @@ export function ScoringPage() {
         context={context}
         matchStatus={match.status}
         previousOverBowlerId={previousOverBowlerId}
-        isSaving={recordBall.isPending || undo.isPending || queue.pending.length > 0}
+        isSaving={recordBall.isPending || undo.isPending}
         saveError={recordBall.error ?? undo.error}
         queueItems={queue.items}
         isOnline={queue.isOnline}
@@ -179,8 +166,6 @@ export function ScoringPage() {
     </div>
   );
 }
-
-// ────────────────────────────────────────────────────────────────  console ──
 
 interface Crease {
   striker: string | null;
@@ -244,9 +229,6 @@ function Console({
   onRetryQueue,
 }: ConsoleProps) {
   const displayState = optimisticState;
-  // The crease is server-derived after every ball. Local overrides exist only for
-  // what the server cannot know: who walks in after a wicket, who bowls the next
-  // over, and a strike correction after a run-out at the wrong end.
   const [override, setOverride] = useState<Partial<Crease>>({});
   const [syncedSeq, setSyncedSeq] = useState(state.lastEventSeq);
   const [extraType, setExtraType] = useState<ExtraType | null>(null);
@@ -255,8 +237,6 @@ function Console({
 
   useEffect(() => {
     if (state.lastEventSeq === syncedSeq) return;
-    // A new ball landed: whatever the scorer had chosen is now either recorded or
-    // superseded by what the server folded.
     setOverride({});
     setExtraType(null);
     setWicketOpen(false);
@@ -281,8 +261,6 @@ function Console({
     (player) => !displayState.batsmen[player.id]?.isOut && !atCrease.has(player.id),
   );
 
-  // A bowler may not bowl two overs in a row, so the one who just finished is not
-  // offered — the server would refuse it anyway.
   const availableBowlers = context.bowlingXI.filter(
     (player) => player.id !== previousOverBowlerId || displayState.thisOver.length > 0,
   );
@@ -331,7 +309,6 @@ function Console({
     await onBall(input);
   }
 
-  /** A run tap means different things depending on the extra in force. */
   function handleRuns(runs: number) {
     switch (extraType) {
       case 'WIDE':
@@ -349,11 +326,6 @@ function Console({
 
   const byeLike = extraType === 'BYE' || extraType === 'LEG_BYE';
 
-  /*
-   * Keyboard shortcuts, for the scorer sitting at a laptop with the match in front
-   * of them. Ignored while a field has focus or the wicket sheet is open, so typing
-   * a fielder's name never scores four runs.
-   */
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (wicketOpen || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -395,7 +367,6 @@ function Console({
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)_17rem]">
-      {/* ── Column one: the card ─────────────────────────────────────── */}
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
         <ScorePanel state={displayState} context={context} isSaving={isSaving} />
         <CreaseCard
@@ -408,7 +379,6 @@ function Console({
         />
       </div>
 
-      {/* ── Column two: the pad ──────────────────────────────────────── */}
       <div className="flex flex-col gap-4">
         <Card>
           <CardBody className="flex flex-col gap-5 py-5">
@@ -461,8 +431,6 @@ function Console({
           </p>
         ) : null}
 
-        {/* The pad is bottom-anchored on a phone — the thumb zone — and part of the
-            page on a desktop, where there is no thumb to speak of. */}
         <div
           className={cn(
             'sticky bottom-0 z-10 -mx-5 border-t border-line bg-surface px-5 pt-5 sm:-mx-8 sm:px-8',
@@ -540,7 +508,6 @@ function Console({
               </Button>
             </div>
 
-            {/* Shown only where there is a keyboard to use it with. */}
             <p className="mono hidden text-[0.6875rem] text-muted lg:block">
               0–6 runs · W wicket · D wide · N no ball · B bye · L leg bye · ⌫ undo
             </p>
@@ -548,14 +515,11 @@ function Console({
         </div>
       </div>
 
-      {/* ── Column three: the log ────────────────────────────────────── */}
       <div className="hidden xl:block xl:sticky xl:top-6">
         <OverLog state={displayState} />
       </div>
 
       <WicketSheet
-        // Switching the extra in force changes which dismissals are possible, so
-        // the sheet restarts rather than holding an impossible one.
         key={extraType ?? 'none'}
         open={wicketOpen}
         state={displayState}
@@ -570,13 +534,6 @@ function Console({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────  pieces ──
-
-/**
- * The card, on ink. The score is the only thing on this product that is allowed to
- * be this large, and putting it on the inverse surface is what makes the rest of
- * the page recede while a scorer is working.
- */
 function ScorePanel({
   state,
   context,
@@ -644,7 +601,6 @@ function ScorePanel({
   );
 }
 
-/** Who is on the field, and the prompts the reducer says are owed. */
 function CreaseCard({
   state,
   context,
@@ -804,11 +760,6 @@ function PickerRow({
   );
 }
 
-/**
- * Over by over, newest first — the right-hand page of a scorebook. It is the
- * scorer's own audit trail: the fastest way to answer "what did I put down for the
- * fourth ball of the twelfth over?".
- */
 function OverLog({ state }: { state: MatchState }) {
   const overs = groupByOver(state.recentBalls);
 
@@ -881,7 +832,6 @@ function groupByOver(
     }));
 }
 
-/** Dismissals off a wide or a no-ball are restricted; the pad reflects that. */
 function allowedWicketTypes(extraType: ExtraType | null): readonly WicketType[] {
   if (extraType === 'WIDE') return ['RUN_OUT', 'STUMPED', 'OBSTRUCTING_FIELD'];
   if (extraType === 'NO_BALL') return ['RUN_OUT', 'OBSTRUCTING_FIELD'];
@@ -946,8 +896,7 @@ function WicketSheet({
             disabled={!dismissedId || (needsFielder && !fielderId)}
             onClick={() =>
               void onSubmit({
-                // Runs off the bat cannot exist on a wide or a bye; on those the
-                // completed runs are extras.
+                // Wides and byes are recorded as extras, not bat runs.
                 runsOffBat: extraType === null || extraType === 'NO_BALL' ? runs : 0,
                 extraRuns:
                   extraType === 'WIDE'

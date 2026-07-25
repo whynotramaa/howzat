@@ -133,8 +133,7 @@ export async function drainBallQueue(
         item.id,
         error instanceof Error ? error.message : 'Could not sync this ball',
       );
-      // Delivery order matters. Stop here and let the scorer retry this item
-      // before sending later balls to the server.
+      // Preserve delivery order when a queued ball fails.
       break;
     }
   }

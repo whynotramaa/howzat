@@ -219,8 +219,7 @@ export function AppShell() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4 px-5 py-7 sm:px-8 lg:px-12">
-          <p className="text-[0.8125rem] text-muted">Howzat — local cricket, kept properly.</p>
-          <p className="eyebrow">Every ball on the record</p>
+          <p className="eyebrow">Made with ❤️ by whynotramaa</p>
         </div>
       </footer>
     </div>
