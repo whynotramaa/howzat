@@ -1,16 +1,16 @@
 # Deploying Howzat
 
-Four managed pieces, all with a usable free tier:
-
-| Piece    | Where               | Why                                                        |
-| -------- | ------------------- | ---------------------------------------------------------- |
-| Web      | Vercel              | Static Vite build on a CDN                                  |
-| API      | Render (Web Service) | Long-lived process — Socket.IO needs a real, held-open TCP connection |
-| Postgres | Neon                | Serverless Postgres; Prisma needs the non-pooled URL to migrate |
-| Redis    | Upstash             | Socket.IO Redis adapter + OTP/rate-limit state              |
+| Piece    | Where   | Why                                                                   |
+| -------- | ------- | --------------------------------------------------------------------- |
+| Web      | Vercel  | Static Vite build on a CDN                                             |
+| API      | Railway | Long-lived process — Socket.IO needs a real, held-open TCP connection  |
+| Postgres | Railway | Same project, private network, one less dashboard                      |
+| Redis    | Railway | Socket.IO Redis adapter + OTP/rate-limit state                         |
 
 The API cannot go on Vercel: its functions are request-scoped, so a WebSocket
 has nothing to stay attached to.
+
+Neon and Upstash still work if you prefer them — see the last section.
 
 ## 0. Prerequisites
 
@@ -26,45 +26,57 @@ gh repo create howzat --private --source=. --push
 `.env` is gitignored and must stay that way — every secret below is entered in
 a dashboard, not committed.
 
-## 1. Neon (Postgres)
+## 1. Railway project + databases
 
-Create a project, then copy two strings from the dashboard:
+**New Project → Deploy from GitHub repo**, pick the repo. Then in the same
+project: **New → Database → PostgreSQL**, and again for **Redis**. Keeping all
+three in one project is what lets them talk over the private network.
 
-- `DATABASE_URL` — the **pooled** string (host contains `-pooler`)
-- `DIRECT_URL` — the same host without `-pooler`
+`railway.json` supplies the build command, start command and health check, so
+the service needs no build configuration in the dashboard.
 
-Migrations run through `DIRECT_URL`; the pooler cannot execute them.
+## 2. Environment variables on the API service
 
-## 2. Upstash (Redis)
+Use **reference variables** for the databases rather than pasting URLs — they
+follow the database if it is ever recreated:
 
-Create a database and copy the TLS URL — it starts with `rediss://`, two `s`.
-A plain `redis://` URL connects and then dies, surfacing as
-`MaxRetriesPerRequestError` rather than a refusal.
+```
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+DIRECT_URL=${{Postgres.DATABASE_URL}}
+REDIS_URL=${{Redis.REDIS_URL}}
+```
 
-## 3. Render (API)
+`DIRECT_URL` is the same value here. It exists because Neon's pooler cannot run
+migrations; Railway's Postgres has no pooler, so both point at one endpoint.
 
-Blueprint route: **New → Blueprint**, point it at the repo, and `render.yaml`
-supplies the build command, start command and health check. Fill in the
-`sync: false` variables when prompted. Set `WEB_BASE_URL` to a placeholder for
-now — Vercel has not issued a URL yet.
+The rest:
 
-Manual route, if you prefer the dashboard: **New → Web Service**, root
-directory blank (the repo root — npm workspaces need it), and
+```
+NODE_ENV=production
+NIXPACKS_NODE_VERSION=22
+API_BASE_URL=https://<your-service>.up.railway.app
+WEB_BASE_URL=https://<your-app>.vercel.app
+JWT_ACCESS_SECRET=<48 random bytes, base64>
+JWT_REFRESH_SECRET=<48 random bytes, base64>
+RESEND_API_KEY=<from resend.com/api-keys>
+OTP_FROM_EMAIL=oct8@rama.codes
+```
 
-- Build: `npm ci && npm run db:generate --workspace @howzat/api && npm run db:deploy:ci --workspace @howzat/api && npm run build --workspace @howzat/api`
-- Start: `node apps/api/dist/index.js`
-- Health check path: `/health/live`
-
-Do not set `PORT`. Render injects it, and `env.ts` reads it.
-
-Generate the two JWT secrets locally if you are not using the blueprint:
+Generate the secrets with:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 ```
 
-The service URL is `https://howzat-api.onrender.com` — that is `API_BASE_URL`.
-`GET /health` should return `"postgres": "ok", "redis": "ok"`.
+Do not set `PORT`. Railway injects it and `config/env.ts` reads it.
+
+## 3. Get a public URL
+
+**Settings → Networking → Generate Domain.** A Railway service has no public
+address until you ask for one; without it the deploy looks healthy and nothing
+can reach it. That domain is `API_BASE_URL`.
+
+Check `GET /health` — it should report `"postgres": "ok", "redis": "ok"`.
 
 ## 4. Vercel (web)
 
@@ -76,13 +88,13 @@ Two environment variables, both needed at **build** time — Vite inlines them
 into the bundle, so changing either requires a redeploy, not a restart:
 
 ```
-VITE_API_BASE_URL=https://howzat-api.onrender.com
-VITE_SOCKET_URL=https://howzat-api.onrender.com
+VITE_API_BASE_URL=https://<your-service>.up.railway.app
+VITE_SOCKET_URL=https://<your-service>.up.railway.app
 ```
 
 ## 5. Close the loop
 
-Set `WEB_BASE_URL` on Render to the real Vercel URL and let it redeploy. It
+Set `WEB_BASE_URL` on Railway to the real Vercel URL and let it redeploy. It
 feeds three things: the CORS allowlist, the Socket.IO CORS origin, and — via
 the hostname comparison in `config/env.ts` — whether the refresh cookie is
 issued `SameSite=None; Secure`. Get it wrong and login appears to work until
@@ -90,13 +102,30 @@ the first token refresh silently 401s.
 
 ## Known behaviours of this setup
 
-- **Render's free tier sleeps after 15 minutes idle.** The next request pays a
-  ~50s cold start, and any open socket dropped in the meantime. For a live
-  scoring demo, wake the API before showing it, or move to the paid instance.
+- **Railway does not sleep**, so live scoring survives an idle gap and there is
+  no cold start before a demo. It is not free beyond the trial credit; the API
+  plus two databases is a small monthly bill.
+- **Private networking is IPv6-only.** `lib/redis.ts` passes `family: 0` to
+  ioredis for exactly this reason — the default asks for A records and fails
+  with `ENOTFOUND` on a `.railway.internal` host that plainly exists.
+- **Railway's internal Redis URL is `redis://`, not `rediss://`.** That is
+  correct: the private network is not exposed, so there is no TLS to terminate.
+  A public Upstash URL *must* be `rediss://`.
 - **Vercel preview deployments get their own URLs** and are not in the CORS
   allowlist, so only the production URL works end to end. Widen the `origin`
   array in `app.ts` if previews need to function.
-- **`db:deploy:ci` runs on every deploy.** It is `prisma migrate deploy`,
-  which only applies pending migrations and is safe to repeat.
-- **Seeding is manual.** Run it once from a shell with the production
-  `DATABASE_URL` exported, if you want demo data.
+- **`db:deploy:ci` runs on every deploy.** It is `prisma migrate deploy`, which
+  only applies pending migrations and is safe to repeat.
+- **Seeding is manual** — `railway run npm run db:seed` once, if you want demo
+  data against the production database.
+
+## If you use Neon and Upstash instead
+
+Only the variables change. `DATABASE_URL` is Neon's **pooled** string (host
+contains `-pooler`) and `DIRECT_URL` is the same host without it — Prisma
+cannot migrate through the pooler. `REDIS_URL` is Upstash's `rediss://` URL;
+a plain `redis://` connects and then dies as a confusing
+`MaxRetriesPerRequestError`.
+
+`render.yaml` in this repo describes the same API service on Render, kept as a
+fallback host. Railway ignores it.

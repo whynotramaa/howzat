@@ -11,6 +11,11 @@ const baseOptions: RedisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   lazyConnect: false,
+  // Railway's private network resolves *.railway.internal over AAAA only, and
+  // ioredis otherwise asks for A records and fails with ENOTFOUND on a host
+  // that plainly exists. 0 means "whatever DNS returns", which is correct
+  // everywhere else too.
+  family: 0,
   retryStrategy(times) {
     // Back off to a 5s ceiling, then keep trying — a Redis blip should
     // degrade the service, not kill the process.
