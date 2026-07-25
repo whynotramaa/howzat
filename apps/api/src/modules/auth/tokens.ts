@@ -120,13 +120,18 @@ export function setRefreshCookie(res: Response, token: string): void {
     // 'lax' keeps the cookie on same-site XHR in dev (localhost:5173 →
     // localhost:4000 counts as same-site); production behind one domain is fine.
     sameSite: isProduction ? 'strict' : 'lax',
-    path: '/auth',
+    // Site-wide, not '/auth'. A cookie path is matched against the URL the
+    // *browser* requests, and the browser never asks for /auth: in dev it is
+    // /api/auth/refresh through the Vite proxy, and in production the platform
+    // mounts the function under /api. Scoping it to /auth meant the cookie was
+    // set and then never sent again, so every reload came back signed out.
+    path: '/',
     maxAge: parseDuration(env.JWT_REFRESH_TTL),
   });
 }
 
 export function clearRefreshCookie(res: Response): void {
-  res.clearCookie(REFRESH_COOKIE, { path: '/auth' });
+  res.clearCookie(REFRESH_COOKIE, { path: '/' });
 }
 
 /** "15m" | "30d" | "3600" → milliseconds. */

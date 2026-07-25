@@ -1,66 +1,198 @@
+<div align="center">
+
 # Howzat
 
-Local cricket tournaments with live ball-by-ball scoring and public, no-login
-share links. See [`plan.md`](./plan.md) for the full roadmap and
-[`brief.md`](./brief.md) for the original requirements.
+**Local cricket tournaments with live, ball-by-ball scoring — and a public share link that needs no login.**
 
-**Built so far: Phases 0–6** — foundation, auth, CRUD, fixture generation, the
-scoring engine, real-time delivery with the public share link, and the points
-table with NRR.
+[![Live](https://img.shields.io/badge/live-howzat--zeta.vercel.app-0b7285?style=flat-square)](https://howzat-zeta.vercel.app)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square)
+![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square)
+![Node](https://img.shields.io/badge/Node-20%2B-339933?style=flat-square)
+![Postgres](https://img.shields.io/badge/Postgres-Neon-336791?style=flat-square)
+![Redis](https://img.shields.io/badge/Redis-Upstash-dc382d?style=flat-square)
 
-**Still ahead: Phase 7, the UIs.** There is no scorer console yet, so scoring
-runs over HTTP rather than by tapping a grid. The organizer dashboard has no
-fixtures or standings screens either — both are served by the API.
+</div>
 
-All of the above is verified end-to-end against live Neon Postgres and Upstash
-Redis, including two API instances sharing one Redis adapter.
-
-## Seeded data
-
-`npm run db:seed` creates two tournaments and three accounts:
-
-| Account | Handle | Role |
-| --- | --- | --- |
-| `organizer@howzat.local` | `@organizer` | Organizer — owns both tournaments |
-| `whynotramaa@howzat.local` | `@whynotramaa` | Scorer — assigned to **every** IPL 2026 match |
-| `scorer@howzat.local` | `@demoscorer` | Scorer — assigned to nothing, useful for testing 403s |
-
-- **IPL 2026** — 10 teams, 11 players each, 49 matches (45 league + 4 playoff
-  slots), single round-robin. Set `doubleRoundRobin` and regenerate for the
-  full 90-match season. Squads are illustrative demo data, not real rosters.
-- **Sunday League 2026** — 4 teams, a small sandbox for quick tests.
-
-The seed is idempotent and never regenerates fixtures for a tournament whose
-matches have started, so re-running it cannot destroy scoring data.
+<div align="center">
+  <img src="apps/web/public/assets/live-match.png" alt="Live match view: Chennai Super Kings 10/1 after 0.3 overs, with the current over, batter and bowler cards, extras breakdown and fall of wickets" width="100%">
+  <br>
+  <em>The public share link — no account, no app install. Just a URL.</em>
+</div>
 
 ---
 
-## Setup
+## The problem
 
-### 1. Install
+Club and street cricket is scored on paper, in a WhatsApp group, or not at all.
+The people who actually want the score — a parent, a teammate on their way to
+the ground, someone who lost the toss and went home — are not going to install
+an app or create an account to get it.
+
+Howzat gives one person a fast scoring console and everybody else a link.
+
+- **The scorer** taps runs. Every ball is an append-only event.
+- **Everyone else** opens a URL. The score arrives over a websocket, live.
+- **The organizer** gets fixtures and a points table that computes itself.
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%">
+<img src="apps/web/public/assets/scoring-console.png" alt="Scoring console with a run pad from 0 to 6, extras buttons for wide, no ball, bye and leg bye, a wicket button, and an undo control">
+<p align="center"><strong>Scoring console</strong><br><sub>One tap per ball. Extras, wickets and undo are all one reach away, with keyboard shortcuts for a scorer who does this every week.</sub></p>
+</td>
+<td width="50%">
+<img src="apps/web/public/assets/points-table.png" alt="Points table for a ten team league showing played, won, lost, tied, no result, points and net run rate for each side">
+<p align="center"><strong>Points table</strong><br><sub>Recomputed from the innings records on every result, so it cannot drift. Every NRR input is shown, not just the figure.</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="apps/web/public/assets/tournaments.png" alt="Tournament list showing IPL 2026 with ten of ten sides registered and ready for fixtures, alongside two smaller leagues">
+<p align="center"><strong>Tournaments</strong><br><sub>Squad registration gates fixture generation — the UI states exactly what is still missing rather than failing later.</sub></p>
+</td>
+<td width="50%">
+<img src="apps/web/public/assets/light-mode.png" alt="The same scoring console rendered in light theme">
+<p align="center"><strong>Light and dark</strong><br><sub>Semantic CSS variables, not <code>dark:</code> classes. Follows the OS by default; a manual choice wins and survives a reload.</sub></p>
+</td>
+</tr>
+</table>
+
+<div align="center">
+  <img src="apps/web/public/assets/notifications.png" alt="Notification popover reading: you have been added to this tournament" width="70%">
+  <p><strong>Notifications</strong> — scorers learn they have been assigned to a match without being told out of band.</p>
+</div>
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+  Scorer[Scorer console] -->|POST /matches/:id/balls| API[Express API]
+  API -->|append-only insert| PG[(Postgres)]
+  API -->|snapshot cache| R[(Redis)]
+  API -->|publish| BUS[realtime/bus.ts]
+  BUS --> IO[socket.io + Redis adapter]
+  BUS --> STAND[standings + player stats]
+  STAND --> PG
+  IO -->|match:id room| V1[Viewer]
+  IO --> V2[Viewer]
+  R -.->|cross-instance fan-out| IO
+```
+
+**Scoring is HTTP, never websocket.** Auth, idempotency, validation and retry
+semantics all live in one place, which leaves the realtime layer a disposable,
+read-only fan-out. The write path publishes to `realtime/bus.ts` and never
+imports socket.io.
+
+**Postgres is the truth; Redis is derived.** `BallEvent` is append-only and is
+the sole source of truth for anything that happens in a match. The snapshot in
+Redis is a cache — delete it and the next read rebuilds the score by folding
+the event log. Snapshot writes are guarded by `lastEventSeq`, so a slow write
+can never overwrite a newer score.
+
+**Broadcasts carry the whole snapshot, not a delta.** Slightly larger on the
+wire, and self-healing: a client that misses one message is corrected by the
+next, and `seq` monotonicity is enough to discard an out-of-order arrival. It
+is also what lets a viewer join mid-match and see the current score
+immediately, rather than a replay from ball one.
+
+---
+
+## Engineering notes
+
+<details open>
+<summary><strong>Correctness</strong></summary>
+
+- **Overs are base-6.** `16.5 + 0.1` is `17.0`, not `16.6`. `PointsTable`
+  stores *balls* and converts only at read time, which is what makes the NRR
+  arithmetic hard to get subtly wrong.
+- **The bowled-out rule.** A side dismissed inside its quota is charged the
+  **full quota** of overs for NRR, not the balls it actually faced. There is a
+  regression test proving the rule changes the answer.
+- **The points table is recomputed, never incremented.** Every
+  `match:completed` rebuilds the tournament from the event log in one
+  transaction. Costlier than an increment, and it buys idempotency: replaying
+  an event converges instead of double-counting.
+- **Idempotent ball writes.** Each ball carries a `clientEventId`. Re-posting
+  an identical body returns `200` with the same snapshot instead of `201`, so a
+  flaky connection at the ground cannot double-count a six.
+- **Undo is an event, not a delete.** `POST /matches/:id/balls/undo` appends an
+  `UNDO`; `GET /matches/:id/events` still shows both. Nothing is destroyed.
+
+</details>
+
+<details>
+<summary><strong>Security</strong></summary>
+
+- **Access tokens are 15-minute JWTs held in memory only** — never
+  `localStorage`, so an XSS cannot exfiltrate one. The httpOnly refresh cookie
+  is what survives a reload.
+- **Refresh tokens are opaque random strings** stored as SHA-256 hashes and
+  rotated on every use. Presenting an already-revoked token is treated as theft
+  and revokes the user's entire session family.
+- **No enumeration oracles.** Every OTP failure path returns the same message,
+  and handle lookup requires a session — a public "does this handle exist"
+  endpoint would be an oracle.
+- **`requireScorerForMatch`** guards every match route, with a 60s Redis cache
+  invalidated the moment an assignment changes.
+- Redis-backed rate limits on OTP requests and ball writes, with a truthful
+  `Retry-After`.
+
+</details>
+
+<details>
+<summary><strong>Running on serverless</strong></summary>
+
+The API is a long-lived Express server locally and a Vercel Function in
+production. Three things that difference forced:
+
+- **Websocket transport only.** Socket.IO defaults to HTTP long-polling, whose
+  handshake is process-sticky: the session lives in one instance's memory and
+  the next poll can land elsewhere, producing `session ID unknown`. Both ends
+  pin `transports: ['websocket']`.
+- **Viewers are counted in Redis, not by asking the other instances.** The
+  adapter's `fetchSockets()` broadcasts a request and waits for every subscribed
+  instance to answer — which never terminates well on a platform that *freezes*
+  idle instances, because a frozen instance stays subscribed but cannot reply.
+  A sorted set keyed by match, pruned by join timestamp, has no such dependency
+  on who happens to be awake.
+- **Event subscribers are awaited.** The instance is frozen the moment the
+  response is sent, so a detached standings rebuild would be truncated
+  part-way through with no error. `publishMatchEvent` returns a promise; the
+  match-completion path awaits it, while the hot ball path still drops it.
+
+</details>
+
+---
+
+## Getting started
+
+### Prerequisites
+
+Node 20+. Both datastores have free tiers and neither needs a local install.
+
+- **Postgres — [Neon](https://neon.tech)**: copy *two* connection strings. The
+  **pooled** one (host contains `-pooler`) is `DATABASE_URL`; the **direct**
+  one is `DIRECT_URL`. Prisma migrations cannot run through the pooler, which
+  is why both exist.
+- **Redis — [Upstash](https://upstash.com)**: copy the `rediss://` URL (note
+  the double *s* — it is TLS). Plain `redis://` is accepted and then dies,
+  surfacing as a confusing `MaxRetriesPerRequestError`.
+
+### Setup
 
 ```bash
 npm install
-```
-
-### 2. Create the datastores
-
-Both have free tiers and neither needs a local install.
-
-- **Postgres — [Neon](https://neon.tech)**: create a project, then copy *two*
-  connection strings from the dashboard. The **pooled** one (host contains
-  `-pooler`) is `DATABASE_URL`; the **direct** one is `DIRECT_URL`. Prisma
-  migrations cannot run through the pooler, which is why both exist.
-- **Redis — [Upstash](https://upstash.com)**: create a database and copy the
-  `rediss://` URL (note the double *s* — it is TLS) into `REDIS_URL`.
-
-### 3. Configure
-
-```bash
 cp .env.example .env
 ```
 
-Fill in `DATABASE_URL`, `DIRECT_URL`, `REDIS_URL`, and generate the two secrets:
+Fill in `DATABASE_URL`, `DIRECT_URL` and `REDIS_URL`, then generate the two
+secrets:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
@@ -69,154 +201,67 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 Leave `RESEND_API_KEY` blank — sign-in codes are then printed to the API log
 rather than emailed, which is the intended development path.
 
-### 4. Create the schema and seed
-
 ```bash
-npm run db:migrate      # first run will ask for a migration name; "init" is fine
+npm run db:migrate      # first run asks for a name; "init" is fine
 npm run db:seed
-```
-
-The seed creates one tournament, four teams with a full XI each, and two
-accounts: `organizer@howzat.local` and `scorer@howzat.local`.
-
-### 5. Run
-
-```bash
 npm run dev             # API on :4000, web on :5173
 ```
 
+### Seeded accounts
+
+| Account | Handle | Role |
+| --- | --- | --- |
+| `organizer@howzat.local` | `@organizer` | Organizer — owns both tournaments |
+| `whynotramaa@howzat.local` | `@whynotramaa` | Scorer — assigned to every IPL 2026 match |
+| `scorer@howzat.local` | `@demoscorer` | Scorer — assigned to nothing, useful for testing 403s |
+
+**IPL 2026** seeds 10 teams, 11 players each and 49 matches; **Sunday League
+2026** is a 4-team sandbox. The seed is idempotent and never regenerates
+fixtures for a tournament whose matches have started, so re-running it cannot
+destroy scoring data. Squads are illustrative demo data, not real rosters.
+
 ---
 
-## Verifying phases 0–2
+## Deployment
 
-1. **Health** — `curl http://localhost:4000/health` reports
-   `{"status":"ok","dependencies":{"postgres":"ok","redis":"ok"}}`. If either
-   is `unreachable` the response is a 503 and names which one.
-2. **Fail-fast config** — delete `REDIS_URL` from `.env` and start the API. It
-   exits immediately naming the missing variable, rather than crashing later.
-3. **Sign in** — open http://localhost:5173, enter `organizer@howzat.local`.
-   The 6-digit code appears in the API log *and* on screen (dev-only banner).
-4. **Session survives reload** — hard-refresh the page; you stay signed in. The
-   access token lives in memory only; the httpOnly refresh cookie restores it.
-5. **Rate limiting** — request a code six times for the same email. The sixth
-   returns 429 with a truthful `Retry-After`.
-6. **Wrong code** — enter `000000` five times; the sixth attempt reports the
-   code is burned and asks for a new one.
-7. **CRUD** — create a tournament for 4 teams, add a team, open it, paste 11
-   names into the bulk box. The 11/11 ring fills and the team flips to
-   "eligible". Try pasting a 12th — it is refused with the count in the message.
-8. **The eligibility gate** — with one team at 9 players, the tournament page
-   states exactly what is missing instead of only failing later at fixture time.
-9. **Ownership isolation** — sign in as `scorer@howzat.local` and hit
-   `/tournaments`. The role gate returns 403; organizer data is never visible.
-10. **Theme** — toggle the OS between light and dark with the toggle set to
-    "System"; the page follows. Then click through to Light and Dark and confirm
-    the manual choice wins in both directions and survives a reload.
-
-## Verifying phases 3–4
-
-The pure logic is covered by `npm test` (20 tests: strike rotation, extras,
-maidens, corrections, innings end, and the circle method's pairing guarantees).
-The database-backed parts need a running API.
-
-**Fixtures.** With four eligible teams, preview then commit:
+Web and API ship as **one Vercel project on one origin** — the SPA at `/`, the
+API at `/api/*`, sockets at `/api/socket.io`. Same-origin is what keeps the
+`sameSite=strict` refresh cookie working and removes CORS from the picture.
 
 ```bash
-curl -X POST -H "Authorization: Bearer $TOKEN" \
-  http://localhost:4000/tournaments/$T/fixtures/preview
-curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{}' http://localhost:4000/tournaments/$T/fixtures
+npm run build           # API bundle + web static build
+npx vercel --prod
 ```
 
-Expect 3 rounds × 2 matches, every pair exactly once, no dates. Ask for it
-twice and the second call is refused unless you pass `{"regenerate":true}` —
-and it is refused outright once any match has left `SCHEDULED`.
+`vercel.json` builds the API with tsup before the function is compiled, because
+files under `api/` are transpiled individually and will not follow a relative
+TypeScript import out of that directory.
 
-**Scoring.** Assign a scorer, record the toss, name both XIs, start, then post
-balls to `POST /matches/:id/balls`. Each ball needs a fresh `clientEventId`
-(any UUID). Things worth confirming:
+> **Note** — on the free plan a function is capped at 300s, so a live-match
+> websocket reconnects at least every five minutes. Measured: the connection
+> held 315s, dropped with `transport close`, and reconnected 2s later with the
+> viewer count intact. The client is snapshot-first, so this is invisible.
 
-- Score a wide and a no-ball in an over: after six *submissions* the over reads
-  `0.4`, not `0.6`.
-- Re-post an identical body with the same `clientEventId`: you get `200` with
-  the same snapshot instead of `201`, and the score does not move.
-- `POST /matches/:id/balls/undo` reverses the last ball. `GET /matches/:id/events`
-  still shows both the original and the UNDO — nothing is deleted.
-- Bowl two overs with the same bowler back to back and the second is rejected
-  with `CONSECUTIVE_OVERS`.
-- Ten wickets, or the overs quota, closes the innings automatically; closing
-  innings 1 creates innings 2 with `targetRuns` set.
+---
 
-**Snapshot rebuild.** With a match in progress, delete the cache key
-(`DEL match:<id>` in Redis) and re-request `GET /matches/:id/snapshot`. The
-score comes back identical — it was rebuilt by folding the event log.
+## Verification
 
-## Verifying phase 5
+`npm test` covers the pure logic — 45 tests across the scoring reducer, the
+fixture generator's pairing guarantees, and the NRR arithmetic including the
+plan's exact worked scenario.
 
-**The share link.** Open `http://localhost:5173/live/<publicSlug>` — no login.
-The slug comes from any match in `GET /tournaments/:id/matches`. Score a ball
-over HTTP and the page updates without a refresh.
+The parts worth checking by hand:
 
-**Mid-match join.** Open the same link in a fresh incognito window after a few
-overs. It shows the current score immediately — snapshot first, then subscribe
-— never a replay from ball one.
-
-**Reconnect.** Kill the API while the page is open: the badge flips to
-"Reconnecting". Restart it and the page resyncs by refetching the snapshot,
-because the gap while disconnected is unknowable.
-
-**Horizontal scale.** This is what the Redis adapter is for:
-
-```bash
-npm run dev:api                    # instance A on :4000
-PORT=4001 npm run dev:api          # instance B on :4001
-```
-
-Point a viewer at B, score a ball through A, and the viewer updates — the emit
-crosses via Redis pub/sub. Verified: 5/5 checks.
-
-## Verifying phase 6
-
-The NRR arithmetic is covered by `npm test`, including the plan's exact
-scenario and a regression guard proving the bowled-out rule changes the answer.
-
-**End to end.** Play a match out and the table appears on its own — the recompute
-is triggered by the `match:completed` domain event, with no cron and no polling:
-
-```bash
-curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:4000/tournaments/$T/standings
-curl http://localhost:4000/public/tournaments/$T/standings   # no auth
-```
-
-**The rule to check.** Complete a match where the chasing side is bowled out
-inside its quota, then read that team's row: `oversFaced` must be the **full
-quota**, not the balls it actually faced. Verified with a 2-over match — the
-chase was all out having faced 11 of 12 balls and the table charged `2.0`.
-
-Every NRR input (`runsScored`, `oversFaced`, `runsConceded`, `oversBowled`) is
-returned alongside the figure, so a disputed number can be traced rather than
-taken on trust.
-
-**Idempotency.** `POST /tournaments/:id/standings/recompute` rebuilds the whole
-table from the event log. Running it repeatedly does not change the numbers —
-the table is recomputed, never incremented, so it cannot drift.
-
-## Usernames
-
-Every account has a unique handle, so an organizer can find a scorer without
-knowing their email:
-
-```bash
-GET /users/search?q=why&role=SCORER   # prefix search over handle and name
-GET /users/whynotramaa                # exact lookup + activity counts
-POST /tournaments/:t/matches/:m/scorers  {"username":"whynotramaa"}
-```
-
-Handles are allocated automatically at signup from the email local part, with a
-numeric suffix on collision, and can be changed later via `PATCH /auth/me`.
-Lookup requires a session — a public endpoint that confirms whether a handle
-exists would be an enumeration oracle.
+| Check | Expected |
+| --- | --- |
+| Score a wide and a no-ball in an over | After six *submissions* the over reads `0.4`, not `0.6` |
+| Re-post a ball with the same `clientEventId` | `200` with an identical snapshot; the score does not move |
+| Same bowler two overs running | Rejected with `CONSECUTIVE_OVERS` |
+| `DEL match:<id>` in Redis, then re-read the snapshot | Identical score, rebuilt from the event log |
+| Open the share link mid-match in a fresh window | Current score immediately — never a replay from ball one |
+| Kill the API with the live page open | Badge flips to "Reconnecting", then resyncs by refetching |
+| Run two API instances, score through one | The viewer on the other updates, via Redis pub/sub |
+| Chase bowled out inside its quota | That row's `oversFaced` is the **full quota** |
 
 ---
 
@@ -229,21 +274,27 @@ packages/shared/   types, zod schemas, constants — one contract for both apps
   src/scoring/format.ts    base-6 overs, run rate, strike rate, economy
   src/fixtures/circle.ts   round-robin by the circle method (pure, no DB)
   src/nrr/index.ts         points + NRR, incl. the bowled-out quota rule (pure)
+
 apps/api/          express + prisma + redis
-  src/config/env.ts        zod-parsed process.env, exits at boot if incomplete
+  src/app.ts               createApp() — no listen(), so it is host-agnostic
+  src/index.ts             long-lived server entry (local dev)
+  src/vercel.ts            serverless entry — exports the server, never listens
+  src/config/env.ts        zod-parsed process.env, throws at boot if incomplete
   src/lib/                 prisma, redis, logger, errors, lock, slug
-  src/middleware/          requireAuth, requireRole, requireScorerForMatch, error
+  src/middleware/          requireAuth, requireRole, requireScorerForMatch
   src/modules/             auth, users, tournaments, teams, players, fixtures,
-                           matches (lifecycle), scoring (ingest), snapshot,
-                           standings (points + NRR)
+                           matches, scoring, snapshot, standings, stats
   src/modules/public/      the no-auth share link surface (slug-addressed)
   src/realtime/bus.ts      transport-agnostic seam the write path publishes to
-  src/realtime/io.ts       socket.io + Redis adapter (separate pub/sub clients)
+  src/realtime/io.ts       socket.io + Redis adapter, Redis-backed viewer count
+
 apps/web/          vite + react + tailwind v4
   src/styles/tokens.css    semantic CSS variables; light/dark, no `dark:` classes
   src/lib/api.ts           fetch wrapper with silent token refresh
   src/lib/socket.ts        one shared socket per tab
-  src/features/            auth, organizer, live (the public share page)
+  src/features/            auth, organizer, matches, live, profile, notifications
+
+api/server.ts      the Vercel Function — re-exports the built server
 ```
 
 ## Scripts
@@ -253,46 +304,14 @@ apps/web/          vite + react + tailwind v4
 | `npm run dev` | API and web together |
 | `npm run typecheck` | `tsc -b` across all three workspaces |
 | `npm run lint` | ESLint |
-| `npm test` | Vitest over the reducer and the fixture generator |
+| `npm test` | Vitest over the reducer, fixtures and NRR |
 | `npm run build` | API bundle + web static build |
 | `npm run db:migrate` | Create/apply a migration (uses `DIRECT_URL`) |
+| `npm run db:seed` | Demo tournaments, teams, squads, accounts |
 | `npm run db:studio` | Prisma Studio |
-| `npm run db:seed` | Demo tournament, teams, squads, accounts |
 
-## Notes on the implementation
+---
 
-- **Auth**: access tokens are 15-minute JWTs held in memory; refresh tokens are
-  opaque random strings stored as SHA-256 hashes and rotated on every use.
-  Presenting an already-revoked token is treated as theft and revokes the
-  user's whole session family.
-- **OTP**: bcrypt-hashed, 10-minute TTL, 5-attempt cap, and every failure path
-  returns the same message so the endpoint is not an account-enumeration oracle.
-- **The 11-player rule** lives in exactly one predicate,
-  `apps/api/src/modules/teams/eligibility.ts`, ready for its two callers in
-  phases 3 and 4 (fixture generation and the playing-XI lock at toss).
-- **`requireScorerForMatch`** guards every match route. The 60s Redis cache is
-  invalidated immediately when an assignment is added or removed.
-- **Scoring is HTTP-only, never websocket.** Auth, idempotency, validation and
-  retry semantics stay in one place, which makes the realtime layer a
-  disposable read-only fan-out. Phase 5 plugs into `src/realtime/bus.ts`.
-- **Broadcasts carry the whole snapshot, not a minimal delta.** The plan
-  sketched applying deltas client-side with the shared reducer. A snapshot is
-  slightly larger but self-healing: a client that misses one is corrected by
-  the next, and `seq` monotonicity is enough to discard an out-of-order
-  arrival. The shared reducer still runs on the server and will drive the
-  scorer's optimistic UI in Phase 7.
-- **Postgres is the truth, Redis is derived.** The event insert and the
-  snapshot write are not atomic across two systems, and the code does not
-  pretend otherwise: a crash between them leaves a stale cache, and the next
-  read folds the log again. Snapshot writes are guarded by `lastEventSeq` so a
-  slow write can never overwrite a newer score.
-- **`PointsTable` stores balls, not decimal overs.** Overs are base-6, so
-  `16.5 + 0.1` is `17.0`, not `16.6`. Storing balls and converting only at read
-  time is what makes the NRR arithmetic hard to get subtly wrong.
-- **The points table is recomputed, never incremented.** Every
-  `match:completed` rebuilds the whole tournament from the event log inside one
-  transaction. That costs more than an increment and buys idempotency: replaying
-  the event, or repairing a bad row, converges instead of double-counting.
-- **The standings recompute is detached from the ball write.** A slow rebuild
-  must not delay or fail the ball that triggered it, so subscribers run outside
-  the request. The table therefore settles a moment after the final ball.
+<div align="center">
+<sub>See <a href="./plan.md">plan.md</a> for the full roadmap and <a href="./brief.md">brief.md</a> for the original requirements.</sub>
+</div>
