@@ -1,6 +1,5 @@
 import {
   PLAYERS_PER_TEAM,
-  formatOvers,
   type MatchState,
   type PlayingXiInput,
   type TossInput,
@@ -153,7 +152,7 @@ export async function setPlayingXi(matchId: string, input: PlayingXiInput) {
 // ─────────────────────────────────────────────────────────  innings ──
 
 /** Who bats first, derived from the toss rather than asked for again. */
-export function battingFirstTeamId(match: Match): string {
+function battingFirstTeamId(match: Match): string {
   const { tossWinnerId, tossDecision, team1Id, team2Id } = match;
 
   if (!tossWinnerId || !tossDecision || !team1Id || !team2Id) {
@@ -340,11 +339,6 @@ export async function abandonMatch(matchId: string, resultText?: string) {
   });
 
   return updated;
-}
-
-/** Used in result text and in the innings-break summary. */
-export function describeInnings(state: MatchState): string {
-  return `${state.runs}/${state.wickets} (${formatOvers(state.legalBalls)})`;
 }
 
 function teamById(

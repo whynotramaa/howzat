@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 const ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz';
 const SLUG_LENGTH = 10;
 
-export function generatePublicSlug(): string {
+function generatePublicSlug(): string {
   const bytes = crypto.randomBytes(SLUG_LENGTH);
   let slug = '';
 

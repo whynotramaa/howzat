@@ -29,20 +29,3 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
     next(err);
   }
 };
-
-/**
- * Attaches req.user when a valid token is present but never rejects — for
- * routes that are public yet render differently for a signed-in user.
- */
-export const optionalAuth: RequestHandler = (req, _res, next) => {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) return next();
-
-  try {
-    const payload = verifyAccessToken(header.slice('Bearer '.length).trim());
-    req.user = { id: payload.sub, email: payload.email };
-  } catch {
-    // An expired token on an optional route is simply "not signed in".
-  }
-  next();
-};

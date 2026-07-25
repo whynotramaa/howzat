@@ -3,6 +3,7 @@ import type { StandingsRowDto } from '@howzat/shared';
 import { api } from '@/lib/api';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
+import { Table, Td, Th } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 
 /**
@@ -30,20 +31,20 @@ export function StandingsTable({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-      <table className="w-full min-w-[46rem] border-collapse text-sm">
+      <Table className="min-w-[46rem]">
         <thead>
           <tr className="border-b border-line">
-            <Th className="w-12 text-center">#</Th>
-            <Th className="text-left">Side</Th>
+            <Th className="w-12">#</Th>
+            <Th align="left">Side</Th>
             <Th>P</Th>
             <Th>W</Th>
             <Th>L</Th>
             <Th>T</Th>
             <Th>NR</Th>
-            <Th className="text-right">Pts</Th>
-            <Th className="text-right">NRR</Th>
-            <Th className="hidden text-right lg:table-cell">For</Th>
-            <Th className="hidden text-right lg:table-cell">Against</Th>
+            <Th align="right">Pts</Th>
+            <Th align="right">NRR</Th>
+            <Th align="right" className="hidden lg:table-cell">For</Th>
+            <Th align="right" className="hidden lg:table-cell">Against</Th>
           </tr>
         </thead>
 
@@ -74,7 +75,9 @@ export function StandingsTable({ tournamentId }: { tournamentId: string }) {
               <Td>{row.tied}</Td>
               <Td>{row.noResult}</Td>
 
-              <td className="mono px-4 py-4 text-right font-medium text-primary">{row.points}</td>
+              <Td align="right" emphasis>
+                {row.points}
+              </Td>
 
               <td
                 className={cn(
@@ -94,25 +97,7 @@ export function StandingsTable({ tournamentId }: { tournamentId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
     </div>
   );
-}
-
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <th
-      scope="col"
-      className={cn(
-        'eyebrow px-4 py-3.5 text-center font-medium whitespace-nowrap',
-        className,
-      )}
-    >
-      {children}
-    </th>
-  );
-}
-
-function Td({ children }: { children: React.ReactNode }) {
-  return <td className="mono px-4 py-4 text-center text-secondary">{children}</td>;
 }

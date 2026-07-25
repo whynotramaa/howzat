@@ -41,10 +41,6 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
-export function getAccessToken(): string | null {
-  return accessToken;
-}
-
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   /** Internal — stops a refresh loop from retrying forever. */

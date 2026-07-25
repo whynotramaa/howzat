@@ -129,10 +129,6 @@ async function countViewers(instance: MatchServer, matchId: string): Promise<num
   }
 }
 
-export function getIo(): MatchServer | null {
-  return io;
-}
-
 export async function closeRealtime(): Promise<void> {
   if (!io) return;
   await io.close();

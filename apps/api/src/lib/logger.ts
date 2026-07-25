@@ -26,5 +26,3 @@ export const logger = pino({
     remove: true,
   },
 });
-
-export type Logger = typeof logger;

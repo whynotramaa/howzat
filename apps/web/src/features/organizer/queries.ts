@@ -85,15 +85,6 @@ export function useCreateTournament() {
   });
 }
 
-export function useDeleteTournament() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => api.delete<void>(`/tournaments/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.tournaments }),
-  });
-}
-
 export function useCreateTeam(tournamentId: string) {
   const queryClient = useQueryClient();
 

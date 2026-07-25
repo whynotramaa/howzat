@@ -153,7 +153,7 @@ export function TournamentDetailPage() {
                     </p>
                   </div>
 
-                  <SquadProgress count={team.playerCount} delay={index * 70} />
+                  <SquadProgress count={team.playerCount} />
 
                   <button
                     type="button"

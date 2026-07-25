@@ -18,15 +18,6 @@ export function ballsToOvers(balls: number): number {
   return balls / BALLS_PER_OVER;
 }
 
-export function oversToBalls(overs: number): number {
-  return Math.round(overs * BALLS_PER_OVER);
-}
-
-/** The over number a ball belongs to, 0-indexed: ball 7 is in over 1. */
-export function overNumberForBall(ballIndex: number): number {
-  return Math.floor(ballIndex / BALLS_PER_OVER);
-}
-
 export function runRate(runs: number, balls: number): number {
   if (balls === 0) return 0;
   return round2(runs / ballsToOvers(balls));

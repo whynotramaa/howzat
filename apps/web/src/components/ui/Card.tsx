@@ -43,20 +43,6 @@ export function CardBody({ className, children, ...props }: CardProps) {
   );
 }
 
-export function CardFooter({ className, children, ...props }: CardProps) {
-  return (
-    <div
-      {...props}
-      className={cn(
-        'flex flex-wrap items-center gap-3 border-t border-line bg-sunken/60 px-6 py-4 sm:px-8',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
 /**
  * The standard way to open a section: an eyebrow, a serif title, and the brass
  * rule. Used everywhere so that every page is built out of the same measure.

@@ -55,37 +55,3 @@ export const PLAYOFF_BRACKET: readonly BracketSlot[] = [
 
 /** Playoffs need a top four; below that the bracket is meaningless. */
 export const MIN_TEAMS_FOR_PLAYOFFS = 4;
-
-/**
- * A pure knockout tournament: single elimination over ceil(log2(n)) rounds.
- * Byes go to the highest seeds, which is what keeps an 6-team draw fair.
- */
-export interface KnockoutPairing {
-  round: number;
-  home: SeedSource | null;
-  away: SeedSource | null;
-}
-
-export function knockoutRoundCount(teamCount: number): number {
-  if (teamCount < 2) return 0;
-  return Math.ceil(Math.log2(teamCount));
-}
-
-/** Slots in the opening round, byes included as null opponents. */
-export function knockoutFirstRound(teamCount: number): KnockoutPairing[] {
-  const bracketSize = 2 ** knockoutRoundCount(teamCount);
-  const pairings: KnockoutPairing[] = [];
-
-  for (let slot = 0; slot < bracketSize / 2; slot += 1) {
-    const highSeed = slot + 1;
-    const lowSeed = bracketSize - slot;
-
-    pairings.push({
-      round: 1,
-      home: { kind: 'SEED', position: highSeed as 1 | 2 | 3 | 4 },
-      away: lowSeed <= teamCount ? { kind: 'SEED', position: lowSeed as 1 | 2 | 3 | 4 } : null,
-    });
-  }
-
-  return pairings;
-}

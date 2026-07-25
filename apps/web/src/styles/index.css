@@ -506,24 +506,6 @@ input {
   animation: figure-in var(--dur) var(--ease) both;
 }
 
-/*
- * Gauge arcs sweep clockwise from zero to their value on load, like a tally
- * being counted up. --arc-from / --arc-to are dash offsets, set inline.
- */
-@keyframes arc-sweep {
-  from {
-    stroke-dashoffset: var(--arc-from);
-  }
-  to {
-    stroke-dashoffset: var(--arc-to);
-  }
-}
-
-.arc-sweep {
-  animation: arc-sweep var(--dur-gauge) var(--ease) both;
-  animation-delay: var(--delay, 0ms);
-}
-
 @keyframes live-pulse {
   0%,
   100% {
@@ -541,15 +523,6 @@ input {
 }
 
 /*
- * Desktop pointer only. The tilt is applied by JS as a CSS variable, so a touch
- * device and a reduced-motion user simply never receive one.
- */
-.tilt {
-  transition: transform var(--dur) var(--ease);
-  transform: perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-}
-
-/*
  * Reduced motion switches the vocabulary off rather than shortening it — a
  * 0.01ms sweep is still a sweep, and the point is not to move at all.
  */
@@ -564,10 +537,6 @@ input {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  .tilt {
-    transform: none !important;
   }
 
   /*

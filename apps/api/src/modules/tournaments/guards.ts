@@ -1,4 +1,4 @@
-import { forbidden, notFound, unprocessable } from '../../lib/errors';
+import { notFound, unprocessable } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 
 /**
@@ -66,8 +66,4 @@ export function assertSquadEditable(status: string): void {
       'This tournament has already started — squads can no longer be changed',
     );
   }
-}
-
-export function assertOrganizerOwns(organizerId: string, userId: string): void {
-  if (organizerId !== userId) throw forbidden('You do not own this tournament');
 }

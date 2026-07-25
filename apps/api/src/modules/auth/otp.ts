@@ -16,7 +16,7 @@ const OTP_COST = 10;
 export type { OtpPurpose };
 
 /** Uniform over 000000–999999, generated from a CSPRNG rather than Math.random. */
-export function generateOtpCode(): string {
+function generateOtpCode(): string {
   return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
 }
 
@@ -111,12 +111,4 @@ export async function verifyOtp(
     where: { id: record.id },
     data: { consumedAt: new Date() },
   });
-}
-
-/** Housekeeping for expired rows; safe to call from anywhere, including never. */
-export async function purgeExpiredOtps(): Promise<number> {
-  const { count } = await prisma.otpCode.deleteMany({
-    where: { expiresAt: { lt: new Date(Date.now() - 86_400_000) } },
-  });
-  return count;
 }

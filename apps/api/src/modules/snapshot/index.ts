@@ -314,7 +314,3 @@ export async function rebuildSnapshot(matchId: string): Promise<MatchSnapshot | 
 
   return snapshot;
 }
-
-export async function invalidateSnapshot(matchId: string): Promise<void> {
-  await redis.del(snapshotKey(matchId)).catch(() => undefined);
-}

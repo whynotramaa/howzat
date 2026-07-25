@@ -26,8 +26,3 @@ export function getSocket(): MatchSocket {
 
   return socket;
 }
-
-export function disconnectSocket(): void {
-  socket?.disconnect();
-  socket = null;
-}

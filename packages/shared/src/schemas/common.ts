@@ -58,10 +58,6 @@ export const claimableUsernameSchema = usernameSchema.refine(
   { message: `Usernames cannot start with "${GUEST_USERNAME_PREFIX}" — that prefix is reserved` },
 );
 
-export function isGuestUsername(username: string): boolean {
-  return username.startsWith(GUEST_USERNAME_PREFIX);
-}
-
 /**
  * Sign-in accepts either handle or email in one field. Which one it is can be
  * decided by looking for an "@", so the form never has to ask.
@@ -82,16 +78,3 @@ export const passwordSchema = z
   .string()
   .min(8, 'At least 8 characters')
   .max(200, 'At most 200 characters');
-
-/** Derives a valid handle from an arbitrary string (an email local part, a name). */
-export function slugifyUsername(input: string): string {
-  const cleaned = input
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, '')
-    .replace(/^[^a-z]+/, '')
-    .slice(0, 20);
-
-  return cleaned.length >= 3 ? cleaned : `user${cleaned}`.slice(0, 20);
-}
-
-export type Id = z.infer<typeof idSchema>;

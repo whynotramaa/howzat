@@ -70,7 +70,7 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
   }
 }
 
-export interface SquadAdditionEmail {
+interface SquadAdditionEmail {
   to: string;
   /** The recipient's own name — the greeting, not the organizer's. */
   name: string;

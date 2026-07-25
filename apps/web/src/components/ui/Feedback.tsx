@@ -87,95 +87,14 @@ export function ErrorText({ error }: { error: unknown }) {
   );
 }
 
-/**
- * A gauge arc.
- *
- * It sweeps clockwise from zero to its value once, on mount — the way a scorer
- * runs a finger down a column and totals it. Reduced motion removes the sweep
- * and the arc is simply drawn at its final value.
- */
-export function Gauge({
-  fraction,
-  size = 44,
-  label,
-  delay = 0,
-  tone = 'accent',
-  children,
-}: {
-  /** 0–1. Clamped, because a squad of twelve is a data problem, not a 109% arc. */
-  fraction: number;
-  size?: number;
-  label: string;
-  delay?: number;
-  tone?: 'accent' | 'success';
-  children?: React.ReactNode;
-}) {
-  const clamped = Math.max(0, Math.min(1, fraction));
-  const stroke = size >= 64 ? 4 : 3;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  return (
-    <div
-      role="img"
-      aria-label={label}
-      className="relative grid shrink-0 place-items-center"
-      style={{ width: size, height: size }}
-    >
-      <svg
-        viewBox={`0 0 ${size} ${size}`}
-        className="absolute inset-0 -rotate-90"
-        aria-hidden
-        fill="none"
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="var(--line)"
-          strokeWidth={stroke}
-        />
-        <circle
-          className="arc-sweep"
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={tone === 'success' ? 'var(--success)' : 'var(--accent-strong)'}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          style={
-            {
-              '--arc-from': circumference,
-              '--arc-to': circumference * (1 - clamped),
-              '--delay': `${delay}ms`,
-              // The final value, for anyone who never sees the animation.
-              strokeDashoffset: circumference * (1 - clamped),
-            } as React.CSSProperties
-          }
-        />
-      </svg>
-
-      {children ? (
-        <span className="tabular relative text-[0.6875rem] font-semibold text-secondary">
-          {children}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 /** Compact squad copy; a progress gauge made incomplete squads look broken. */
 export function SquadProgress({
   count,
-  delay = 0,
   showLabel = true,
 }: {
   count: number;
-  delay?: number;
   showLabel?: boolean;
 }) {
-  void delay;
   return (
     <div className="flex shrink-0 items-center">
       {showLabel ? (

@@ -3,6 +3,7 @@ import type { TournamentStatsDto } from '@howzat/shared';
 import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
+import { Table, Td, Th } from '@/components/ui/Table';
 import { api } from '@/lib/api';
 
 export function TournamentStatsPanel({ tournamentId }: { tournamentId: string }) {
@@ -33,10 +34,10 @@ export function TournamentStatsPanel({ tournamentId }: { tournamentId: string })
       </div>
 
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-        <table className="w-full min-w-[58rem] border-collapse text-sm">
+        <Table className="min-w-[58rem]">
           <thead>
             <tr className="border-b border-line">
-              <Th className="text-left">Player</Th>
+              <Th align="left">Player</Th>
               <Th>Mat</Th><Th>Runs</Th><Th>Avg</Th><Th>SR</Th><Th>4s</Th><Th>6s</Th>
               <Th>Wkts</Th><Th>Econ</Th><Th>Fielding</Th>
             </tr>
@@ -61,7 +62,7 @@ export function TournamentStatsPanel({ tournamentId }: { tournamentId: string })
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       </div>
     </section>
   );
@@ -97,12 +98,4 @@ function CapCard({
       </CardBody>
     </Card>
   );
-}
-
-function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <th className={`eyebrow whitespace-nowrap px-4 py-3.5 text-center font-medium ${className}`}>{children}</th>;
-}
-
-function Td({ children, emphasis = false }: { children: React.ReactNode; emphasis?: boolean }) {
-  return <td className={`mono px-4 py-4 text-center ${emphasis ? 'font-medium text-primary' : 'text-secondary'}`}>{children}</td>;
 }

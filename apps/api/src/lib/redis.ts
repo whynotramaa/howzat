@@ -11,11 +11,6 @@ const baseOptions: RedisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
   lazyConnect: false,
-  // Railway's private network resolves *.railway.internal over AAAA only, and
-  // ioredis otherwise asks for A records and fails with ENOTFOUND on a host
-  // that plainly exists. 0 means "whatever DNS returns", which is correct
-  // everywhere else too.
-  family: 0,
   retryStrategy(times) {
     // Back off to a 5s ceiling, then keep trying — a Redis blip should
     // degrade the service, not kill the process.
@@ -75,20 +70,4 @@ export async function incrementWindow(
   }
 
   return { count, ttl };
-}
-
-export async function cacheJson<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
-  await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-}
-
-export async function readJson<T>(key: string): Promise<T | null> {
-  const raw = await redis.get(key);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    // A corrupt cache entry is not worth an exception — drop it and miss.
-    await redis.del(key);
-    return null;
-  }
 }

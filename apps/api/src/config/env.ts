@@ -58,12 +58,3 @@ export const isDevelopment = env.NODE_ENV === 'development';
 
 /** True when OTP emails actually send; false means codes go to the log. */
 export const emailEnabled = Boolean(env.RESEND_API_KEY);
-
-/**
- * True when the browser and the API live on different hosts — the shape of a
- * Vercel + Render deploy. It changes what the refresh cookie has to look like:
- * a cross-site request only carries a cookie marked SameSite=None; Secure.
- * Behind a single domain the hostnames match and the stricter default stands.
- */
-export const isCrossSite =
-  new URL(env.WEB_BASE_URL).hostname !== new URL(env.API_BASE_URL).hostname;

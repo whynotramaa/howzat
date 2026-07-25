@@ -392,8 +392,3 @@ export interface ApiErrorBody {
     details?: unknown;
   };
 }
-
-export interface Paginated<T> {
-  items: T[];
-  total: number;
-}

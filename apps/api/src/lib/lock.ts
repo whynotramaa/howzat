@@ -19,12 +19,12 @@ else
   return 0
 end`;
 
-export interface Lock {
+interface Lock {
   key: string;
   token: string;
 }
 
-export async function acquireLock(
+async function acquireLock(
   key: string,
   ttlMs = 5_000,
   attempts = 20,
@@ -43,7 +43,7 @@ export async function acquireLock(
   throw conflict('That match is busy — another ball is being recorded. Try again.');
 }
 
-export async function releaseLock(lock: Lock): Promise<void> {
+async function releaseLock(lock: Lock): Promise<void> {
   await redis.eval(RELEASE_SCRIPT, 1, lock.key, lock.token).catch(() => {
     // A failed release is harmless: the TTL reclaims the lock shortly.
   });

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import type { Response } from 'express';
-import { env, isCrossSite, isProduction } from '../../config/env';
+import { env, isProduction } from '../../config/env';
 import { prisma } from '../../lib/prisma';
 import { unauthorized } from '../../lib/errors';
 
@@ -39,12 +39,12 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
  * and a stateless token cannot be revoked. Only the SHA-256 hash is stored, so
  * a database leak yields nothing replayable.
  */
-export function generateRefreshToken(): { token: string; tokenHash: string } {
+function generateRefreshToken(): { token: string; tokenHash: string } {
   const token = crypto.randomBytes(48).toString('base64url');
   return { token, tokenHash: hashToken(token) };
 }
 
-export function hashToken(token: string): string {
+function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
@@ -113,36 +113,24 @@ export async function revokeRefreshToken(presented: string): Promise<void> {
   });
 }
 
-/**
- * The web app on vercel.app calling an API on onrender.com is a cross-site
- * request, and a 'strict' cookie is simply not attached to one — every refresh
- * would 401 and log the user out. 'none' is what makes that work, and it is
- * only legal alongside Secure, so the two move together.
- */
-const refreshCookieOptions = {
-  httpOnly: true as const,
-  secure: isProduction || isCrossSite,
-  // Same-site in dev (localhost:5173 → localhost:4000) and behind one domain,
-  // so the stricter value still applies wherever it can.
-  sameSite: isCrossSite ? ('none' as const) : isProduction ? ('strict' as const) : ('lax' as const),
-  path: '/auth',
-};
-
 export function setRefreshCookie(res: Response, token: string): void {
   res.cookie(REFRESH_COOKIE, token, {
-    ...refreshCookieOptions,
+    httpOnly: true,
+    secure: isProduction,
+    // 'lax' keeps the cookie on same-site XHR in dev (localhost:5173 →
+    // localhost:4000 counts as same-site); production behind one domain is fine.
+    sameSite: isProduction ? 'strict' : 'lax',
+    path: '/auth',
     maxAge: parseDuration(env.JWT_REFRESH_TTL),
   });
 }
 
 export function clearRefreshCookie(res: Response): void {
-  // The attributes must match the ones the cookie was set with, or the browser
-  // keeps the original and the "logout" only appears to work.
-  res.clearCookie(REFRESH_COOKIE, refreshCookieOptions);
+  res.clearCookie(REFRESH_COOKIE, { path: '/auth' });
 }
 
 /** "15m" | "30d" | "3600" → milliseconds. */
-export function parseDuration(input: string): number {
+function parseDuration(input: string): number {
   const match = /^(\d+)\s*([smhd])?$/.exec(input.trim());
   if (!match) throw new Error(`Unparseable duration: ${input}`);
 

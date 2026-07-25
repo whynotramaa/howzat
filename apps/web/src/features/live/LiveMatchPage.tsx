@@ -9,6 +9,7 @@ import { Pill, TeamMark } from '@/components/ui/Pill';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { BallChip } from '@/components/ui/Score';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { Table, Td, Th } from '@/components/ui/Table';
 import { Tabs } from '@/components/ui/Tabs';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
@@ -579,7 +580,7 @@ function ScorecardView({ slug }: { slug: string }) {
           </div>
 
           <div className="live-panel overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
+            <Table density="compact" className="min-w-[34rem]">
               <thead>
                 <tr className="border-b border-line bg-sunken">
                   <th scope="col" className="eyebrow px-5 py-3.5 text-left font-medium">
@@ -589,7 +590,7 @@ function ScorecardView({ slug }: { slug: string }) {
                   <Th>B</Th>
                   <Th>4s</Th>
                   <Th>6s</Th>
-                  <Th className="pr-5 text-right">SR</Th>
+                  <Th align="right" className="pr-5">SR</Th>
                 </tr>
               </thead>
 
@@ -613,7 +614,7 @@ function ScorecardView({ slug }: { slug: string }) {
                     <Td>{batter.balls}</Td>
                     <Td>{batter.fours}</Td>
                     <Td>{batter.sixes}</Td>
-                    <Td className="pr-5 text-right">
+                    <Td align="right" className="pr-5">
                       {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '—'}
                     </Td>
                   </tr>
@@ -629,11 +630,11 @@ function ScorecardView({ slug }: { slug: string }) {
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </Table>
           </div>
 
           <div className="live-panel overflow-x-auto">
-            <table className="w-full min-w-[30rem] text-sm">
+            <Table density="compact" className="min-w-[30rem]">
               <thead>
                 <tr className="border-b border-line bg-sunken">
                   <th scope="col" className="eyebrow px-5 py-3.5 text-left font-medium">
@@ -642,7 +643,7 @@ function ScorecardView({ slug }: { slug: string }) {
                   <Th>O</Th>
                   <Th>M</Th>
                   <Th>R</Th>
-                  <Th className="pr-5 text-right">W</Th>
+                  <Th align="right" className="pr-5">W</Th>
                 </tr>
               </thead>
               <tbody>
@@ -660,13 +661,13 @@ function ScorecardView({ slug }: { slug: string }) {
                     <Td>{bowler.overs}</Td>
                     <Td>{bowler.maidens}</Td>
                     <Td>{bowler.runs}</Td>
-                    <Td emphasis className="pr-5 text-right">
+                    <Td align="right" emphasis className="pr-5">
                       {bowler.wickets}
                     </Td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </Table>
           </div>
 
           {innings.fallOfWickets.length > 0 ? (
@@ -683,36 +684,6 @@ function ScorecardView({ slug }: { slug: string }) {
         </section>
       ))}
     </div>
-  );
-}
-
-function Th({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <th scope="col" className={cn('eyebrow px-3 py-3.5 text-center font-medium', className)}>
-      {children}
-    </th>
-  );
-}
-
-function Td({
-  children,
-  emphasis = false,
-  className,
-}: {
-  children: React.ReactNode;
-  emphasis?: boolean;
-  className?: string;
-}) {
-  return (
-    <td
-      className={cn(
-        'mono px-3 py-3.5 text-center',
-        emphasis ? 'font-medium text-primary' : 'text-secondary',
-        className,
-      )}
-    >
-      {children}
-    </td>
   );
 }
 

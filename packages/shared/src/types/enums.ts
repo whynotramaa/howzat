@@ -60,6 +60,3 @@ export type WicketType = (typeof WICKET_TYPES)[number];
 
 export const NOTIFICATION_TYPES = ['SQUAD_ADDED', 'SCORER_ASSIGNED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
-
-/** Player roles that count as wicketkeepers for XI validation. */
-export const KEEPER_ROLES: readonly PlayerRole[] = ['KEEPER'];
