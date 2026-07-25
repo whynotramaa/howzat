@@ -67,8 +67,7 @@ export function useUserSearch(query: string) {
 
   return useQuery({
     queryKey: keys.userSearch(q),
-    queryFn: () =>
-      api.get<{ items: UserRef[] }>(`/users/search?q=${encodeURIComponent(q)}`),
+    queryFn: () => api.get<{ items: UserRef[] }>(`/users/search?q=${encodeURIComponent(q)}`),
     // The API rejects anything shorter, so don't spend a request finding out.
     enabled: q.length >= 2,
     staleTime: 15_000,
@@ -79,8 +78,7 @@ export function useCreateTournament() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateTournamentInput) =>
-      api.post<TournamentDto>('/tournaments', input),
+    mutationFn: (input: CreateTournamentInput) => api.post<TournamentDto>('/tournaments', input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.tournaments }),
   });
 }

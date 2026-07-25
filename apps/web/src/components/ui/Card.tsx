@@ -44,7 +44,7 @@ export function CardBody({ className, children, ...props }: CardProps) {
 }
 
 /**
- * The standard way to open a section: an eyebrow, a serif title, and the brass
+ * The standard way to open a section: an eyebrow, a serif title, and the accent
  * rule. Used everywhere so that every page is built out of the same measure.
  */
 export function SectionHeading({
@@ -66,9 +66,7 @@ export function SectionHeading({
         <div className="min-w-0">
           {eyebrow ? <p className="eyebrow mb-3">{eyebrow}</p> : null}
           <h2 className="serif text-[1.75rem] text-primary sm:text-[2rem]">{title}</h2>
-          {description ? (
-            <p className="mt-2.5 max-w-2xl text-secondary">{description}</p>
-          ) : null}
+          {description ? <p className="mt-2.5 max-w-2xl text-secondary">{description}</p> : null}
         </div>
         {action ? <div className="flex shrink-0 flex-wrap gap-2.5">{action}</div> : null}
       </div>

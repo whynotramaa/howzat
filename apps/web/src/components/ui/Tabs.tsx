@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 /*
  * Tabs, drawn as an underlined index rather than a pill group.
  *
- * The active tab is marked by a brass rule sitting on the same hairline that
+ * The active tab is marked by an accent rule sitting on the same hairline that
  * runs under the whole row — so the indicator looks like part of the page's
  * ruling rather than a widget stuck on top of it.
  */

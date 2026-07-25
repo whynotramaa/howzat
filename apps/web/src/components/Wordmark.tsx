@@ -43,15 +43,27 @@ export function Wordmark({
   );
 }
 
-export function WordmarkMark({ size = 'md', tone = 'default' }: { size?: 'sm' | 'md' | 'lg'; tone?: 'default' | 'inverse' }) {
-  const sizes = { sm: 'size-7 text-[0.9375rem]', md: 'size-8 text-base', lg: 'size-11 text-xl' } as const;
+export function WordmarkMark({
+  size = 'md',
+  tone = 'default',
+}: {
+  size?: 'sm' | 'md' | 'lg';
+  tone?: 'default' | 'inverse';
+}) {
+  const sizes = {
+    sm: 'size-7 text-[0.9375rem]',
+    md: 'size-8 text-base',
+    lg: 'size-11 text-xl',
+  } as const;
   return (
     <span
       aria-hidden
       className={cn(
         'serif grid shrink-0 place-items-center rounded-[var(--radius-sm)] border pt-px',
         sizes[size],
-        tone === 'inverse' ? 'border-[var(--accent)]/50 text-on-inverse' : 'border-[var(--accent-line)] text-primary',
+        tone === 'inverse'
+          ? 'border-[var(--accent)]/50 text-on-inverse'
+          : 'border-[var(--accent-line)] text-primary',
       )}
     >
       H

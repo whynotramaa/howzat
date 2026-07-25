@@ -59,7 +59,7 @@ export function Sheet({
       <div
         aria-hidden
         onClick={onClose}
-        className="scrim-in absolute inset-0 bg-[rgb(12_10_8/0.55)] backdrop-blur-[2px]"
+        className="scrim-in absolute inset-0 bg-[var(--scrim)] backdrop-blur-[2px]"
       />
 
       <div

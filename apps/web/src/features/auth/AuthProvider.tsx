@@ -106,8 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const resendVerification = useCallback(
-    (email: string) =>
-      api.post<VerificationSentResult>('/auth/resend-verification', { email }),
+    (email: string) => api.post<VerificationSentResult>('/auth/resend-verification', { email }),
     [],
   );
 

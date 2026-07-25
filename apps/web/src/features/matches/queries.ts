@@ -81,8 +81,7 @@ export function useFixtures(tournamentId: string) {
  */
 export function usePreviewFixtures(tournamentId: string) {
   return useMutation({
-    mutationFn: () =>
-      api.post<FixturePreviewDto>(`/tournaments/${tournamentId}/fixtures/preview`),
+    mutationFn: () => api.post<FixturePreviewDto>(`/tournaments/${tournamentId}/fixtures/preview`),
   });
 }
 
@@ -243,17 +242,13 @@ export function useUndoBall(matchId: string) {
  * innings state, and the two are rendered on different screens — so they are
  * always invalidated together rather than case by case.
  */
-function invalidateMatch(
-  queryClient: ReturnType<typeof useQueryClient>,
-  matchId: string,
-): void {
+function invalidateMatch(queryClient: ReturnType<typeof useQueryClient>, matchId: string): void {
   void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
   void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
   void queryClient.invalidateQueries({ queryKey: matchKeys.squads(matchId) });
   // The fixture list shows each match's status; it is keyed by tournament, so
   // match the prefix rather than plumbing the tournament id through every call.
   void queryClient.invalidateQueries({
-    predicate: (query) =>
-      query.queryKey[0] === 'tournaments' && query.queryKey[2] === 'matches',
+    predicate: (query) => query.queryKey[0] === 'tournaments' && query.queryKey[2] === 'matches',
   });
 }

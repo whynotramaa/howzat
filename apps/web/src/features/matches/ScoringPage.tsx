@@ -115,7 +115,11 @@ export function ScoringPage() {
             </p>
 
             {match.status === 'INNINGS_BREAK' && innings ? (
-              <Button size="lg" isLoading={resume.isPending} onClick={() => resume.mutate(innings.number)}>
+              <Button
+                size="lg"
+                isLoading={resume.isPending}
+                onClick={() => resume.mutate(innings.number)}
+              >
                 Start innings {innings.number}
               </Button>
             ) : null}
@@ -313,7 +317,10 @@ function Console({
       fielderId: ball.fielderId ?? null,
     };
 
-    const verdict = validateBall(displayState, input, context, { matchStatus, previousOverBowlerId });
+    const verdict = validateBall(displayState, input, context, {
+      matchStatus,
+      previousOverBowlerId,
+    });
 
     if (!verdict.ok) {
       setLocalError(verdict.issues[0]?.message ?? 'That ball is not legal in this state.');
@@ -435,11 +442,17 @@ function Console({
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-sunken px-4 py-3">
             <p className="text-[0.8125rem] text-secondary">
               {!isOnline ? 'Offline — deliveries are safely stored on this device.' : null}
-              {isOnline && queueItems.some((item) => item.status === 'pending') ? 'Syncing deliveries…' : null}
-              {queueItems.some((item) => item.status === 'failed') ? ' A delivery needs a retry.' : null}
+              {isOnline && queueItems.some((item) => item.status === 'pending')
+                ? 'Syncing deliveries…'
+                : null}
+              {queueItems.some((item) => item.status === 'failed')
+                ? ' A delivery needs a retry.'
+                : null}
             </p>
             {queueItems.some((item) => item.status === 'failed') ? (
-              <Button variant="quiet" size="sm" onClick={() => void onRetryQueue()}>Retry queue</Button>
+              <Button variant="quiet" size="sm" onClick={() => void onRetryQueue()}>
+                Retry queue
+              </Button>
             ) : null}
           </div>
         ) : syncState === 'synced' ? (
@@ -614,9 +627,7 @@ function ScorePanel({
         </div>
 
         <div className="mt-6 flex items-center justify-between gap-4 border-t border-[var(--line-inverse)] pt-5">
-          <p className="mono text-[0.8125rem] text-muted-on-inverse">
-            RR {runRate.toFixed(2)}
-          </p>
+          <p className="mono text-[0.8125rem] text-muted-on-inverse">RR {runRate.toFixed(2)}</p>
           <p className="mono text-[0.8125rem] text-muted-on-inverse">
             v {context.bowlingTeam.shortName}
           </p>
@@ -813,9 +824,7 @@ function OverLog({ state }: { state: MatchState }) {
             {overs.map((over) => (
               <div key={over.number} className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-3">
-                  <span className="mono text-[0.6875rem] text-muted">
-                    ov {over.number + 1}
-                  </span>
+                  <span className="mono text-[0.6875rem] text-muted">ov {over.number + 1}</span>
                   <span aria-hidden className="h-px flex-1 bg-line" />
                   <span className="mono text-[0.6875rem] text-secondary">
                     {over.runs} run{over.runs === 1 ? '' : 's'}
@@ -1000,9 +1009,7 @@ function WicketSheet({
 
         {needsFielder ? (
           <div className="flex flex-col gap-3">
-            <p className="eyebrow">
-              Fielder{wicketType === 'STUMPED' ? ' — the keeper' : ''}
-            </p>
+            <p className="eyebrow">Fielder{wicketType === 'STUMPED' ? ' — the keeper' : ''}</p>
             <div className="flex flex-wrap gap-2">
               {context.bowlingXI.map((player) => (
                 <ChoiceChip

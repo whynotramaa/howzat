@@ -61,7 +61,9 @@ export function TeamDetailPage() {
           </div>
 
           <div className="flex items-center gap-5">
-            <p className="mono text-[0.75rem] font-medium text-secondary">{squad.players.length} on {PLAYERS_PER_TEAM}</p>
+            <p className="mono text-[0.75rem] font-medium text-secondary">
+              {squad.players.length} on {PLAYERS_PER_TEAM}
+            </p>
             <p className="max-w-[15rem] text-[0.9375rem] text-secondary">
               {squad.isEligible ? (
                 <span className="text-success">
@@ -83,11 +85,7 @@ export function TeamDetailPage() {
             <AddPlayerCard teamId={teamId} tournamentId={squad.tournamentId} />
           </Reveal>
           <Reveal index={1}>
-            <BulkAddCard
-              teamId={teamId}
-              tournamentId={squad.tournamentId}
-              remaining={remaining}
-            />
+            <BulkAddCard teamId={teamId} tournamentId={squad.tournamentId} remaining={remaining} />
           </Reveal>
         </div>
       ) : null}
@@ -402,12 +400,7 @@ function BulkAddCard({
           />
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p
-              className={cn(
-                'mono text-[0.8125rem]',
-                overflow ? 'text-alert' : 'text-muted',
-              )}
-            >
+            <p className={cn('mono text-[0.8125rem]', overflow ? 'text-alert' : 'text-muted')}>
               {names.length} name{names.length === 1 ? '' : 's'} · {remaining} slot
               {remaining === 1 ? '' : 's'} left
             </p>

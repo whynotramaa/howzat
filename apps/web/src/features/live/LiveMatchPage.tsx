@@ -48,8 +48,8 @@ export function LiveMatchPage() {
       className="live-stage relative flex min-h-dvh flex-col"
       style={
         {
-          '--team-a': snapshot?.batting.color ?? '#7a5c22',
-          '--team-b': snapshot?.bowling.color ?? '#3d372c',
+          '--team-a': snapshot?.batting.color ?? '#1268bd',
+          '--team-b': snapshot?.bowling.color ?? '#363c44',
         } as React.CSSProperties
       }
     >
@@ -142,10 +142,7 @@ export function LiveMatchPage() {
           <p className="text-[0.8125rem] text-muted">
             Scored ball by ball on <span className="text-primary">Howzat</span>.
           </p>
-          <Link
-            to="/"
-            className="text-[0.8125rem] text-accent transition-opacity hover:opacity-70"
-          >
+          <Link to="/" className="text-[0.8125rem] text-accent transition-opacity hover:opacity-70">
             Run your own tournament →
           </Link>
         </div>
@@ -189,9 +186,7 @@ function Scoreboard({ snapshot }: { snapshot: MatchSnapshot }) {
         {/* A word and a dot, not a filled badge — the same mark the specimen on
             the front page uses, so the two read as one product. */}
         {finished ? (
-          <span className="text-[0.6875rem] tracking-[0.16em] text-success uppercase">
-            Result
-          </span>
+          <span className="text-[0.6875rem] tracking-[0.16em] text-success uppercase">Result</span>
         ) : (
           <span className="flex items-center gap-2 text-[0.6875rem] tracking-[0.16em] text-live uppercase">
             <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
@@ -276,7 +271,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 /**
  * The chase, as one line and one bar.
  *
- * The bar carries two facts at once: the brass fill is runs made against the
+ * The bar carries two facts at once: the accent fill is runs made against the
  * target, and the pale marker is balls used against the allotment. A chase is
  * entirely a question of which of those reaches the end first, and drawing them
  * on the same track is what makes that legible without arithmetic.
@@ -399,11 +394,7 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
         {snapshot.bowler ? (
           <Panel title="Bowling">
             <div className="flex items-center gap-3.5">
-              <PlayerAvatar
-                seed={snapshot.bowler.playerId}
-                name={snapshot.bowler.name}
-                size="sm"
-              />
+              <PlayerAvatar seed={snapshot.bowler.playerId} name={snapshot.bowler.name} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[0.9375rem] font-medium text-primary">
                   {snapshot.bowler.name}
@@ -590,7 +581,9 @@ function ScorecardView({ slug }: { slug: string }) {
                   <Th>B</Th>
                   <Th>4s</Th>
                   <Th>6s</Th>
-                  <Th align="right" className="pr-5">SR</Th>
+                  <Th align="right" className="pr-5">
+                    SR
+                  </Th>
                 </tr>
               </thead>
 
@@ -643,7 +636,9 @@ function ScorecardView({ slug }: { slug: string }) {
                   <Th>O</Th>
                   <Th>M</Th>
                   <Th>R</Th>
-                  <Th align="right" className="pr-5">W</Th>
+                  <Th align="right" className="pr-5">
+                    W
+                  </Th>
                 </tr>
               </thead>
               <tbody>
@@ -748,10 +743,22 @@ const commentary = {
     'Excellent running out there.',
     'A busy three for the batting side.',
   ],
-  four: ['Cracking stroke through the gap!', 'That races away for four.', 'Timed beautifully — boundary!'],
+  four: [
+    'Cracking stroke through the gap!',
+    'That races away for four.',
+    'Timed beautifully — boundary!',
+  ],
   six: ['That is launched into the stands!', 'Maximum! What a hit.', 'High, handsome, and six.'],
-  wicket: ['The breakthrough arrives.', 'Gone! The bowler wins this duel.', 'That changes the momentum.'],
-  extra: ['A gift to the batting side.', 'The extras keep ticking over.', 'Free runs on the board.'],
+  wicket: [
+    'The breakthrough arrives.',
+    'Gone! The bowler wins this duel.',
+    'That changes the momentum.',
+  ],
+  extra: [
+    'A gift to the batting side.',
+    'The extras keep ticking over.',
+    'Free runs on the board.',
+  ],
 } as const;
 
 function commentaryLine(ball: BallSummary): string {
@@ -807,7 +814,10 @@ function describe(ball: BallSummary): string {
 function ConnectionBadge({ state }: { state: ConnectionState }) {
   if (state === 'live') return null;
 
-  const config: Record<Exclude<ConnectionState, 'live'>, { label: string; tone: 'warning' | 'neutral' }> = {
+  const config: Record<
+    Exclude<ConnectionState, 'live'>,
+    { label: string; tone: 'warning' | 'neutral' }
+  > = {
     connecting: { label: 'Connecting', tone: 'neutral' },
     reconnecting: { label: 'Reconnecting', tone: 'warning' },
     offline: { label: 'Offline', tone: 'neutral' },

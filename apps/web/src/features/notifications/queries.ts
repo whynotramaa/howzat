@@ -42,9 +42,7 @@ export function useMarkNotificationRead() {
         queryClient.setQueryData<NotificationFeedDto>(notificationKeys.feed, {
           unread: Math.max(0, previous.unread - 1),
           items: previous.items.map((item) =>
-            item.id === id && !item.readAt
-              ? { ...item, readAt: new Date().toISOString() }
-              : item,
+            item.id === id && !item.readAt ? { ...item, readAt: new Date().toISOString() } : item,
           ),
         });
       }

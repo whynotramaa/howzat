@@ -341,8 +341,8 @@ export function LoginPage() {
             title="Choose a new password"
             lead={
               <>
-                If <span className="text-primary">{email}</span> has an account, a code is on
-                its way.
+                If <span className="text-primary">{email}</span> has an account, a code is on its
+                way.
               </>
             }
           />
@@ -402,8 +402,8 @@ export function LoginPage() {
             title="Confirm your email"
             lead={
               <>
-                Sent to <span className="text-primary">{email}</span>. This is the only time
-                we'll ask for a code.
+                Sent to <span className="text-primary">{email}</span>. This is the only time we'll
+                ask for a code.
               </>
             }
           />
@@ -471,13 +471,9 @@ function AuthLayout({ children }: { children: ReactNode }) {
           <h2 className="serif mt-6 text-[2.75rem] text-white">
             Ball-by-ball scoring for tournaments that actually happen.
           </h2>
-
-
         </div>
 
-        <p className="text-[0.8125rem] text-white/75">
-          Howzat — local cricket, kept properly.
-        </p>
+        <p className="text-[0.8125rem] text-white/75">Howzat — local cricket, kept properly.</p>
       </aside>
 
       <main className="flex flex-col px-5 py-6 sm:px-10">

@@ -10,7 +10,12 @@ interface QualificationResponse {
   qualificationSpots: number;
   relevantFixtureCount: number;
   tooComplex: boolean;
-  scenarios: Array<{ outcomes: Record<string, string>; qualified: boolean; rank: number; requiresNrr: boolean }>;
+  scenarios: Array<{
+    outcomes: Record<string, string>;
+    qualified: boolean;
+    rank: number;
+    requiresNrr: boolean;
+  }>;
   fixtures: Array<{ fixtureId: string; label: string }>;
 }
 
@@ -49,28 +54,53 @@ export function QualificationPanel({
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex min-w-52 flex-1 flex-col gap-2 text-sm text-secondary">
               Team
-              <select className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary" value={targetTeamId} onChange={(event) => setTargetTeamId(event.target.value)}>
-                {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+              <select
+                className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary"
+                value={targetTeamId}
+                onChange={(event) => setTargetTeamId(event.target.value)}
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="w-28 flex flex-col gap-2 text-sm text-secondary">
               Spots
-              <input className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary" type="number" min={1} max={teams.length} value={spots} onChange={(event) => setSpots(Math.max(1, Number(event.target.value) || 1))} />
+              <input
+                className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary"
+                type="number"
+                min={1}
+                max={teams.length}
+                value={spots}
+                onChange={(event) => setSpots(Math.max(1, Number(event.target.value) || 1))}
+              />
             </label>
-            <Button variant="secondary" onClick={() => void query.refetch()} disabled={query.isFetching}>Refresh</Button>
+            <Button
+              variant="secondary"
+              onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+            >
+              Refresh
+            </Button>
           </div>
 
           {query.isPending ? <Skeleton className="h-24" /> : null}
           {query.error ? <ErrorText error={query.error} /> : null}
           {query.data?.tooComplex ? (
             <p className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-4 py-3 text-sm text-primary">
-              There are {query.data.relevantFixtureCount} relevant fixtures. Narrow the tournament or revisit this after the next result.
+              There are {query.data.relevantFixtureCount} relevant fixtures. Narrow the tournament
+              or revisit this after the next result.
             </p>
           ) : query.data ? (
             <div className="grid gap-4 sm:grid-cols-3">
               <Metric label="Can qualify" value={`${qualifying}/${total}`} />
               <Metric label="Relevant matches" value={query.data.relevantFixtureCount} />
-              <Metric label="NRR calls" value={query.data.scenarios.filter((scenario) => scenario.requiresNrr).length} />
+              <Metric
+                label="NRR calls"
+                value={query.data.scenarios.filter((scenario) => scenario.requiresNrr).length}
+              />
             </div>
           ) : null}
         </CardBody>
@@ -80,5 +110,10 @@ export function QualificationPanel({
 }
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div className="rounded-[var(--radius-md)] border border-line bg-sunken px-4 py-4"><p className="mono text-2xl font-medium text-primary">{value}</p><p className="eyebrow mt-2">{label}</p></div>;
+  return (
+    <div className="rounded-[var(--radius-md)] border border-line bg-sunken px-4 py-4">
+      <p className="mono text-2xl font-medium text-primary">{value}</p>
+      <p className="eyebrow mt-2">{label}</p>
+    </div>
+  );
 }

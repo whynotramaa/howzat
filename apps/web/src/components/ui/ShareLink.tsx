@@ -46,7 +46,9 @@ export function ShareLink({
       try {
         await navigator.share({
           title: matchLabel ? `${matchLabel} — live on Howzat` : 'Live on Howzat',
-          text: matchLabel ? `Follow ${matchLabel} ball by ball.` : 'Follow the score ball by ball.',
+          text: matchLabel
+            ? `Follow ${matchLabel} ball by ball.`
+            : 'Follow the score ball by ball.',
           url,
         });
         return;

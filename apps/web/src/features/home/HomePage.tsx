@@ -97,18 +97,15 @@ function Hero({ home, signedIn }: { home: string; signedIn: boolean }) {
 
           <Reveal index={2}>
             <p className="mt-7 max-w-xl text-[1.0625rem] leading-relaxed text-secondary sm:text-lg">
-              Run a tournament, score it from your phone at the ground, and share one
-              link anyone can open — no login, no app, the current score the moment it
-              loads.
+              Run a tournament, score it from your phone at the ground, and share one link anyone
+              can open — no login, no app, the current score the moment it loads.
             </p>
           </Reveal>
 
           <Reveal index={3}>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link to={home}>
-                <Button size="lg">
-                  {signedIn ? 'Open your dashboard' : 'Start a tournament'}
-                </Button>
+                <Button size="lg">{signedIn ? 'Open your dashboard' : 'Start a tournament'}</Button>
               </Link>
               <a href="#what">
                 <Button size="lg" variant="secondary">
@@ -267,7 +264,10 @@ const SPECIMEN_OVER = ['1', '4', 'wd', '0', 'W'] as const;
  */
 function Capabilities() {
   return (
-    <section id="what" className="mx-auto w-full max-w-[80rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+    <section
+      id="what"
+      className="mx-auto w-full max-w-[80rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
+    >
       <ScrollReveal>
         <p className="eyebrow">What it does</p>
         <h2 className="serif mt-5 max-w-3xl text-[2.25rem] text-primary sm:text-[3rem]">
@@ -286,9 +286,8 @@ function Capabilities() {
                 Score a whole match with one thumb.
               </h3>
               <p className="mt-4 max-w-lg text-secondary">
-                Runs, extras, wickets and corrections are one tap each. The engine
-                rotates the strike, ends the over, ends the innings and sets the target
-                without being asked.
+                Runs, extras, wickets and corrections are one tap each. The engine rotates the
+                strike, ends the over, ends the innings and sets the target without being asked.
               </p>
             </div>
 
@@ -306,12 +305,10 @@ function Capabilities() {
               <p className="mono text-[0.6875rem] tracking-[0.16em] text-accent uppercase">
                 The share link
               </p>
-              <h3 className="serif mt-4 text-2xl text-on-inverse">
-                One URL. No login, no app.
-              </h3>
+              <h3 className="serif mt-4 text-2xl text-on-inverse">One URL. No login, no app.</h3>
               <p className="mt-3.5 text-[0.9375rem] text-muted-on-inverse">
-                Paste it into the group chat. It opens on the current score, mid-over,
-                and updates itself from there.
+                Paste it into the group chat. It opens on the current score, mid-over, and updates
+                itself from there.
               </p>
             </div>
 
@@ -417,9 +414,9 @@ function Rules() {
               The rules a scorebook gets wrong.
             </h2>
             <p className="mt-5 text-secondary">
-              A wide is not a ball. A leg bye is not a run to the batter. A side bowled
-              out inside its quota is still charged the full quota on net run rate.
-              Every one of those is a place a spreadsheet quietly lies to you.
+              A wide is not a ball. A leg bye is not a run to the batter. A side bowled out inside
+              its quota is still charged the full quota on net run rate. Every one of those is a
+              place a spreadsheet quietly lies to you.
             </p>
             <p className="mt-6 text-[0.9375rem] text-muted">
               All four are covered by tests, not by good intentions.
@@ -486,8 +483,8 @@ function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
                 Open a scorebook for your league.
               </h2>
               <p className="mt-5 max-w-lg text-muted-on-inverse">
-                Register your teams, generate the fixtures, hand a scorer the link. It
-                takes about ten minutes.
+                Register your teams, generate the fixtures, hand a scorer the link. It takes about
+                ten minutes.
               </p>
             </div>
 
@@ -513,8 +510,7 @@ function SiteFooter() {
           <div className="lg:col-span-2">
             <Wordmark />
             <p className="mt-4 max-w-xs text-[0.9375rem] text-secondary">
-              Local cricket, kept properly. Built for grounds with bad signal and long
-              memories.
+              Local cricket, kept properly. Built for grounds with bad signal and long memories.
             </p>
           </div>
 
@@ -538,9 +534,7 @@ function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-7">
-          <p className="text-[0.8125rem] text-muted">
-            © {new Date().getFullYear()} Howzat
-          </p>
+          <p className="text-[0.8125rem] text-muted">© {new Date().getFullYear()} Howzat</p>
           <p className="eyebrow">Every ball on the record</p>
         </div>
       </div>

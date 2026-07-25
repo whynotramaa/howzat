@@ -126,9 +126,7 @@ function BattingCard({ batting }: { batting: CareerStatsDto['batting'] }) {
       <LeaderRow
         label="High score"
         value={
-          batting.innings > 0
-            ? `${batting.highScore}${batting.highScoreNotOut ? '*' : ''}`
-            : '—'
+          batting.innings > 0 ? `${batting.highScore}${batting.highScoreNotOut ? '*' : ''}` : '—'
         }
         emphasis
       />

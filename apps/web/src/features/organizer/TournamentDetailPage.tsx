@@ -200,11 +200,7 @@ export function TournamentDetailPage() {
         />
       ) : null}
 
-      <AddTeamSheet
-        tournamentId={tournamentId}
-        open={adding}
-        onClose={() => setAdding(false)}
-      />
+      <AddTeamSheet tournamentId={tournamentId} open={adding} onClose={() => setAdding(false)} />
 
       <Sheet
         open={removing !== null}
@@ -250,8 +246,9 @@ function AddTeamSheet({
 
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
-  // A brass default, so a side that never picks a colour still looks deliberate.
-  const [primaryColor, setPrimaryColor] = useState('#8a6a2f');
+  // The house blue as a default, so a side that never picks a colour still
+  // looks deliberate rather than unset.
+  const [primaryColor, setPrimaryColor] = useState('#1268bd');
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

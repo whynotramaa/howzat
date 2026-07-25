@@ -5,9 +5,7 @@ import type { ApiErrorBody, AuthSession } from '@howzat/shared';
  * keeps the refresh cookie first-party. In a build, VITE_API_BASE_URL points
  * at the deployed API.
  */
-const BASE_URL = import.meta.env.PROD
-  ? (import.meta.env.VITE_API_BASE_URL ?? '')
-  : '/api';
+const BASE_URL = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL ?? '') : '/api';
 
 export class ApiError extends Error {
   readonly status: number;

@@ -168,9 +168,7 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
             <Pill>
               {match.stage === 'LEAGUE' ? `Round ${match.round}` : match.stage.replace(/_/g, ' ')}
             </Pill>
-            <span className="mono text-[0.6875rem] text-muted">
-              {match.oversPerInnings} overs
-            </span>
+            <span className="mono text-[0.6875rem] text-muted">{match.oversPerInnings} overs</span>
           </div>
 
           <h1 className="serif mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[2.25rem] text-primary sm:text-[2.75rem]">
@@ -184,7 +182,9 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <p className="text-[1.0625rem] text-success">{match.resultText}</p>
               <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="secondary">View scorecard</Button>
+                <Button size="sm" variant="secondary">
+                  View scorecard
+                </Button>
               </a>
             </div>
           ) : null}
@@ -214,15 +214,7 @@ function nameOfTeam(match: MatchWithInningsDto, teamId: string): string {
   return 'The winner';
 }
 
-function Banner({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action: ReactNode;
-}) {
+function Banner({ title, body, action }: { title: string; body: string; action: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-5 rounded-[var(--radius-lg)] border border-[var(--accent-line)] bg-accent-soft px-6 py-5 sm:px-8">
       <div>
@@ -284,8 +276,8 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
   const [winnerId, setWinnerId] = useState(match.tossWinnerId ?? '');
   const [decision, setDecision] = useState<TossDecision>(match.tossDecision ?? 'BAT');
 
-  const teams = [match.team1, match.team2].filter(
-    (team): team is NonNullable<typeof team> => Boolean(team),
+  const teams = [match.team1, match.team2].filter((team): team is NonNullable<typeof team> =>
+    Boolean(team),
   );
 
   if (teams.length < 2) return null;
@@ -455,8 +447,7 @@ function PlayingXiCard({
       >
         <div className="grid gap-8 lg:grid-cols-2">
           {sides.map((side) => {
-            const selection =
-              selections[side.id] ?? { order: [], captainId: null, keeperId: null };
+            const selection = selections[side.id] ?? { order: [], captainId: null, keeperId: null };
             const full = selection.order.length === PLAYERS_PER_TEAM;
 
             return (
@@ -467,10 +458,7 @@ function PlayingXiCard({
                     <p className="font-medium text-primary">{side.name}</p>
                   </div>
                   <span
-                    className={cn(
-                      'mono text-[0.8125rem]',
-                      full ? 'text-success' : 'text-muted',
-                    )}
+                    className={cn('mono text-[0.8125rem]', full ? 'text-success' : 'text-muted')}
                   >
                     {selection.order.length}/{PLAYERS_PER_TEAM}
                   </span>
@@ -551,9 +539,7 @@ function PlayingXiCard({
           {setXi.isSuccess ? (
             <span className="text-sm text-success">Saved</span>
           ) : !complete ? (
-            <span className="text-sm text-muted">
-              Eleven players and one captain per side.
-            </span>
+            <span className="text-sm text-muted">Eleven players and one captain per side.</span>
           ) : null}
         </div>
       </StepCard>
@@ -644,8 +630,8 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
           <p className="eyebrow">Permissions</p>
           <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
           <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-            Anyone with an account can score this match once you assign them. They do not need
-            to be in a squad or own the tournament.
+            Anyone with an account can score this match once you assign them. They do not need to be
+            in a squad or own the tournament.
           </p>
         </CardHeader>
 
@@ -659,9 +645,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-primary">{scorer.name}</p>
-                    <p className="mono truncate text-[0.6875rem] text-muted">
-                      @{scorer.username}
-                    </p>
+                    <p className="mono truncate text-[0.6875rem] text-muted">@{scorer.username}</p>
                   </div>
 
                   <button
@@ -670,12 +654,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
                     aria-label={`Remove ${scorer.name}`}
                     className="grid size-8 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
                   >
-                    <svg
-                      viewBox="0 0 16 16"
-                      className="size-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                    >
+                    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
                       <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
                     </svg>
                   </button>
@@ -698,7 +677,11 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
                 onChange={(event) => setUsername(event.target.value)}
               />
             </div>
-            <Button type="submit" disabled={username.trim().length < 3} isLoading={assign.isPending}>
+            <Button
+              type="submit"
+              disabled={username.trim().length < 3}
+              isLoading={assign.isPending}
+            >
               Assign
             </Button>
           </form>
@@ -708,8 +691,8 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
           {canAbandon ? (
             <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
               <p className="max-w-xl text-[0.9375rem] text-secondary">
-                Rain, or a side that never showed? Abandoning ends the match without a result
-                and awards a point to each side.
+                Rain, or a side that never showed? Abandoning ends the match without a result and
+                awards a point to each side.
               </p>
               <Button variant="danger" size="sm" onClick={() => setConfirmAbandon(true)}>
                 Abandon the match
@@ -745,8 +728,8 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
         }
       >
         <p className="text-secondary">
-          Balls already scored stay in the log — nothing is deleted. The match simply ends
-          without a winner.
+          Balls already scored stay in the log — nothing is deleted. The match simply ends without a
+          winner.
         </p>
       </Sheet>
     </>

@@ -88,17 +88,13 @@ export function ErrorText({ error }: { error: unknown }) {
 }
 
 /** Compact squad copy; a progress gauge made incomplete squads look broken. */
-export function SquadProgress({
-  count,
-  showLabel = true,
-}: {
-  count: number;
-  showLabel?: boolean;
-}) {
+export function SquadProgress({ count, showLabel = true }: { count: number; showLabel?: boolean }) {
   return (
     <div className="flex shrink-0 items-center">
       {showLabel ? (
-        <p className="mono text-[0.75rem] font-medium text-secondary">{count} on {PLAYERS_PER_TEAM}</p>
+        <p className="mono text-[0.75rem] font-medium text-secondary">
+          {count} on {PLAYERS_PER_TEAM}
+        </p>
       ) : null}
     </div>
   );

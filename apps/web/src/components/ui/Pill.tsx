@@ -68,7 +68,7 @@ export function StatusPill({ status }: { status: MatchStatus }) {
 /**
  * A team's abbreviation on its own colour. The team colour is organizer-chosen
  * and could be anything, so the text is forced white with a hairline of the
- * same colour underneath — which keeps a pale kit from vanishing on bone paper.
+ * same colour underneath — which keeps a pale kit from vanishing on a pale ground.
  */
 export function TeamMark({
   shortName,

@@ -106,7 +106,13 @@ export async function resetFailedBalls(matchId: string): Promise<void> {
     if (item.status !== 'failed') continue;
     const db = await openDatabase();
     if (!db) memory.set(item.id, { ...item, status: 'pending', error: null });
-    else await requestResult(db.transaction(STORE, 'readwrite').objectStore(STORE).put({ ...item, status: 'pending', error: null }));
+    else
+      await requestResult(
+        db
+          .transaction(STORE, 'readwrite')
+          .objectStore(STORE)
+          .put({ ...item, status: 'pending', error: null }),
+      );
   }
   notify();
 }
@@ -123,7 +129,10 @@ export async function drainBallQueue(
       await removeQueuedBall(item.id);
       synced += 1;
     } catch (error) {
-      await markQueuedBallFailed(item.id, error instanceof Error ? error.message : 'Could not sync this ball');
+      await markQueuedBallFailed(
+        item.id,
+        error instanceof Error ? error.message : 'Could not sync this ball',
+      );
       // Delivery order matters. Stop here and let the scorer retry this item
       // before sending later balls to the server.
       break;

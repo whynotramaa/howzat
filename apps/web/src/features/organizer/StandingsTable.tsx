@@ -43,8 +43,12 @@ export function StandingsTable({ tournamentId }: { tournamentId: string }) {
             <Th>NR</Th>
             <Th align="right">Pts</Th>
             <Th align="right">NRR</Th>
-            <Th align="right" className="hidden lg:table-cell">For</Th>
-            <Th align="right" className="hidden lg:table-cell">Against</Th>
+            <Th align="right" className="hidden lg:table-cell">
+              For
+            </Th>
+            <Th align="right" className="hidden lg:table-cell">
+              Against
+            </Th>
           </tr>
         </thead>
 

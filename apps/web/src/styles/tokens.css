@@ -3,11 +3,15 @@
  *  HOWZAT — design tokens
  * ─────────────────────────────────────────────────────────────────────────────
  *
- *  The palette is ink and brass: a warm near-black, a bone paper, and a muted
- *  gold used sparingly. It is drawn from the two objects this product replaces
- *  — a bound scorebook and a pavilion honours board — and it deliberately
- *  contains no blue and no gradient. Brass is an accent, never a background:
- *  it marks the live thing, the active thing, the number that matters.
+ *  The palette is neutral and blue: a truly monochrome ground — greys mixed
+ *  from a single neutral axis, no warmth and no tint — with one saturated
+ *  cricinfo blue laid over it. The ground carries no opinion so that the blue
+ *  and the state colours are the only things on screen that mean anything.
+ *
+ *  Blue is an accent, never a background: it marks the live thing, the active
+ *  thing, the number that matters. The state colours — red for a wicket, green
+ *  for a result, amber for a caution — are untouched, because they are read as
+ *  meaning rather than as brand.
  *
  *  Components reference these variables and never a raw colour, and never a
  *  `dark:` class. Light and dark are two value sets for one contract.
@@ -20,30 +24,30 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
-  --surface: #f7f4ee; /* bone paper */
-  --surface-raised: #fffdf9; /* a sheet laid on the paper */
-  --surface-sunken: #efeae0; /* a recess: table heads, chips, wells */
-  --surface-hover: #e9e3d7;
-  --surface-inverse: #14120f; /* ink — primary buttons, the score block */
+  --surface: #f5f6f7;
+  --surface-raised: #ffffff; /* a sheet laid on the ground */
+  --surface-sunken: #eceef0; /* a recess: table heads, chips, wells */
+  --surface-hover: #e4e7ea;
+  --surface-inverse: #14161a; /* primary buttons, the score block */
 
   /* ── Lines ────────────────────────────────────────────────────────────── */
   /* Hairlines do the structural work here, not shadows. */
-  --line: #e0d9ca;
-  --line-strong: #c6bca7;
-  --line-inverse: #302b22;
+  --line: #dfe2e6;
+  --line-strong: #c2c7cd;
+  --line-inverse: #2c3037;
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --text-primary: #14120f;
-  --text-secondary: #55504a;
-  --text-muted: #7c7466;
-  --text-on-inverse: #f4efe6;
-  --text-muted-on-inverse: #a49b8c;
+  --text-primary: #14161a;
+  --text-secondary: #4d5259;
+  --text-muted: #6b7178; /* held at 4.5:1 on --surface; muted is not faint */
+  --text-on-inverse: #f2f4f6;
+  --text-muted-on-inverse: #9aa1aa;
 
-  /* ── Brass ────────────────────────────────────────────────────────────── */
-  --accent: #7a5c22; /* legible as small text on paper */
-  --accent-strong: #96742e; /* strokes, gauges, rules — graphic weight */
-  --accent-soft: #f0e7d3; /* a flat wash, not a gradient */
-  --accent-line: #d8c69b;
+  /* ── Blue ─────────────────────────────────────────────────────────────── */
+  --accent: #0a5ca8; /* legible as small text on the ground — 6.2:1 */
+  --accent-strong: #1268bd; /* strokes, gauges, rules — graphic weight */
+  --accent-soft: #e4edf7; /* a flat wash, not a gradient */
+  --accent-line: #aac9e7;
 
   /* ── State ────────────────────────────────────────────────────────────── */
   --live: #a8322a;
@@ -55,14 +59,18 @@
   --warning: #85601a;
   --warning-soft: #f4e9cf;
 
-  --focus: #96742e;
+  --focus: #1268bd;
 
   /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Warm-tinted and low: paper does not float, it rests. */
-  --shadow-xs: 0 1px 1px rgb(30 24 12 / 0.04);
-  --shadow-sm: 0 1px 2px rgb(30 24 12 / 0.05), 0 1px 1px rgb(30 24 12 / 0.03);
-  --shadow-md: 0 8px 24px -12px rgb(30 24 12 / 0.16), 0 2px 6px -2px rgb(30 24 12 / 0.06);
-  --shadow-lg: 0 28px 60px -28px rgb(30 24 12 / 0.28), 0 6px 16px -8px rgb(30 24 12 / 0.1);
+  /* Neutral-tinted and low: a panel does not float, it rests. */
+  --shadow-xs: 0 1px 1px rgb(15 20 28 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(15 20 28 / 0.05), 0 1px 1px rgb(15 20 28 / 0.03);
+  --shadow-md: 0 8px 24px -12px rgb(15 20 28 / 0.16), 0 2px 6px -2px rgb(15 20 28 / 0.06);
+  --shadow-lg: 0 28px 60px -28px rgb(15 20 28 / 0.28), 0 6px 16px -8px rgb(15 20 28 / 0.1);
+
+  /* ── Scrim ────────────────────────────────────────────────────────────── */
+  /* One value for every overlay, so a sheet and a menu dim the page alike. */
+  --scrim: rgb(10 13 18 / 0.5);
 
   /* ── Radii ────────────────────────────────────────────────────────────── */
   /* Restrained. Anything softer starts to read as a consumer app. */
@@ -86,32 +94,32 @@
 }
 
 /*
- * Dark is not the light palette inverted — brass has to brighten to hold its
- * legibility on ink, and the darks stay warm greys rather than blacks so
- * nothing in the interface reads as pure #000.
+ * Dark is not the light palette inverted — the blue has to lift well above its
+ * print value to hold legibility on a dark ground, and the darks stay neutral
+ * greys rather than blacks so nothing in the interface reads as pure #000.
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --surface: #14120f;
-    --surface-raised: #1b1814;
-    --surface-sunken: #100e0c;
-    --surface-hover: #262119;
-    --surface-inverse: #f2ede4;
+    --surface: #121417;
+    --surface-raised: #191c20;
+    --surface-sunken: #0e1013;
+    --surface-hover: #23272c;
+    --surface-inverse: #f2f4f6;
 
-    --line: #2e2a22;
-    --line-strong: #453f33;
-    --line-inverse: #d8d0c2;
+    --line: #282c32;
+    --line-strong: #3d434a;
+    --line-inverse: #d2d6db;
 
-    --text-primary: #f2ede4;
-    --text-secondary: #b9b1a4;
-    --text-muted: #8d8578;
-    --text-on-inverse: #14120f;
-    --text-muted-on-inverse: #55504a;
+    --text-primary: #f2f4f6;
+    --text-secondary: #b2b8c0;
+    --text-muted: #848b94;
+    --text-on-inverse: #14161a;
+    --text-muted-on-inverse: #4d5259;
 
-    --accent: #c9a34e;
-    --accent-strong: #d9b566;
-    --accent-soft: #2a2318;
-    --accent-line: #5c4a26;
+    --accent: #5aa9ef;
+    --accent-strong: #7bbcf5;
+    --accent-soft: #16283a;
+    --accent-line: #2b4f75;
 
     --live: #d4574a;
     --live-soft: #331915;
@@ -122,14 +130,14 @@
     --warning: #d3ab5c;
     --warning-soft: #2a2216;
 
-    --focus: #c9a34e;
+    --focus: #5aa9ef;
 
     --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-md:
-      0 8px 24px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg:
-      0 28px 60px -28px rgb(0 0 0 / 0.8), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+    --shadow-md: 0 8px 24px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 28px 60px -28px rgb(0 0 0 / 0.8), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+
+    --scrim: rgb(4 6 9 / 0.62);
 
     color-scheme: dark;
   }
@@ -137,26 +145,26 @@
 
 /* Manual override — same values, higher specificity than the media query. */
 :root[data-theme='dark'] {
-  --surface: #14120f;
-  --surface-raised: #1b1814;
-  --surface-sunken: #100e0c;
-  --surface-hover: #262119;
-  --surface-inverse: #f2ede4;
+  --surface: #121417;
+  --surface-raised: #191c20;
+  --surface-sunken: #0e1013;
+  --surface-hover: #23272c;
+  --surface-inverse: #f2f4f6;
 
-  --line: #2e2a22;
-  --line-strong: #453f33;
-  --line-inverse: #d8d0c2;
+  --line: #282c32;
+  --line-strong: #3d434a;
+  --line-inverse: #d2d6db;
 
-  --text-primary: #f2ede4;
-  --text-secondary: #b9b1a4;
-  --text-muted: #8d8578;
-  --text-on-inverse: #14120f;
-  --text-muted-on-inverse: #55504a;
+  --text-primary: #f2f4f6;
+  --text-secondary: #b2b8c0;
+  --text-muted: #848b94;
+  --text-on-inverse: #14161a;
+  --text-muted-on-inverse: #4d5259;
 
-  --accent: #c9a34e;
-  --accent-strong: #d9b566;
-  --accent-soft: #2a2318;
-  --accent-line: #5c4a26;
+  --accent: #5aa9ef;
+  --accent-strong: #7bbcf5;
+  --accent-soft: #16283a;
+  --accent-line: #2b4f75;
 
   --live: #d4574a;
   --live-soft: #331915;
@@ -167,12 +175,14 @@
   --warning: #d3ab5c;
   --warning-soft: #2a2216;
 
-  --focus: #c9a34e;
+  --focus: #5aa9ef;
 
   --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-md: 0 8px 24px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 28px 60px -28px rgb(0 0 0 / 0.8), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+
+  --scrim: rgb(4 6 9 / 0.62);
 
   color-scheme: dark;
 }

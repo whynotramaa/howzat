@@ -245,7 +245,7 @@ function MatchRow({ match }: { match: MatchDto }) {
       className={cn(
         'flex flex-col gap-5 rounded-[var(--radius-lg)] border border-line bg-raised p-6 sm:p-7',
         'transition-colors duration-[var(--dur)] hover:border-line-strong',
-        // A live match gets a brass edge — the one row you are looking for.
+        // A live match gets an accent edge — the one row you are looking for.
         match.status === 'LIVE' && 'border-[var(--accent-line)]',
       )}
     >
@@ -277,7 +277,9 @@ function MatchRow({ match }: { match: MatchDto }) {
         <div className="flex flex-wrap items-center gap-3">
           <p className="serif text-lg text-primary">{match.resultText}</p>
           <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="quiet">View scorecard</Button>
+            <Button size="sm" variant="quiet">
+              View scorecard
+            </Button>
           </a>
         </div>
       ) : null}
@@ -307,9 +309,7 @@ function MatchRow({ match }: { match: MatchDto }) {
 
 function Side({ team }: { team: MatchDto['team1'] }) {
   if (!team) {
-    return (
-      <span className="text-[1.0625rem] text-muted italic">To be decided</span>
-    );
+    return <span className="text-[1.0625rem] text-muted italic">To be decided</span>;
   }
 
   return (

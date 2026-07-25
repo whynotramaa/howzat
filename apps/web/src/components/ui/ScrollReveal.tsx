@@ -12,8 +12,7 @@ import { cn } from '@/lib/cn';
  */
 
 const prefersReducedMotion = () =>
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function ScrollReveal({
   index = 0,
@@ -83,7 +82,7 @@ export function ScrollReveal({
 }
 
 /**
- * A brass hairline across the top showing how far down the page you are. It is
+ * An accent hairline across the top showing how far down the page you are. It is
  * written straight to a CSS variable inside a rAF, so scrolling costs one style
  * write per frame and never a React render.
  */

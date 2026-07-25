@@ -30,18 +30,27 @@ export function useOfflineBallQueue(
       const synced = await drainBallQueue(matchId, submit);
       await refresh();
       const remaining = await listQueuedBalls(matchId);
-      setSyncState(remaining.some((item) => item.status === 'failed') ? 'failed' : synced > 0 ? 'synced' : 'idle');
+      setSyncState(
+        remaining.some((item) => item.status === 'failed')
+          ? 'failed'
+          : synced > 0
+            ? 'synced'
+            : 'idle',
+      );
     } finally {
       draining.current = false;
     }
   }, [matchId, refresh, submit]);
 
-  const enqueue = useCallback(async (input: BallRequestInput) => {
-    setSyncState('idle');
-    await enqueueBall(matchId, input);
-    await refresh();
-    if (navigator.onLine) await drain();
-  }, [drain, matchId, refresh]);
+  const enqueue = useCallback(
+    async (input: BallRequestInput) => {
+      setSyncState('idle');
+      await enqueueBall(matchId, input);
+      await refresh();
+      if (navigator.onLine) await drain();
+    },
+    [drain, matchId, refresh],
+  );
 
   const retryFailed = useCallback(async () => {
     await resetFailedBalls(matchId);

@@ -83,11 +83,7 @@ export function DashboardPage() {
             <section className="flex flex-col gap-5">
               <SectionHeading
                 eyebrow="You are running"
-                title={
-                  data.tournamentsOrganized === 1
-                    ? 'Your tournament'
-                    : 'Your tournaments'
-                }
+                title={data.tournamentsOrganized === 1 ? 'Your tournament' : 'Your tournaments'}
                 action={
                   <Link to="/tournaments">
                     <Button variant="secondary">
@@ -135,9 +131,7 @@ export function DashboardPage() {
           <section className="flex flex-col gap-5">
             <SectionHeading
               eyebrow="Your teams"
-              title={
-                data.squads.length === 1 ? 'One squad' : `${data.squads.length} squads`
-              }
+              title={data.squads.length === 1 ? 'One squad' : `${data.squads.length} squads`}
               description="Every side you have been named in, across every tournament."
             />
 

@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 /*
- * Buttons in this system are ink, outline, or quiet — brass is never a button
+ * Buttons in this system are ink, outline, or quiet — the accent is never a button
  * fill, because a page with four gold buttons has no accent left.
  *
  * The primary is a solid ink slab in light and a bone slab in dark: the highest

@@ -8,12 +8,14 @@
  *
  *  Three faces, each with one job:
  *
- *    Instrument Serif  display — page titles, results, pull quotes. Never UI.
+ *    Newsreader        display — page titles, results, pull quotes. Never UI.
  *    Instrument Sans   everything you interact with: labels, buttons, tables.
  *    DM Mono           figures that sit in columns — overs, ball chips, NRR.
  *
- *  Serif and sans are from one foundry and share proportions, which is why the
- *  pairing holds together at every size instead of looking like two decisions.
+ *  Newsreader is a news serif on an optical-size axis, so a 48px page title and
+ *  a 20px sheet heading are cut differently rather than scaled from one drawing
+ *  — the large sizes gain stroke contrast, the small ones stay sturdy. That is
+ *  the right register for a scorecard: this is a results page, not a masthead.
  */
 
 @theme inline {
@@ -54,7 +56,7 @@
   --radius-xl: var(--radius-xl);
 
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
 }
 
@@ -92,8 +94,8 @@ body {
 /*
  * Form fields opt out of the ring.
  *
- * A field already has a border, and that border turns brass on focus. Adding
- * the global outline on top produced two brass lines with a gap between them
+ * A field already has a border, and that border turns to the accent on focus. Adding
+ * the global outline on top produced two accent lines with a gap between them
  * around every input — a halo, on the one screen (signing in) where the
  * interface should be at its quietest. The border alone is the mark.
  */
@@ -126,8 +128,14 @@ input {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.015em;
-  /* Display serif at display sizes wants tighter leading than prose. */
-  line-height: 1.05;
+  /*
+   * 1.12, not the 1.05 the old display face wanted: Newsreader is a text serif
+   * with real descenders, and at 1.05 a two-line page title collided with
+   * itself. Still tighter than prose, because display sizes over-lead.
+   */
+  line-height: 1.12;
+  /* The opsz axis is loaded — let the browser pick the cut for the size. */
+  font-optical-sizing: auto;
 }
 
 /*
@@ -181,26 +189,27 @@ input {
  * stage palette up through the cascade without knowing it exists.
  */
 .live-stage {
-  --surface: #0a0908;
-  --surface-raised: #15130f;
-  --surface-sunken: #100e0b;
-  --surface-hover: #1f1c16;
-  --surface-inverse: #f2ede4;
+  --surface: #08090b;
+  --surface-raised: #121519;
+  --surface-sunken: #0d0f12;
+  --surface-hover: #1c2026;
+  --surface-inverse: #f2f4f6;
 
-  --line: #2a251d;
-  --line-strong: #3d372c;
-  --line-inverse: #2a251d;
+  --line: #22262c;
+  --line-strong: #363c44;
+  --line-inverse: #22262c;
 
-  --text-primary: #f6f2e9;
-  --text-secondary: #bdb4a5;
-  --text-muted: #8b8375;
-  --text-on-inverse: #f6f2e9;
-  --text-muted-on-inverse: #8b8375;
+  --text-primary: #f4f6f8;
+  --text-secondary: #b6bcc4;
+  --text-muted: #838a93;
+  --text-on-inverse: #f4f6f8;
+  --text-muted-on-inverse: #838a93;
 
-  --accent: #e0bc78;
-  --accent-strong: #edcb8b;
-  --accent-soft: #241d12;
-  --accent-line: #6b552c;
+  /* Lifted past the app's dark blue: this ground is nearer black than that one. */
+  --accent: #74b8f2;
+  --accent-strong: #93cbf8;
+  --accent-soft: #101f2d;
+  --accent-line: #2f5a80;
 
   --live: #e0574a;
   --live-soft: #2c1512;
@@ -211,7 +220,7 @@ input {
   --warning: #ddb463;
   --warning-soft: #251d10;
 
-  --focus: #e0bc78;
+  --focus: #74b8f2;
 
   /*
    * No elevation on the stage. A drop shadow implies a sheet of paper lifted
@@ -224,8 +233,8 @@ input {
   --shadow-lg: none;
 
   /* Set inline from the two sides' kit colours. */
-  --team-a: #7a5c22;
-  --team-b: #3d372c;
+  --team-a: #1268bd;
+  --team-b: #363c44;
 
   color-scheme: dark;
   background: var(--surface);
@@ -236,7 +245,7 @@ input {
  * The two sides' colours as a single 2px rule across the top of the scoreboard,
  * split down the middle. Flat, not blended: a gradient between two arbitrary
  * kit colours produces a muddy third colour that belongs to neither team, and
- * blending brass into it made the whole surface read as gold.
+ * blending the accent into it tipped the whole surface blue.
  */
 .live-stage-seam {
   height: 2px;
@@ -350,7 +359,7 @@ input {
  * is something people are trying to read. Here they are being shown around.
  */
 
-/* A brass hairline that fills across the top as the page is read. */
+/* An accent hairline that fills across the top as the page is read. */
 .scroll-progress {
   position: fixed;
   inset-block-start: 0;
@@ -395,11 +404,17 @@ input {
   inset-block: 0.5rem;
   inset-inline-start: 0;
   width: 1px;
-  background: linear-gradient(180deg, transparent, var(--accent-line) 12%, var(--accent-line) 88%, transparent);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--accent-line) 12%,
+    var(--accent-line) 88%,
+    transparent
+  );
 }
 
 /*
- * Content tiles. The brass hairline is the only thing that changes on hover —
+ * Content tiles. The accent hairline is the only thing that changes on hover —
  * no lift, no shadow. The page is a page, not a stack of cards floating over
  * one another.
  */
@@ -414,7 +429,7 @@ input {
 /* ── Structure ───────────────────────────────────────────────────────────── */
 
 /*
- * A rule with a brass cap at its left edge, used to open a section. It is the
+ * A rule with an accent cap at its left edge, used to open a section. It is the
  * one piece of ornament in the system and it earns its place by doing a job:
  * it says a new block of content has started without adding another box.
  */
@@ -549,5 +564,4 @@ input {
     opacity: 1 !important;
     transform: none !important;
   }
-
 }

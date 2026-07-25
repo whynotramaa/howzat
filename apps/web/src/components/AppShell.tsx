@@ -14,7 +14,7 @@ import { cn } from '@/lib/cn';
  * stick: on a scorecard, a bar that follows you down the page is a bar that
  * covers the numbers you are reading.
  *
- * Navigation is marked by a brass rule under the active item, the same indicator
+ * Navigation is marked by an accent rule under the active item, the same indicator
  * the tabs use, so the whole product has one way of saying "you are here".
  *
  * Below `md` there is not room for three links, an identity and two controls at
@@ -209,7 +209,7 @@ export function AppShell() {
         <div
           aria-hidden
           onClick={() => setMenuOpen(false)}
-          className="scrim-in fixed inset-0 z-30 bg-[rgb(12_10_8/0.45)] md:hidden"
+          className="scrim-in fixed inset-0 z-30 bg-[var(--scrim)] md:hidden"
         />
       ) : null}
 
@@ -219,9 +219,7 @@ export function AppShell() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4 px-5 py-7 sm:px-8 lg:px-12">
-          <p className="text-[0.8125rem] text-muted">
-            Howzat — local cricket, kept properly.
-          </p>
+          <p className="text-[0.8125rem] text-muted">Howzat — local cricket, kept properly.</p>
           <p className="eyebrow">Every ball on the record</p>
         </div>
       </footer>

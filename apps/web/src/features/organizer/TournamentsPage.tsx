@@ -132,7 +132,11 @@ function TournamentCard({ tournament }: { tournament: TournamentDto }) {
 function ReadinessMark({ registered, total }: { registered: number; total: number }) {
   const bars = Math.min(5, Math.max(1, Math.ceil((registered / Math.max(1, total)) * 5)));
   return (
-    <div className="flex items-end gap-1" role="img" aria-label={`${registered} of ${total} teams registered`}>
+    <div
+      className="flex items-end gap-1"
+      role="img"
+      aria-label={`${registered} of ${total} teams registered`}
+    >
       {Array.from({ length: 5 }).map((_, index) => (
         <span
           key={index}

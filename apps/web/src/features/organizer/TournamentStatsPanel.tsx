@@ -38,25 +38,43 @@ export function TournamentStatsPanel({ tournamentId }: { tournamentId: string })
           <thead>
             <tr className="border-b border-line">
               <Th align="left">Player</Th>
-              <Th>Mat</Th><Th>Runs</Th><Th>Avg</Th><Th>SR</Th><Th>4s</Th><Th>6s</Th>
-              <Th>Wkts</Th><Th>Econ</Th><Th>Fielding</Th>
+              <Th>Mat</Th>
+              <Th>Runs</Th>
+              <Th>Avg</Th>
+              <Th>SR</Th>
+              <Th>4s</Th>
+              <Th>6s</Th>
+              <Th>Wkts</Th>
+              <Th>Econ</Th>
+              <Th>Fielding</Th>
             </tr>
           </thead>
           <tbody>
             {players.map((player) => (
-              <tr key={player.playerId} className="border-b border-line last:border-0 hover:bg-hover/50">
+              <tr
+                key={player.playerId}
+                className="border-b border-line last:border-0 hover:bg-hover/50"
+              >
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <TeamMark shortName={player.team.shortName} color={player.team.primaryColor} size="sm" />
+                    <TeamMark
+                      shortName={player.team.shortName}
+                      color={player.team.primaryColor}
+                      size="sm"
+                    />
                     <div>
                       <p className="font-medium text-primary">{player.playerName}</p>
                       <p className="text-[0.6875rem] text-muted">{player.team.name}</p>
                     </div>
                   </div>
                 </td>
-                <Td>{player.matches}</Td><Td emphasis>{player.runs}</Td>
-                <Td>{player.average ?? '—'}</Td><Td>{player.strikeRate ?? '—'}</Td>
-                <Td>{player.fours}</Td><Td>{player.sixes}</Td><Td emphasis>{player.wickets}</Td>
+                <Td>{player.matches}</Td>
+                <Td emphasis>{player.runs}</Td>
+                <Td>{player.average ?? '—'}</Td>
+                <Td>{player.strikeRate ?? '—'}</Td>
+                <Td>{player.fours}</Td>
+                <Td>{player.sixes}</Td>
+                <Td emphasis>{player.wickets}</Td>
                 <Td>{player.economy ?? '—'}</Td>
                 <Td>{player.catches + player.runOuts + player.stumpings || '—'}</Td>
               </tr>
@@ -94,7 +112,9 @@ function CapCard({
               {label.includes('runs') ? player.runs : player.wickets}
             </p>
           </div>
-        ) : <p className="text-secondary">No completed performances yet.</p>}
+        ) : (
+          <p className="text-secondary">No completed performances yet.</p>
+        )}
       </CardBody>
     </Card>
   );

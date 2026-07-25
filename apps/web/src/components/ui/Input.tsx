@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn';
  * placeholder, because a placeholder disappears exactly when you need it — and
  * on a form you fill in once, at a ground, with one hand, that matters.
  *
- * Fields are 48px tall with a hairline that warms to brass on focus. There is no
+ * Fields are 48px tall with a hairline that turns to the accent on focus. There is no
  * coloured fill and no inner shadow: the field is a ruled line on paper.
  */
 
@@ -224,7 +224,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
 
 /**
  * A checkbox that is a real checkbox, with a hit area covering its label. The
- * accent colour comes from the token, so it is brass in both themes.
+ * accent colour comes from the token, so it is the accent in both themes.
  */
 export function Checkbox({
   label,
@@ -278,7 +278,7 @@ export function ChoiceChip({
         'text-sm font-medium transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
         'active:translate-y-px disabled:pointer-events-none disabled:opacity-40',
         selected
-          ? // Brass hairline plus a wash: selected without shouting.
+          ? // Accent hairline plus a wash: selected without shouting.
             'border-[var(--accent-strong)] bg-accent-soft text-accent'
           : 'border-line bg-raised text-secondary hover:border-line-strong hover:text-primary',
         className,

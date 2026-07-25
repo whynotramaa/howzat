@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { NotificationDto } from '@howzat/shared';
 import { cn } from '@/lib/cn';
-import {
-  useMarkAllNotificationsRead,
-  useMarkNotificationRead,
-  useNotifications,
-} from './queries';
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 
 /**
  * The bell in the app bar.
