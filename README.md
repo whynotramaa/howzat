@@ -311,7 +311,3 @@ api/server.ts      the Vercel Function — re-exports the built server
 | `npm run db:studio` | Prisma Studio |
 
 ---
-
-<div align="center">
-<sub>See <a href="./plan.md">plan.md</a> for the full roadmap and <a href="./brief.md">brief.md</a> for the original requirements.</sub>
-</div>
