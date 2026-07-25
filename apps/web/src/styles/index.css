@@ -1,0 +1,584 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  Type, theme mapping, and the motion vocabulary
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ *  Three faces, each with one job:
+ *
+ *    Instrument Serif  display — page titles, results, pull quotes. Never UI.
+ *    Instrument Sans   everything you interact with: labels, buttons, tables.
+ *    DM Mono           figures that sit in columns — overs, ball chips, NRR.
+ *
+ *  Serif and sans are from one foundry and share proportions, which is why the
+ *  pairing holds together at every size instead of looking like two decisions.
+ */
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+  --color-hover: var(--surface-hover);
+  --color-inverse: var(--surface-inverse);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-inverse: var(--line-inverse);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-on-inverse: var(--text-on-inverse);
+  --color-muted-on-inverse: var(--text-muted-on-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  /* 15px body: the interface is data-dense and 16 reads clumsy at this scale. */
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/*
+ * Form fields opt out of the ring.
+ *
+ * A field already has a border, and that border turns brass on focus. Adding
+ * the global outline on top produced two brass lines with a gap between them
+ * around every input — a halo, on the one screen (signing in) where the
+ * interface should be at its quietest. The border alone is the mark.
+ */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* A hairline scrollbar, so a long scorecard does not gain a grey slab. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+/*
+ * Native controls inherit the palette rather than the OS chrome. Left alone, a
+ * <select> in dark mode renders as a light widget on ink and breaks the page.
+ */
+select,
+textarea,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* ── Type utilities ──────────────────────────────────────────────────────── */
+
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  /* Display serif at display sizes wants tighter leading than prose. */
+  line-height: 1.05;
+}
+
+/*
+ * The small capitalised label above a heading. Two of these stacked is the
+ * fastest way to make a page look generated, so they appear once per section.
+ */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Figures that live in a column must never change width as they change value. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* The score itself. Optically tightened, because big figures over-space. */
+.score-figure {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+}
+
+/* ── The live stage ──────────────────────────────────────────────────────── */
+
+/*
+ * The public share link is the one screen that is not paper.
+ *
+ * It is a broadcast graphic: someone has opened it on a phone, at a ground, to
+ * find out the score in under a second, and every scoreboard they have ever
+ * looked at — the one at the ground, the one on television — was light on dark.
+ * So this surface commits to dark in both themes rather than inverting with the
+ * rest of the product.
+ *
+ * It is expressed by overriding the raw tokens rather than by re-styling
+ * components. `@theme inline` keeps the var() reference intact all the way to
+ * the declaration, so a Card, a Pill and a table inside this element pick the
+ * stage palette up through the cascade without knowing it exists.
+ */
+.live-stage {
+  --surface: #0a0908;
+  --surface-raised: #15130f;
+  --surface-sunken: #100e0b;
+  --surface-hover: #1f1c16;
+  --surface-inverse: #f2ede4;
+
+  --line: #2a251d;
+  --line-strong: #3d372c;
+  --line-inverse: #2a251d;
+
+  --text-primary: #f6f2e9;
+  --text-secondary: #bdb4a5;
+  --text-muted: #8b8375;
+  --text-on-inverse: #f6f2e9;
+  --text-muted-on-inverse: #8b8375;
+
+  --accent: #e0bc78;
+  --accent-strong: #edcb8b;
+  --accent-soft: #241d12;
+  --accent-line: #6b552c;
+
+  --live: #e0574a;
+  --live-soft: #2c1512;
+  --alert: #e0574a;
+  --alert-soft: #2c1512;
+  --success: #63b98d;
+  --success-soft: #12241a;
+  --warning: #ddb463;
+  --warning-soft: #251d10;
+
+  --focus: #e0bc78;
+
+  /*
+   * No elevation on the stage. A drop shadow implies a sheet of paper lifted
+   * off a surface; a scoreboard is a lit panel, and the hairline is what
+   * separates it from the dark behind it.
+   */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  /* Set inline from the two sides' kit colours. */
+  --team-a: #7a5c22;
+  --team-b: #3d372c;
+
+  color-scheme: dark;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+/*
+ * The two sides' colours as a single 2px rule across the top of the scoreboard,
+ * split down the middle. Flat, not blended: a gradient between two arbitrary
+ * kit colours produces a muddy third colour that belongs to neither team, and
+ * blending brass into it made the whole surface read as gold.
+ */
+.live-stage-seam {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--team-a) 0,
+    var(--team-a) 50%,
+    var(--team-b) 50%,
+    var(--team-b) 100%
+  );
+}
+
+/*
+ * The header condenses as you scroll past the scoreboard: the wordmark stays,
+ * the score slides in beside it. Height is not animated — only opacity and a
+ * small translate — so the page below never reflows while you are reading it.
+ */
+.live-stage-bar {
+  backdrop-filter: blur(14px) saturate(140%);
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+}
+
+.live-condensed {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+  pointer-events: none;
+}
+
+.live-condensed[data-shown='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The panel language of the stage: a flat plate and a hairline. Nothing else. */
+.live-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+/*
+ * The chase bar. Two figures compete for the same 100% — runs made and balls
+ * used — and the point of drawing them together is that a chase is only ever
+ * about which of the two runs out first.
+ */
+.chase-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+/* The batting side's own colour, flat. */
+.chase-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: 999px;
+  background: var(--team-a);
+  transition: width var(--dur-gauge) var(--ease);
+}
+
+.chase-marker {
+  position: absolute;
+  inset-block: -2px;
+  width: 2px;
+  background: var(--text-primary);
+  opacity: 0.5;
+  transition: left var(--dur-gauge) var(--ease);
+}
+
+/*
+ * The ball that just landed. It arrives once, keyed on the delivery — a scale
+ * and a fade, with no glow: a scoreboard that keeps flashing at you is one you
+ * stop trusting to mean anything.
+ */
+@keyframes ball-land {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ball-land {
+  animation: ball-land var(--dur-slow) var(--ease) both;
+}
+
+.auth-editorial-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-editorial-panel .text-on-inverse,
+.auth-editorial-panel .text-muted-on-inverse {
+  color: #fff;
+}
+
+/* ── The landing page ────────────────────────────────────────────────────── */
+
+/*
+ * The front page is the only surface allowed to move as you scroll. Everywhere
+ * else motion is a load-in and then stillness, because the rest of the product
+ * is something people are trying to read. Here they are being shown around.
+ */
+
+/* A brass hairline that fills across the top as the page is read. */
+.scroll-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 50;
+  height: 2px;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--progress, 0));
+  background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+  pointer-events: none;
+}
+
+/*
+ * Scroll reveal. The element is placed in its finished position and the
+ * transition runs on a data attribute the observer flips, so a browser with no
+ * IntersectionObserver, or a crawler, sees the finished page and not a blank
+ * one — the animation is an enhancement, never the thing that makes text
+ * visible.
+ */
+.scroll-reveal {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.7s var(--ease),
+    transform 0.7s var(--ease);
+  transition-delay: var(--delay, 0ms);
+}
+
+.scroll-reveal[data-visible='false'] {
+  opacity: 0;
+  transform: translateY(var(--reveal-shift, 18px));
+}
+
+/* The seam that runs down the left of the numbered rules. */
+.landing-ledger {
+  position: relative;
+}
+
+.landing-ledger::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.5rem;
+  inset-inline-start: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--accent-line) 12%, var(--accent-line) 88%, transparent);
+}
+
+/*
+ * Content tiles. The brass hairline is the only thing that changes on hover —
+ * no lift, no shadow. The page is a page, not a stack of cards floating over
+ * one another.
+ */
+.bento-tile {
+  transition: border-color var(--dur) var(--ease);
+}
+
+.bento-tile:hover {
+  border-color: var(--accent-line);
+}
+
+/* ── Structure ───────────────────────────────────────────────────────────── */
+
+/*
+ * A rule with a brass cap at its left edge, used to open a section. It is the
+ * one piece of ornament in the system and it earns its place by doing a job:
+ * it says a new block of content has started without adding another box.
+ */
+.rule {
+  height: 1px;
+  background: var(--line);
+  position: relative;
+}
+
+.rule::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 2.5rem;
+  height: 1px;
+  background: var(--accent-strong);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+
+/*
+ * Everything here happens once. There is no looping animation in this product
+ * apart from the live pulse, which is a status indicator, not decoration.
+ */
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* On load, content arrives in one orchestrated sweep — --delay staggers it. */
+.reveal {
+  animation: reveal var(--dur-slow) var(--ease) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sheets and dialogs rise; they never hard-fade into place. */
+.sheet-in {
+  animation: sheet-in var(--dur) var(--ease) both;
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scrim-in {
+  animation: scrim-in var(--dur) var(--ease) both;
+}
+
+/*
+ * A changed figure lifts into place. Keyed on the value in React, so it fires
+ * on the ball that changed the score and on nothing else.
+ */
+@keyframes figure-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.18em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.figure-in {
+  animation: figure-in var(--dur) var(--ease) both;
+}
+
+/*
+ * Gauge arcs sweep clockwise from zero to their value on load, like a tally
+ * being counted up. --arc-from / --arc-to are dash offsets, set inline.
+ */
+@keyframes arc-sweep {
+  from {
+    stroke-dashoffset: var(--arc-from);
+  }
+  to {
+    stroke-dashoffset: var(--arc-to);
+  }
+}
+
+.arc-sweep {
+  animation: arc-sweep var(--dur-gauge) var(--ease) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+}
+
+.live-pulse {
+  animation: live-pulse 1.8s var(--ease-in-out) infinite;
+}
+
+/*
+ * Desktop pointer only. The tilt is applied by JS as a CSS variable, so a touch
+ * device and a reduced-motion user simply never receive one.
+ */
+.tilt {
+  transition: transform var(--dur) var(--ease);
+  transform: perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+}
+
+/*
+ * Reduced motion switches the vocabulary off rather than shortening it — a
+ * 0.01ms sweep is still a sweep, and the point is not to move at all.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tilt {
+    transform: none !important;
+  }
+
+  /*
+   * Scroll-driven effects are removed outright rather than shortened. A reveal
+   * that still starts from opacity 0 is still a flash, and the parallax offset
+   * is exactly the kind of movement this preference exists to refuse.
+   */
+  .scroll-reveal,
+  .scroll-reveal[data-visible='false'] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+}

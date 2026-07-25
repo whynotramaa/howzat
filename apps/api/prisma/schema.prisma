@@ -1,0 +1,535 @@
+// Howzat — local cricket tournament & live scoring platform.
+//
+// Design note: BallEvent is an append-only log and is the sole source of truth
+// for anything that happens during a match. Everything else here is either
+// setup data (tournaments, teams, players, XI) or a derived projection that can
+// be rebuilt from the log (PointsTable). The Redis snapshot is likewise derived
+// and deliberately absent from this schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon's pooled connection cannot run migrations; DIRECT_URL is the
+  // non-pooled endpoint. Both point at the same database.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────── Enums ──
+
+enum TournamentFormat {
+  LEAGUE
+  KNOCKOUT
+  LEAGUE_PLAYOFFS
+}
+
+enum TournamentStatus {
+  DRAFT
+  FIXTURES_GENERATED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PlayerRole {
+  BATSMAN
+  BOWLER
+  ALL_ROUNDER
+  KEEPER
+}
+
+enum MatchStage {
+  LEAGUE
+  Q1
+  ELIMINATOR
+  Q2
+  FINAL
+}
+
+enum MatchStatus {
+  SCHEDULED
+  TOSS
+  LIVE
+  INNINGS_BREAK
+  COMPLETED
+  ABANDONED
+}
+
+enum TossDecision {
+  BAT
+  BOWL
+}
+
+enum InningsStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum InningsEndReason {
+  ALL_OUT
+  OVERS_COMPLETE
+  TARGET_CHASED
+}
+
+enum BallEventType {
+  BALL
+  CORRECTION
+  UNDO
+}
+
+enum ExtraType {
+  WIDE
+  NO_BALL
+  BYE
+  LEG_BYE
+}
+
+enum WicketType {
+  BOWLED
+  CAUGHT
+  LBW
+  RUN_OUT
+  STUMPED
+  HIT_WICKET
+  RETIRED_HURT
+  OBSTRUCTING_FIELD
+}
+
+// ──────────────────────────────────────────────────────── Identity ──
+
+/// There is no role column, and that is deliberate. Whoever creates a
+/// tournament is its organizer; whoever is assigned to a match is that match's
+/// scorer. Both are facts about a relationship, not about a person — the same
+/// account is routinely both in the same week, and asking at signup only ever
+/// produced an answer that had to be worked around later.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  /// Public handle and login identifier. Also the key an organizer types when
+  /// adding a registered player to a squad, and the stats URL.
+  username     String    @unique
+  name         String
+  passwordHash String
+  /// Null until the emailed code is confirmed. Unverified accounts can hold a
+  /// username but cannot sign in.
+  emailVerifiedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tournaments       Tournament[]
+  scorerAssignments ScorerAssignment[] @relation("AssignedScorer")
+  assignmentsMade   ScorerAssignment[] @relation("AssignedBy")
+  ballEvents        BallEvent[]
+  refreshTokens     RefreshToken[]
+  /// One row per squad this account has been added to, across all tournaments.
+  playerProfiles    Player[]
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+enum NotificationType {
+  SQUAD_ADDED
+  SCORER_ASSIGNED
+}
+
+/// In-app notice, delivered to the bell and mirrored to email when sending is
+/// configured. Stored rather than derived: "you were added to a squad" is an
+/// event, and by the time someone reads it the squad may have changed again —
+/// a query over current state could not reconstruct what they were told.
+///
+/// The copy is frozen at write time for the same reason. A notification that
+/// re-renders itself from live data is a notification that can quietly start
+/// saying something the recipient was never sent.
+model Notification {
+  id      String           @id @default(cuid())
+  userId  String
+  type    NotificationType
+  title   String
+  body    String
+  /// Relative path within the web app; null when there is nowhere to go.
+  link    String?
+
+  /// Context, denormalized. Nullable and un-constrained on purpose: a deleted
+  /// tournament must not delete the notice that you were once added to it.
+  tournamentId String?
+  teamId       String?
+  matchId      String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/// Hashed 6-digit codes with a short TTL and a hard attempt cap. Rows are
+/// retained after consumption so a replay attempt is distinguishable from a
+/// code that never existed.
+model OtpCode {
+  id         String     @id @default(cuid())
+  email      String
+  purpose    OtpPurpose @default(EMAIL_VERIFICATION)
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int        @default(0)
+  createdAt  DateTime   @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+/// Refresh tokens are stored hashed so a database leak cannot be replayed
+/// against the API. Rotation on use; revokedAt marks a family as burned.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ────────────────────────────────────────────────────── Tournament ──
+
+model Tournament {
+  id               String           @id @default(cuid())
+  organizerId      String
+  name             String
+  format           TournamentFormat @default(LEAGUE)
+  teamsCount       Int
+  oversPerInnings  Int              @default(20)
+  doubleRoundRobin Boolean          @default(false)
+  status           TournamentStatus @default(DRAFT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  organizer   User         @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  teams       Team[]
+  matches     Match[]
+  pointsTable PointsTable[]
+
+  @@index([organizerId, createdAt])
+  @@map("tournaments")
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  tournamentId String
+  name         String
+  /// Broadcast abbreviation (CSK, MI) — drives the compact score UI.
+  shortName    String
+  /// Hex color injected as a scoped CSS variable on the live page.
+  primaryColor String   @default("#1e40af")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament   Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players      Player[]
+  matchesAsOne Match[]       @relation("Team1")
+  matchesAsTwo Match[]       @relation("Team2")
+  matchesWon   Match[]       @relation("MatchWinner")
+  tossesWon    Match[]       @relation("TossWinner")
+  matchPlayers MatchPlayer[]
+  battingInnings Innings[]   @relation("BattingTeam")
+  bowlingInnings Innings[]   @relation("BowlingTeam")
+  pointsRows   PointsTable[]
+
+  @@unique([tournamentId, name])
+  @@unique([tournamentId, shortName])
+  @@map("teams")
+}
+
+/// A squad slot, scoped to one team in one tournament.
+///
+/// Two kinds of player sit in this table. One has a Howzat account — the
+/// organizer found them by handle when building the squad, userId is set, and
+/// everything they do here lands on that account's career profile. The other
+/// is someone who just turned up to play: no account, so the row carries a
+/// generated `guest_…` handle purely so the UI has something stable to show
+/// and the scorer has something unambiguous to tap. A placeholder is not an
+/// identity and never accumulates a profile — if that person signs up later,
+/// their history starts from the squads they are added to afterwards.
+model Player {
+  id           String     @id @default(cuid())
+  teamId       String
+  /// Set when this squad slot is a registered account.
+  userId       String?
+  name         String
+  /// The registered account's handle, or a generated `guest_…` placeholder.
+  /// Denormalized from User so the scoring UI never needs the join.
+  username     String
+  role         PlayerRole @default(BATSMAN)
+  battingStyle String?
+  bowlingStyle String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  matchPlayers MatchPlayer[]
+  matchStats   PlayerMatchStats[]
+
+  dismissals   BallEvent[] @relation("DismissedPlayer")
+  fieldings    BallEvent[] @relation("Fielder")
+  ballsFaced   BallEvent[] @relation("Striker")
+  ballsAtOther BallEvent[] @relation("NonStriker")
+  ballsBowled  BallEvent[] @relation("Bowler")
+
+  /// One account cannot occupy two slots in the same squad.
+  @@unique([teamId, userId])
+  @@unique([teamId, username])
+  @@index([teamId])
+  @@index([userId])
+  @@map("players")
+}
+
+/// A player's card for one match, derived wholly from that match's BallEvent
+/// log and rewritten on completion — the same recompute-don't-increment
+/// discipline as PointsTable, for the same reason: a correction to a ball in a
+/// finished match must move the career figures without anyone remembering a
+/// second place to update.
+///
+/// A career profile is the sum of these rows over every Player slot belonging
+/// to an account, so "stats that keep increasing per match" is literally what
+/// the table is: one more row per match played.
+model PlayerMatchStats {
+  id       String @id @default(cuid())
+  matchId  String
+  playerId String
+  teamId   String
+  /// Denormalized so a profile query never has to walk back to the match.
+  tournamentId String
+
+  // Batting
+  batted     Boolean @default(false)
+  runs       Int     @default(0)
+  ballsFaced Int     @default(0)
+  fours      Int     @default(0)
+  sixes      Int     @default(0)
+  /// False when they finished not out — the divisor in a batting average.
+  isOut      Boolean @default(false)
+
+  // Bowling
+  bowled       Boolean @default(false)
+  ballsBowled  Int     @default(0)
+  runsConceded Int     @default(0)
+  wickets      Int     @default(0)
+  maidens      Int     @default(0)
+
+  // Fielding
+  catches   Int @default(0)
+  runOuts   Int @default(0)
+  stumpings Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
+  @@index([playerId])
+  @@index([tournamentId])
+  @@map("player_match_stats")
+}
+
+// ──────────────────────────────────────────────────────────── Match ──
+
+model Match {
+  id              String        @id @default(cuid())
+  tournamentId    String
+  round           Int
+  stage           MatchStage    @default(LEAGUE)
+  /// Null on knockout bracket slots until their feeder matches complete.
+  team1Id         String?
+  team2Id         String?
+  /// Optional by design — fixture generation never depends on the calendar.
+  scheduledAt     DateTime?
+  /// Free text. No venue-clash logic: explicitly out of scope.
+  venue           String?
+  status          MatchStatus   @default(SCHEDULED)
+  tossWinnerId    String?
+  tossDecision    TossDecision?
+  oversPerInnings Int
+  winnerTeamId    String?
+  resultText      String?
+  /// Short, shareable, unguessable — never expose a raw id in a public URL.
+  publicSlug      String        @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team1      Team?      @relation("Team1", fields: [team1Id], references: [id])
+  team2      Team?      @relation("Team2", fields: [team2Id], references: [id])
+  tossWinner Team?      @relation("TossWinner", fields: [tossWinnerId], references: [id])
+  winnerTeam Team?      @relation("MatchWinner", fields: [winnerTeamId], references: [id])
+
+  scorerAssignments ScorerAssignment[]
+  matchPlayers      MatchPlayer[]
+  innings           Innings[]
+  ballEvents        BallEvent[]
+  playerStats       PlayerMatchStats[]
+
+  @@index([tournamentId, round])
+  @@index([status])
+  @@map("matches")
+}
+
+/// Match-level authorization. A scorer may only submit balls for matches
+/// listed here; the organizer of the tournament passes by ownership.
+model ScorerAssignment {
+  id         String   @id @default(cuid())
+  matchId    String
+  scorerId   String
+  assignedBy String
+  createdAt  DateTime @default(now())
+
+  match    Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  scorer   User  @relation("AssignedScorer", fields: [scorerId], references: [id], onDelete: Cascade)
+  assigner User  @relation("AssignedBy", fields: [assignedBy], references: [id])
+
+  @@unique([matchId, scorerId])
+  @@index([scorerId])
+  @@map("scorer_assignments")
+}
+
+/// The playing XI, frozen at toss. Separate from Player because a squad may
+/// be larger than eleven and the XI differs match to match.
+model MatchPlayer {
+  id           String  @id @default(cuid())
+  matchId      String
+  teamId       String
+  playerId     String
+  battingOrder Int?
+  isCaptain    Boolean @default(false)
+  isKeeper     Boolean @default(false)
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerId])
+  @@index([matchId, teamId])
+  @@map("match_players")
+}
+
+model Innings {
+  id            String            @id @default(cuid())
+  matchId       String
+  number        Int
+  battingTeamId String
+  bowlingTeamId String
+  /// The full allotted quota. Load-bearing for the NRR bowled-out rule.
+  oversQuota    Int
+  targetRuns    Int?
+  status        InningsStatus     @default(IN_PROGRESS)
+  endReason     InningsEndReason?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  match       Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  battingTeam Team  @relation("BattingTeam", fields: [battingTeamId], references: [id])
+  bowlingTeam Team  @relation("BowlingTeam", fields: [bowlingTeamId], references: [id])
+
+  ballEvents BallEvent[]
+
+  @@unique([matchId, number])
+  @@map("innings")
+}
+
+/// Append-only. Nothing here is ever updated or deleted: a mistake is fixed by
+/// appending a CORRECTION that points at the event it supersedes.
+model BallEvent {
+  id            String        @id @default(cuid())
+  matchId       String
+  inningsId     String
+  /// Client-generated, unique — makes retries idempotent.
+  clientEventId String        @unique
+  /// Monotonic and gap-free per innings; lets a client detect a missed delta.
+  seq           Int
+  overNumber    Int
+  ballNumber    Int
+  eventType     BallEventType @default(BALL)
+  supersedesEventId String?
+
+  runsOffBat      Int        @default(0)
+  extraRuns       Int        @default(0)
+  extraType       ExtraType?
+  /// False for wides and no-balls — the difference between 0.4 and 0.6.
+  isLegalDelivery Boolean    @default(true)
+
+  isWicket          Boolean     @default(false)
+  wicketType        WicketType?
+  dismissedPlayerId String?
+  fielderId         String?
+
+  strikerId    String
+  nonStrikerId String
+  bowlerId     String
+
+  createdBy String
+  createdAt DateTime @default(now())
+
+  match           Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  innings         Innings    @relation(fields: [inningsId], references: [id], onDelete: Cascade)
+  supersedes      BallEvent? @relation("Supersedes", fields: [supersedesEventId], references: [id])
+  supersededBy    BallEvent[] @relation("Supersedes")
+  striker         Player     @relation("Striker", fields: [strikerId], references: [id])
+  nonStriker      Player     @relation("NonStriker", fields: [nonStrikerId], references: [id])
+  bowler          Player     @relation("Bowler", fields: [bowlerId], references: [id])
+  dismissedPlayer Player?    @relation("DismissedPlayer", fields: [dismissedPlayerId], references: [id])
+  fielder         Player?    @relation("Fielder", fields: [fielderId], references: [id])
+  author          User       @relation(fields: [createdBy], references: [id])
+
+  @@unique([inningsId, seq])
+  @@index([matchId, createdAt])
+  @@index([inningsId, seq])
+  @@map("ball_events")
+}
+
+/// Fully recomputed from Innings rows on every match completion, so it is
+/// idempotent and self-healing rather than incrementally drifting. NRR's
+/// inputs are stored alongside it so a disputed number can be traced.
+model PointsTable {
+  id            String  @id @default(cuid())
+  tournamentId  String
+  teamId        String
+  played        Int     @default(0)
+  won           Int     @default(0)
+  lost          Int     @default(0)
+  tied          Int     @default(0)
+  noResult      Int     @default(0)
+  points        Int     @default(0)
+  runsScored    Int     @default(0)
+  /// Decimal overs are a lie in cricket; these are stored as balls and
+  /// converted at read time by ballsToOvers().
+  ballsFaced    Int     @default(0)
+  runsConceded  Int     @default(0)
+  ballsBowled   Int     @default(0)
+  nrr           Float   @default(0)
+  updatedAt     DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@map("points_table")
+}

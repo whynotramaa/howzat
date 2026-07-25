@@ -1,0 +1,178 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  HOWZAT — design tokens
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ *  The palette is ink and brass: a warm near-black, a bone paper, and a muted
+ *  gold used sparingly. It is drawn from the two objects this product replaces
+ *  — a bound scorebook and a pavilion honours board — and it deliberately
+ *  contains no blue and no gradient. Brass is an accent, never a background:
+ *  it marks the live thing, the active thing, the number that matters.
+ *
+ *  Components reference these variables and never a raw colour, and never a
+ *  `dark:` class. Light and dark are two value sets for one contract.
+ *
+ *  Resolution order:
+ *    1. :root                          → light
+ *    2. @media (prefers-color-scheme)  → follow the OS
+ *    3. :root[data-theme="…"]          → a manual toggle wins in both directions
+ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --surface: #f7f4ee; /* bone paper */
+  --surface-raised: #fffdf9; /* a sheet laid on the paper */
+  --surface-sunken: #efeae0; /* a recess: table heads, chips, wells */
+  --surface-hover: #e9e3d7;
+  --surface-inverse: #14120f; /* ink — primary buttons, the score block */
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  /* Hairlines do the structural work here, not shadows. */
+  --line: #e0d9ca;
+  --line-strong: #c6bca7;
+  --line-inverse: #302b22;
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --text-primary: #14120f;
+  --text-secondary: #55504a;
+  --text-muted: #7c7466;
+  --text-on-inverse: #f4efe6;
+  --text-muted-on-inverse: #a49b8c;
+
+  /* ── Brass ────────────────────────────────────────────────────────────── */
+  --accent: #7a5c22; /* legible as small text on paper */
+  --accent-strong: #96742e; /* strokes, gauges, rules — graphic weight */
+  --accent-soft: #f0e7d3; /* a flat wash, not a gradient */
+  --accent-line: #d8c69b;
+
+  /* ── State ────────────────────────────────────────────────────────────── */
+  --live: #a8322a;
+  --live-soft: #f7e4e0;
+  --alert: #8c2f26;
+  --alert-soft: #f7e5e1;
+  --success: #2c6449;
+  --success-soft: #e2eee7;
+  --warning: #85601a;
+  --warning-soft: #f4e9cf;
+
+  --focus: #96742e;
+
+  /* ── Elevation ────────────────────────────────────────────────────────── */
+  /* Warm-tinted and low: paper does not float, it rests. */
+  --shadow-xs: 0 1px 1px rgb(30 24 12 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(30 24 12 / 0.05), 0 1px 1px rgb(30 24 12 / 0.03);
+  --shadow-md: 0 8px 24px -12px rgb(30 24 12 / 0.16), 0 2px 6px -2px rgb(30 24 12 / 0.06);
+  --shadow-lg: 0 28px 60px -28px rgb(30 24 12 / 0.28), 0 6px 16px -8px rgb(30 24 12 / 0.1);
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  /* Restrained. Anything softer starts to read as a consumer app. */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  /* One easing for almost everything, so the whole system moves alike. */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 260ms;
+  --dur-slow: 480ms;
+  --dur-gauge: 900ms;
+
+  color-scheme: light;
+}
+
+/*
+ * Dark is not the light palette inverted — brass has to brighten to hold its
+ * legibility on ink, and the darks stay warm greys rather than blacks so
+ * nothing in the interface reads as pure #000.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --surface: #14120f;
+    --surface-raised: #1b1814;
+    --surface-sunken: #100e0c;
+    --surface-hover: #262119;
+    --surface-inverse: #f2ede4;
+
+    --line: #2e2a22;
+    --line-strong: #453f33;
+    --line-inverse: #d8d0c2;
+
+    --text-primary: #f2ede4;
+    --text-secondary: #b9b1a4;
+    --text-muted: #8d8578;
+    --text-on-inverse: #14120f;
+    --text-muted-on-inverse: #55504a;
+
+    --accent: #c9a34e;
+    --accent-strong: #d9b566;
+    --accent-soft: #2a2318;
+    --accent-line: #5c4a26;
+
+    --live: #d4574a;
+    --live-soft: #331915;
+    --alert: #d4574a;
+    --alert-soft: #331915;
+    --success: #6dae8a;
+    --success-soft: #16261e;
+    --warning: #d3ab5c;
+    --warning-soft: #2a2216;
+
+    --focus: #c9a34e;
+
+    --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md:
+      0 8px 24px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg:
+      0 28px 60px -28px rgb(0 0 0 / 0.8), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+
+    color-scheme: dark;
+  }
+}
+
+/* Manual override — same values, higher specificity than the media query. */
+:root[data-theme='dark'] {
+  --surface: #14120f;
+  --surface-raised: #1b1814;
+  --surface-sunken: #100e0c;
+  --surface-hover: #262119;
+  --surface-inverse: #f2ede4;
+
+  --line: #2e2a22;
+  --line-strong: #453f33;
+  --line-inverse: #d8d0c2;
+
+  --text-primary: #f2ede4;
+  --text-secondary: #b9b1a4;
+  --text-muted: #8d8578;
+  --text-on-inverse: #14120f;
+  --text-muted-on-inverse: #55504a;
+
+  --accent: #c9a34e;
+  --accent-strong: #d9b566;
+  --accent-soft: #2a2318;
+  --accent-line: #5c4a26;
+
+  --live: #d4574a;
+  --live-soft: #331915;
+  --alert: #d4574a;
+  --alert-soft: #331915;
+  --success: #6dae8a;
+  --success-soft: #16261e;
+  --warning: #d3ab5c;
+  --warning-soft: #2a2216;
+
+  --focus: #c9a34e;
+
+  --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 8px 24px -12px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 28px 60px -28px rgb(0 0 0 / 0.8), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}

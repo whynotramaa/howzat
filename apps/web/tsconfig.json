@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "outDir": "./dist-types",
+    "tsBuildInfoFile": "./dist-types/.tsbuildinfo",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "allowImportingTsExtensions": false,
+    // baseUrl must be re-declared here: in tsconfig.base.json it resolves
+    // against the repo root, which would send "@/*" to <root>/src.
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@howzat/shared": ["../../packages/shared/src/index.ts"],
+      "@howzat/shared/*": ["../../packages/shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "references": [{ "path": "../../packages/shared" }]
+}
