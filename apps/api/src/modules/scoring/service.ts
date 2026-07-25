@@ -213,7 +213,9 @@ export async function recordBall(
         snapshot.resultText = refreshed.resultText;
       }
 
-      publishMatchEvent('innings:complete', {
+      // Fan-out only — nothing subscribes to this event in-process, so there
+      // is no work to wait for and the ball write should not pay for it.
+      void publishMatchEvent('innings:complete', {
         matchId,
         inningsNumber: nextState.inningsNumber,
         snapshot,
@@ -221,7 +223,7 @@ export async function recordBall(
     }
 
     await writeSnapshot(snapshot);
-    publishMatchEvent('ball', { matchId, snapshot, seq: created.seq });
+    void publishMatchEvent('ball', { matchId, snapshot, seq: created.seq });
 
     return {
       snapshot,
@@ -306,7 +308,7 @@ export async function correctBall(
     const { state, snapshot } = await project(match, target.inningsId);
 
     await writeSnapshot(snapshot);
-    publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
+    void publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
 
     return {
       snapshot,
@@ -391,7 +393,7 @@ export async function undoLastBall(
     const { state, snapshot } = await project(match, innings.id);
 
     await writeSnapshot(snapshot);
-    publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
+    void publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
 
     return {
       snapshot,

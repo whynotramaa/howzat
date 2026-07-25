@@ -16,8 +16,12 @@ const SOCKET_URL = import.meta.env.PROD
 
 export function getSocket(): MatchSocket {
   socket ??= io(SOCKET_URL, {
-    path: '/socket.io',
-    transports: ['websocket', 'polling'],
+    // The API is served under /api on the deployed origin, sockets included.
+    path: '/api/socket.io',
+    // Websocket only — the long-polling handshake is process-sticky and breaks
+    // when consecutive polls reach different server instances. See the matching
+    // comment in apps/api/src/realtime/io.ts.
+    transports: ['websocket'],
     withCredentials: true,
     reconnection: true,
     reconnectionDelay: 500,

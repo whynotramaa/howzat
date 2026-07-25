@@ -61,10 +61,21 @@ export function onMatchEvent<K extends MatchEventName>(event: K, handler: Subscr
   subscribers.set(event, existing);
 }
 
+/**
+ * Returns a promise that settles once every subscriber has finished.
+ *
+ * Callers on a hot path (a ball write) can drop it with `void` and keep the
+ * old fire-and-forget behaviour. Callers running on a serverless platform
+ * must await it: the instance is frozen the moment the response is sent, so
+ * a detached rebuild would be truncated part-way through with no error.
+ *
+ * A failing subscriber still never fails the caller — each one is caught
+ * individually, so the returned promise always resolves.
+ */
 export function publishMatchEvent<K extends MatchEventName>(
   event: K,
   payload: MatchEvents[K],
-): void {
+): Promise<void> {
   try {
     publisher.publish({ event, payload } as MatchEventEnvelope);
   } catch (err) {
@@ -73,15 +84,13 @@ export function publishMatchEvent<K extends MatchEventName>(
     logger.error({ err, event }, 'Failed to publish match event');
   }
 
-  for (const handler of subscribers.get(event) ?? []) {
-    // Subscribers run detached: a slow or failing points-table rebuild must
-    // not delay or fail the ball write that triggered it.
-    void (async () => {
-      try {
-        await handler(payload);
-      } catch (err) {
-        logger.error({ err, event }, 'Match event subscriber failed');
-      }
-    })();
-  }
+  const running = (subscribers.get(event) ?? []).map(async (handler) => {
+    try {
+      await handler(payload);
+    } catch (err) {
+      logger.error({ err, event }, 'Match event subscriber failed');
+    }
+  });
+
+  return Promise.all(running).then(() => undefined);
 }

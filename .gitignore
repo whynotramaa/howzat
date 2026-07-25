@@ -1,4 +1,5 @@
 node_modules/
+.vercel
 dist/
 dist-types/
 build/
@@ -23,3 +24,9 @@ apps/api/prisma/migrations/dev.db*
 logs/
 *.log
 npm-debug.log*
+
+# Added by `vercel link`. .env and .env.local are already covered above; the
+# blanket rule is kept for stray .env.production etc., with the committed
+# template exempted.
+.env*
+!.env.example

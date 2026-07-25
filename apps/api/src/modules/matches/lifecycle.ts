@@ -305,8 +305,10 @@ export async function completeMatch(matchId: string, secondInningsState: MatchSt
     data: { status: 'COMPLETED', winnerTeamId, resultText },
   });
 
-  // The trigger for the points table and NRR recompute in Phase 6.
-  publishMatchEvent('match:completed', {
+  // The trigger for the points table and NRR recompute in Phase 6. Awaited
+  // because a serverless host freezes this instance as soon as the response
+  // goes out, which would leave the rebuild half-finished.
+  await publishMatchEvent('match:completed', {
     matchId,
     tournamentId: match.tournamentId,
     winnerTeamId,
@@ -332,7 +334,7 @@ export async function abandonMatch(matchId: string, resultText?: string) {
     },
   });
 
-  publishMatchEvent('match:completed', {
+  await publishMatchEvent('match:completed', {
     matchId,
     tournamentId: match.tournamentId,
     winnerTeamId: null,

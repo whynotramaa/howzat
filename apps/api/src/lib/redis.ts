@@ -10,7 +10,10 @@ import { logger } from './logger';
 const baseOptions: RedisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
-  lazyConnect: false,
+  // Connect on first command rather than at import. A serverless cold start
+  // otherwise opens three TCP connections before knowing whether the request
+  // it woke up for needs Redis at all.
+  lazyConnect: true,
   retryStrategy(times) {
     // Back off to a 5s ceiling, then keep trying — a Redis blip should
     // degrade the service, not kill the process.
@@ -33,7 +36,9 @@ const globalForRedis = globalThis as unknown as { redis?: Redis };
 /** The general-purpose client: OTP rate limits, auth caches, snapshots. */
 export const redis = globalForRedis.redis ?? createRedisClient('main');
 
-if (env.NODE_ENV === 'development') globalForRedis.redis = redis;
+// Cached unconditionally: a reused serverless instance must not open a new
+// connection per invocation — Upstash's free tier caps concurrent connections.
+globalForRedis.redis = redis;
 
 export async function pingRedis(): Promise<boolean> {
   try {

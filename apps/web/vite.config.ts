@@ -25,19 +25,25 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: false,
       proxy: {
+        // Listed before '/api' because the proxy matches prefixes in order —
+        // '/api' would otherwise swallow this and strip the prefix the socket
+        // server is actually listening on.
+        //
+        // Same-origin websockets in dev, so the socket needs no CORS handling
+        // and behaves the way it will behind one domain in production. No
+        // rewrite: the server listens on this exact path in both environments.
+        '/api/socket.io': {
+          target: env.VITE_SOCKET_URL || 'http://localhost:4000',
+          ws: true,
+          changeOrigin: true,
+        },
         // Same-origin in dev means the refresh cookie is first-party and CORS
-        // never enters the picture.
+        // never enters the picture. In production the deployed function is
+        // mounted under /api instead, so the prefix is real rather than stripped.
         '/api': {
           target: env.VITE_API_BASE_URL || 'http://localhost:4000',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
-        },
-        // Same-origin websockets in dev, so the socket needs no CORS handling
-        // and behaves the way it will behind one domain in production.
-        '/socket.io': {
-          target: env.VITE_SOCKET_URL || 'http://localhost:4000',
-          ws: true,
-          changeOrigin: true,
         },
       },
     },

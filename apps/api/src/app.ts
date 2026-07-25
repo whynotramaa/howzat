@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
-import { env, emailEnabled } from './config/env';
+import { env, emailEnabled, allowedOrigins } from './config/env';
 import { logger } from './lib/logger';
 import { pingDatabase } from './lib/prisma';
 import { pingRedis } from './lib/redis';
@@ -34,7 +34,7 @@ export function createApp() {
   app.use(helmet());
   app.use(
     cors({
-      origin: [env.WEB_BASE_URL],
+      origin: allowedOrigins,
       credentials: true,
     }),
   );

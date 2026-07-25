@@ -8,6 +8,10 @@
 
 generator client {
   provider = "prisma-client-js"
+  // "native" keeps local development working; the RHEL target is the query
+  // engine the deployed Linux runtime loads. Without it the client builds
+  // fine and then fails at runtime with "Query Engine not found".
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
