@@ -138,22 +138,19 @@ export function ScoringPage() {
     );
   }
 
-  const optimisticState = queue.items.reduce(
-    (current, item, index) =>
-      applyBall(current, optimisticEvent(current, item.input, index), context),
-    state,
-  );
+  // Everything the console reasons about has to include the deliveries that are
+  // still only on this device, the consecutive-overs rule included.
+  const optimistic = foldQueuedBalls(state, context, previousOverBowlerId, queue.items);
 
   return (
     <div className="flex flex-col gap-8">
       {header}
       <Console
         key={context.inningsId}
-        state={state}
-        optimisticState={optimisticState}
+        optimisticState={optimistic.state}
         context={context}
         matchStatus={match.status}
-        previousOverBowlerId={previousOverBowlerId}
+        previousOverBowlerId={optimistic.previousOverBowlerId}
         isSaving={recordBall.isPending || undo.isPending}
         saveError={recordBall.error ?? undo.error}
         queueItems={queue.items}
@@ -174,7 +171,6 @@ interface Crease {
 }
 
 interface ConsoleProps {
-  state: MatchState;
   optimisticState: MatchState;
   context: InningsContext;
   matchStatus: string;
@@ -196,13 +192,13 @@ const EXTRAS: ReadonlyArray<{ value: ExtraType; label: string; key: string }> = 
   { value: 'LEG_BYE', label: 'Leg bye', key: 'l' },
 ];
 
-function optimisticEvent(state: MatchState, input: BallRequestInput, index: number): BallEvent {
+function optimisticEvent(state: MatchState, input: BallRequestInput): BallEvent {
   const legalBalls = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
   return {
     ...input,
     id: `optimistic-${input.clientEventId}`,
     inningsId: state.inningsId,
-    seq: state.lastEventSeq + index + 1,
+    seq: state.lastEventSeq + 1,
     overNumber: state.currentOverNumber,
     ballNumber: Math.min(legalBalls + 1, 6),
     eventType: 'BALL',
@@ -213,8 +209,35 @@ function optimisticEvent(state: MatchState, input: BallRequestInput, index: numb
   };
 }
 
+/**
+ * Replays the queued deliveries on top of the last state the server confirmed.
+ *
+ * The bowler of the previous over has to be carried through the fold as well:
+ * offline the server's answer is frozen at the moment the connection dropped,
+ * and a stale one both offers the wrong bowlers at the over boundary and lets
+ * through a ball the server will reject with CONSECUTIVE_OVERS on sync.
+ */
+function foldQueuedBalls(
+  state: MatchState,
+  context: InningsContext,
+  serverPreviousOverBowlerId: string | null,
+  queued: ReadonlyArray<{ input: BallRequestInput }>,
+): { state: MatchState; previousOverBowlerId: string | null } {
+  let current = state;
+  let previousOverBowlerId = serverPreviousOverBowlerId;
+
+  for (const item of queued) {
+    const next = applyBall(current, optimisticEvent(current, item.input), context);
+    if (next.currentOverNumber !== current.currentOverNumber) {
+      previousOverBowlerId = item.input.bowlerId;
+    }
+    current = next;
+  }
+
+  return { state: current, previousOverBowlerId };
+}
+
 function Console({
-  state,
   optimisticState,
   context,
   matchStatus,
@@ -230,19 +253,23 @@ function Console({
 }: ConsoleProps) {
   const displayState = optimisticState;
   const [override, setOverride] = useState<Partial<Crease>>({});
-  const [syncedSeq, setSyncedSeq] = useState(state.lastEventSeq);
+  const [appliedSeq, setAppliedSeq] = useState(displayState.lastEventSeq);
   const [extraType, setExtraType] = useState<ExtraType | null>(null);
   const [wicketOpen, setWicketOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // Every accepted ball clears the manual picks, so the crease falls back to
+  // what the reducer says. Tracked against the displayed sequence, not the
+  // server's: offline the server's sequence never moves, and a stuck override
+  // would freeze the striker and the bowler for the rest of the innings.
   useEffect(() => {
-    if (state.lastEventSeq === syncedSeq) return;
+    if (displayState.lastEventSeq === appliedSeq) return;
     setOverride({});
     setExtraType(null);
     setWicketOpen(false);
     setLocalError(null);
-    setSyncedSeq(state.lastEventSeq);
-  }, [state.lastEventSeq, syncedSeq]);
+    setAppliedSeq(displayState.lastEventSeq);
+  }, [displayState.lastEventSeq, appliedSeq]);
 
   const crease: Crease = {
     striker: override.striker !== undefined ? override.striker : displayState.strikerId,
