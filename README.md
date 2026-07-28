@@ -30,9 +30,13 @@ an app or create an account to get it.
 
 Howzat gives one person a fast scoring console and everybody else a link.
 
-- **The scorer** taps runs. Every ball is an append-only event.
+- **The scorer** taps runs. Every ball is an append-only event, and the console
+  keeps working when the signal at the ground does not.
 - **Everyone else** opens a URL. The score arrives over a websocket, live.
-- **The organizer** gets fixtures and a points table that computes itself.
+- **The organizer** gets fixtures, a playoff bracket, and a points table that
+  computes itself — plus what each side still needs to qualify.
+- **The players** are added off a team sheet in one flow, account or not, and a
+  registered one gets a career profile that fills in as matches complete.
 
 ---
 
@@ -72,7 +76,8 @@ Howzat gives one person a fast scoring console and everybody else a link.
 
 ```mermaid
 flowchart LR
-  Scorer[Scorer console] -->|POST /matches/:id/balls| API[Express API]
+  Scorer[Scorer console] --> Q[(IndexedDB queue)]
+  Q -->|POST /matches/:id/balls, in order| API[Express API]
   API -->|append-only insert| PG[(Postgres)]
   API -->|snapshot cache| R[(Redis)]
   API -->|publish| BUS[realtime/bus.ts]
@@ -88,6 +93,11 @@ flowchart LR
 semantics all live in one place, which leaves the realtime layer a disposable,
 read-only fan-out. The write path publishes to `realtime/bus.ts` and never
 imports socket.io.
+
+**Every ball goes through the queue, online or not.** There is no separate
+offline path to keep in step with the online one — the connection only decides
+whether the queue drains now or later, and `clientEventId` makes the replay
+indistinguishable from a first attempt.
 
 **Postgres is the truth; Redis is derived.** `BallEvent` is append-only and is
 the sole source of truth for anything that happens in a match. The snapshot in
@@ -127,21 +137,60 @@ immediately, rather than a replay from ball one.
 </details>
 
 <details>
+<summary><strong>Scoring with no signal</strong></summary>
+
+The console does not stop when the connection does. A ball scored offline is
+queued in IndexedDB and replayed when the network returns; the scorer sees the
+running score move immediately either way.
+
+- **The queue is the same idempotency story as the write path.** Each queued
+  ball is keyed by its `clientEventId`, so a replay is indistinguishable from
+  the original attempt — which is the whole reason the queue is safe to drain
+  blindly. The phone has no way to know whether its first attempt landed.
+- **The drain is ordered and stops at the first failure.** Ball *n+1*'s legality
+  depends on ball *n*; syncing past a rejection would post deliveries against a
+  state the server never reached. Failed balls surface in the UI with the
+  server's reason and can be retried explicitly.
+- **The browser runs the same reducer the server does.** `packages/shared` is
+  imported by both, so the offline score is folded by the code that will later
+  validate it — not a second implementation that can disagree.
+- **The previous over's bowler is carried through the fold.** Offline, the
+  server's answer is frozen at the moment the connection dropped. A stale one
+  offers the wrong bowlers at the over boundary and lets through a ball the
+  server rejects with `CONSECUTIVE_OVERS` on sync — the failure would appear
+  minutes later, against a ball the scorer had forgotten about.
+- **Crease overrides clear against the *displayed* sequence, not the server's.**
+  Offline the server's sequence never moves, so tracking against it would
+  freeze the striker and the bowler for the rest of the innings.
+
+</details>
+
+<details>
 <summary><strong>Security</strong></summary>
 
+- **Sign up once, then username and password.** The email code is spent
+  confirming the address, not gating every sign-in. Mailing a code each time
+  reads as frictionless and is the opposite in the one place this app is used:
+  a ground with bad signal, where the scorer's email is on a different device
+  and the match is waiting on them. Passwords are bcrypt at cost 12.
 - **Access tokens are 15-minute JWTs held in memory only** — never
   `localStorage`, so an XSS cannot exfiltrate one. The httpOnly refresh cookie
   is what survives a reload.
 - **Refresh tokens are opaque random strings** stored as SHA-256 hashes and
   rotated on every use. Presenting an already-revoked token is treated as theft
   and revokes the user's entire session family.
-- **No enumeration oracles.** Every OTP failure path returns the same message,
-  and handle lookup requires a session — a public "does this handle exist"
+- **Codes are scoped to what they were issued for.** A code emailed to confirm
+  an address is not redeemable as a password reset, even though both are six
+  digits sent to the same inbox. They are `crypto.randomInt`, stored hashed.
+- **No enumeration oracles.** Every code failure path returns the same message,
+  a login against a missing account still burns a password comparison, and
+  handle lookup requires a session — a public "does this handle exist"
   endpoint would be an oracle.
 - **`requireScorerForMatch`** guards every match route, with a 60s Redis cache
   invalidated the moment an assignment changes.
-- Redis-backed rate limits on OTP requests and ball writes, with a truthful
-  `Retry-After`.
+- Redis-backed rate limits on code requests and ball writes, with a truthful
+  `Retry-After`. The per-IP ceiling is deliberately looser than the per-email
+  one — a shared ground wifi should not lock out a whole team.
 
 </details>
 
@@ -198,8 +247,9 @@ secrets:
 node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 ```
 
-Leave `RESEND_API_KEY` blank — sign-in codes are then printed to the API log
-rather than emailed, which is the intended development path.
+Leave `RESEND_API_KEY` blank — verification and password-reset codes are then
+printed to the API log rather than emailed, which is the intended development
+path.
 
 ```bash
 npm run db:migrate      # first run asks for a name; "init" is fine
@@ -209,11 +259,19 @@ npm run dev             # API on :4000, web on :5173
 
 ### Seeded accounts
 
-| Account | Handle | Role |
+Sign in with the **handle and password** — all three share `howzat1234`, and
+all three are seeded as verified so there is no code to hunt for in the log.
+
+| Handle | Password | What they are |
 | --- | --- | --- |
-| `organizer@howzat.local` | `@organizer` | Organizer — owns both tournaments |
-| `whynotramaa@howzat.local` | `@whynotramaa` | Scorer — assigned to every IPL 2026 match |
-| `scorer@howzat.local` | `@demoscorer` | Scorer — assigned to nothing, useful for testing 403s |
+| `@organizer` | `howzat1234` | Owns both tournaments |
+| `@whynotramaa` | `howzat1234` | Assigned to every IPL 2026 match |
+| `@demoscorer` | `howzat1234` | Assigned to nothing, useful for testing 403s |
+
+Nobody has a role column. Being an organizer means owning a tournament; being a
+scorer means holding an assignment for a match. All three are also registered
+players in a Sunday League side, so their career profiles fill in as matches
+complete.
 
 **IPL 2026** seeds 10 teams, 11 players each and 49 matches; **Sunday League
 2026** is a 4-team sandbox. The seed is idempotent and never regenerates
@@ -247,8 +305,8 @@ TypeScript import out of that directory.
 ## Verification
 
 `npm test` covers the pure logic — 45 tests across the scoring reducer, the
-fixture generator's pairing guarantees, and the NRR arithmetic including the
-plan's exact worked scenario.
+fixture generator's pairing guarantees, career aggregation, and the NRR
+arithmetic including the plan's exact worked scenario.
 
 The parts worth checking by hand:
 
@@ -260,6 +318,8 @@ The parts worth checking by hand:
 | `DEL match:<id>` in Redis, then re-read the snapshot | Identical score, rebuilt from the event log |
 | Open the share link mid-match in a fresh window | Current score immediately — never a replay from ball one |
 | Kill the API with the live page open | Badge flips to "Reconnecting", then resyncs by refetching |
+| Score an over with the network throttled to offline, then restore it | The score moves as you tap; the queue drains in order and the server lands on the same total |
+| Go offline and try the same bowler two overs running | Rejected on the device, before it is ever queued |
 | Run two API instances, score through one | The viewer on the other updates, via Redis pub/sub |
 | Chase bowled out inside its quota | That row's `oversFaced` is the **full quota** |
 
@@ -273,7 +333,10 @@ packages/shared/   types, zod schemas, constants — one contract for both apps
   src/scoring/validate.ts  the legal-state guard, run before any write
   src/scoring/format.ts    base-6 overs, run rate, strike rate, economy
   src/fixtures/circle.ts   round-robin by the circle method (pure, no DB)
+  src/fixtures/knockout.ts the four-slot playoff bracket, filled as feeders end
   src/nrr/index.ts         points + NRR, incl. the bowled-out quota rule (pure)
+  src/qualification/       bounded "can we still qualify" scenarios (pure)
+  src/stats/career.ts      career totals from per-match rows (pure)
 
 apps/api/          express + prisma + redis
   src/app.ts               createApp() — no listen(), so it is host-agnostic
@@ -281,9 +344,10 @@ apps/api/          express + prisma + redis
   src/vercel.ts            serverless entry — exports the server, never listens
   src/config/env.ts        zod-parsed process.env, throws at boot if incomplete
   src/lib/                 prisma, redis, logger, errors, lock, slug
-  src/middleware/          requireAuth, requireRole, requireScorerForMatch
-  src/modules/             auth, users, tournaments, teams, players, fixtures,
-                           matches, scoring, snapshot, standings, stats
+  src/middleware/          requireAuth, requireScorerForMatch, rate limits
+  src/modules/             auth, users, me, notifications, tournaments, teams,
+                           players, fixtures, matches, scoring, snapshot,
+                           standings, stats
   src/modules/public/      the no-auth share link surface (slug-addressed)
   src/realtime/bus.ts      transport-agnostic seam the write path publishes to
   src/realtime/io.ts       socket.io + Redis adapter, Redis-backed viewer count
@@ -292,7 +356,9 @@ apps/web/          vite + react + tailwind v4
   src/styles/tokens.css    semantic CSS variables; light/dark, no `dark:` classes
   src/lib/api.ts           fetch wrapper with silent token refresh
   src/lib/socket.ts        one shared socket per tab
-  src/features/            auth, organizer, matches, live, profile, notifications
+  src/lib/offlineBallQueue.ts   IndexedDB queue for balls scored with no signal
+  src/features/            auth, dashboard, organizer, matches, live, profile,
+                           notifications
 
 api/server.ts      the Vercel Function — re-exports the built server
 ```
