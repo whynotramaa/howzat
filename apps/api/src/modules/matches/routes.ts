@@ -43,6 +43,7 @@ matchesRouter.get(
           select: { scorer: { select: { id: true, username: true, name: true } } },
         },
         innings: { orderBy: { number: 'asc' } },
+        tournament: { select: { sport: true } },
       },
     });
 
@@ -196,6 +197,7 @@ matchesRouter.get(
           select: { scorer: { select: { id: true, username: true, name: true } } },
         },
         innings: { orderBy: { number: 'desc' } },
+        tournament: { select: { sport: true } },
       },
     });
 

@@ -5,6 +5,7 @@ import { redis } from '../../lib/redis';
 import { asyncHandler, requireParam } from '../../lib/http';
 import { notFound } from '../../lib/errors';
 import { getSnapshot, loadEvents, loadInningsContext } from '../snapshot';
+import { getFootballSnapshot } from '../football/snapshot';
 import { getStandings } from '../standings/service';
 
 /**
@@ -44,7 +45,16 @@ publicRouter.get(
       include: {
         team1: true,
         team2: true,
-        tournament: { select: { name: true, oversPerInnings: true } },
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+            sport: true,
+            oversPerInnings: true,
+            periods: true,
+            periodMinutes: true,
+          },
+        },
         innings: { orderBy: { number: 'asc' } },
       },
     });
@@ -54,7 +64,13 @@ publicRouter.get(
     res.json({
       id: match.id,
       publicSlug: match.publicSlug,
+      // The share link is one URL for both codes, so the very first thing it
+      // has to answer is which scoreboard to draw.
+      sport: match.tournament.sport,
+      tournamentId: match.tournament.id,
       tournamentName: match.tournament.name,
+      periods: match.tournament.periods,
+      periodMinutes: match.tournament.periodMinutes,
       round: match.round,
       stage: match.stage,
       status: match.status,
@@ -111,6 +127,34 @@ publicRouter.get(
   }),
 );
 
+/**
+ * The football twin of the snapshot endpoint. A separate path rather than a
+ * union on the cricket one: a spectator page already knows which sport it is
+ * rendering by the time it asks, and one endpoint answering two unrelated
+ * shapes would make every caller start with a discriminant check.
+ */
+publicRouter.get(
+  '/matches/:slug/football',
+  asyncHandler(async (req, res) => {
+    const slug = requireParam(req, 'slug');
+    const matchId = await resolveSlug(slug);
+
+    const snapshot = await getFootballSnapshot(matchId);
+
+    if (!snapshot) {
+      res.json({ snapshot: null, matchId, message: 'This match has not kicked off yet' });
+      return;
+    }
+
+    // Deliberately uncached at the edge, unlike the cricket snapshot. That one
+    // is a set of numbers that only change when a ball is bowled; this one
+    // carries `serverNow`, which every viewer measures their own clock against,
+    // and a five-second-old copy would put five seconds of skew on the watch.
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(snapshot);
+  }),
+);
+
 /** The points table, shareable without a login like everything else here. */
 publicRouter.get(
   '/tournaments/:tournamentId/standings',
@@ -119,7 +163,7 @@ publicRouter.get(
 
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
-      select: { id: true, name: true, format: true, status: true },
+      select: { id: true, name: true, sport: true, format: true, status: true },
     });
 
     if (!tournament) throw notFound('Tournament');

@@ -2,15 +2,23 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   DEFAULT_OVERS_PER_INNINGS,
+  DEFAULT_PERIODS,
+  DEFAULT_PERIOD_MINUTES,
+  MAX_PLAYERS_PER_TEAM,
+  MIN_PLAYERS_PER_TEAM,
+  PLAYERS_PER_TEAM,
   TOURNAMENT_FORMATS,
+  formationsFor,
+  type Sport,
   type TournamentDto,
   type TournamentFormat,
 } from '@howzat/shared';
+import { PeriodDesigner } from '@/features/football/PeriodDesigner';
+import { SportEyebrow, SportMark } from '@/components/ui/SportMark';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, SectionHeading } from '@/components/ui/Card';
 import { Checkbox, Input, Select } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
-import { Pill } from '@/components/ui/Pill';
 import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
@@ -22,10 +30,23 @@ const FORMAT_LABELS: Record<TournamentFormat, string> = {
   LEAGUE_PLAYOFFS: 'League + playoffs',
 };
 
+const SPORTS: Array<{ value: Sport; label: string; blurb: string }> = [
+  {
+    value: 'CRICKET',
+    label: 'Cricket',
+    blurb: 'Ball by ball, with a full scorecard and net run rate.',
+  },
+  {
+    value: 'FOOTBALL',
+    label: 'Football',
+    blurb: 'Goals, cards and a live clock, on a pitch with both formations.',
+  },
+];
+
 /**
  * The organizer's shelf. Each tournament is a plate showing the one thing that
  * decides what can happen next: how many sides are registered, and how many of
- * them have a full XI. Fixtures are blocked until those two numbers agree, so
+ * them have a full squad. Fixtures are blocked until those two numbers agree, so
  * putting them on the card means nobody has to open a tournament to find out why.
  */
 export function TournamentsPage() {
@@ -37,7 +58,7 @@ export function TournamentsPage() {
       <SectionHeading
         eyebrow="Your competitions"
         title="Tournaments"
-        description="Register your sides, give each one eleven players, then generate the fixtures."
+        description="Pick a sport, register your sides, fill each squad, then generate the fixtures."
         action={<Button onClick={() => setCreating(true)}>New tournament</Button>}
       />
 
@@ -85,15 +106,22 @@ function TournamentCard({ tournament }: { tournament: TournamentDto }) {
       )}
     >
       <div>
-        <div className="flex items-start justify-between gap-5">
-          <h3 className="serif text-[1.625rem] text-primary">{tournament.name}</h3>
-          <Pill>{FORMAT_LABELS[tournament.format]}</Pill>
-        </div>
+        {/* Sport and format read as one caption above the name, the same way
+            every other section in the product opens. Two coloured badges
+            floated to the right of a title was two pieces of furniture doing
+            the job of one line of text. */}
+        <SportEyebrow sport={tournament.sport} detail={FORMAT_LABELS[tournament.format]} />
 
-        <p className="mono mt-3 text-[0.8125rem] text-muted">
-          {tournament.oversPerInnings} overs
+        <h3 className="serif mt-3 text-[1.625rem] text-primary">{tournament.name}</h3>
+
+        <p className="mono mt-2.5 text-[0.8125rem] text-muted">
+          {tournament.sport === 'FOOTBALL'
+            ? `${tournament.periods} × ${tournament.periodMinutes} min`
+            : `${tournament.oversPerInnings} overs`}
           <span className="mx-2 text-line-strong">·</span>
           {tournament.teamsCount} teams
+          <span className="mx-2 text-line-strong">·</span>
+          {tournament.playersPerTeam} a side
           {tournament.doubleRoundRobin ? (
             <>
               <span className="mx-2 text-line-strong">·</span>home and away
@@ -121,7 +149,7 @@ function TournamentCard({ tournament }: { tournament: TournamentDto }) {
               tournament.teamsCount - registered === 1 ? '' : 's'
             } to register`
           ) : (
-            `${shortBy} side${shortBy === 1 ? '' : 's'} short of a full XI`
+            `${shortBy} side${shortBy === 1 ? '' : 's'} short of a full squad`
           )}
         </p>
       </div>
@@ -154,20 +182,33 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
   const createTournament = useCreateTournament();
 
   const [name, setName] = useState('');
+  const [sport, setSport] = useState<Sport>('CRICKET');
   const [format, setFormat] = useState<TournamentFormat>('LEAGUE');
   const [teamsCount, setTeamsCount] = useState(4);
   const [oversPerInnings, setOversPerInnings] = useState(DEFAULT_OVERS_PER_INNINGS);
   const [doubleRoundRobin, setDoubleRoundRobin] = useState(false);
+  // Football only. Cricket's side is eleven and is never asked for.
+  const [playersPerTeam, setPlayersPerTeam] = useState(PLAYERS_PER_TEAM);
+  const [periods, setPeriods] = useState(DEFAULT_PERIODS);
+  const [periodMinutes, setPeriodMinutes] = useState(DEFAULT_PERIOD_MINUTES);
+
+  const isFootball = sport === 'FOOTBALL';
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
     await createTournament.mutateAsync({
       name,
+      sport,
       format,
       teamsCount,
+      // The API rejects a cricket side that is not eleven, so this is sent
+      // as the fixed value rather than whatever the football dial was left on.
+      playersPerTeam: isFootball ? playersPerTeam : PLAYERS_PER_TEAM,
       oversPerInnings,
       doubleRoundRobin,
+      periods,
+      periodMinutes,
     });
 
     onClose();
@@ -179,7 +220,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       onClose={onClose}
       size="lg"
       title="New tournament"
-      description="These settings shape the fixture list. Overs can still be changed match by match."
+      description="Pick the sport first — it decides everything below it. These settings shape the fixture list."
       footer={
         <>
           <Button type="submit" form="create-tournament" isLoading={createTournament.isPending}>
@@ -191,13 +232,58 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
         </>
       }
     >
-      <form id="create-tournament" onSubmit={handleSubmit} className="grid gap-6 sm:grid-cols-2">
+      <form id="create-tournament" onSubmit={handleSubmit} className="grid gap-7 sm:grid-cols-2">
+        {/* The sport is the first decision and the only one that changes what
+            the rest of this form is even asking. */}
+        <div className="flex flex-col gap-2.5 sm:col-span-2">
+          <span className="eyebrow text-secondary">Sport</span>
+
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {SPORTS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSport(option.value)}
+                aria-pressed={sport === option.value}
+                className={cn(
+                  'flex items-start gap-3.5 rounded-[var(--radius-md)] border px-4 py-3.5 text-left',
+                  'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+                  sport === option.value
+                    ? 'border-[var(--accent-strong)] bg-accent-soft'
+                    : 'border-line bg-raised hover:border-line-strong hover:bg-hover',
+                )}
+              >
+                <SportMark
+                  sport={option.value}
+                  className={cn(
+                    'mt-0.5 size-5',
+                    sport === option.value ? 'text-accent' : 'text-muted',
+                  )}
+                />
+                <span className="min-w-0">
+                  <span
+                    className={cn(
+                      'block text-sm font-medium',
+                      sport === option.value ? 'text-accent' : 'text-primary',
+                    )}
+                  >
+                    {option.label}
+                  </span>
+                  <span className="mt-1 block text-[0.75rem] leading-snug text-muted">
+                    {option.blurb}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="sm:col-span-2">
           <Input
             label="Tournament name"
             autoFocus
             required
-            placeholder="Sunday League 2026"
+            placeholder={isFootball ? 'Sunday Football League 2026' : 'Sunday League 2026'}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -225,15 +311,37 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
           onChange={(event) => setTeamsCount(Number(event.target.value))}
         />
 
-        <Input
-          label="Overs per innings"
-          type="number"
-          min={1}
-          max={50}
-          required
-          value={oversPerInnings}
-          onChange={(event) => setOversPerInnings(Number(event.target.value))}
-        />
+        {isFootball ? (
+          <Select
+            label="Players a side"
+            hint={
+              formationsFor(playersPerTeam).length > 0
+                ? `Formations: ${formationsFor(playersPerTeam).slice(0, 3).join(', ')}`
+                : 'Every squad must hold exactly this many.'
+            }
+            value={playersPerTeam}
+            onChange={(event) => setPlayersPerTeam(Number(event.target.value))}
+          >
+            {Array.from(
+              { length: MAX_PLAYERS_PER_TEAM - MIN_PLAYERS_PER_TEAM + 1 },
+              (_, index) => MIN_PLAYERS_PER_TEAM + index,
+            ).map((size) => (
+              <option key={size} value={size}>
+                {size} a side
+              </option>
+            ))}
+          </Select>
+        ) : (
+          <Input
+            label="Overs per innings"
+            type="number"
+            min={1}
+            max={50}
+            required
+            value={oversPerInnings}
+            onChange={(event) => setOversPerInnings(Number(event.target.value))}
+          />
+        )}
 
         <div className="flex items-end pb-1">
           <Checkbox
@@ -243,6 +351,20 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
             onChange={(event) => setDoubleRoundRobin(event.target.checked)}
           />
         </div>
+
+        {isFootball ? (
+          <div className="sm:col-span-2">
+            <div className="rule mb-6" />
+            <PeriodDesigner
+              periods={periods}
+              periodMinutes={periodMinutes}
+              onChange={(next) => {
+                setPeriods(next.periods);
+                setPeriodMinutes(next.periodMinutes);
+              }}
+            />
+          </div>
+        ) : null}
 
         {createTournament.error ? (
           <div className="sm:col-span-2">

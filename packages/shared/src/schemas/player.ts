@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { claimableUsernameSchema, nameSchema } from './common';
 import { PLAYER_ROLES } from '../types/enums';
+import { MAX_FOOTBALL_SQUAD } from '../constants';
 
 /**
  * A squad slot is added one of two ways, and the difference matters:
@@ -38,10 +39,14 @@ export const updatePlayerSchema = playerFields.omit({ username: true }).partial(
 export type UpdatePlayerInput = z.infer<typeof updatePlayerSchema>;
 
 /**
- * Bulk add — the fastest path to a full XI. The organizer pastes 11 names,
+ * Bulk add — the fastest path to a full squad. The organizer pastes the names,
  * one per line, rather than filling the same form eleven times.
+ *
+ * The cap is the largest squad any sport here allows, not the size of a
+ * starting side: in football those are different numbers, and capping the paste
+ * at the eleven who start would refuse the bench on the way in.
  */
 export const bulkCreatePlayersSchema = z.object({
-  players: z.array(createPlayerSchema).min(1).max(25),
+  players: z.array(createPlayerSchema).min(1).max(MAX_FOOTBALL_SQUAD),
 });
 export type BulkCreatePlayersInput = z.infer<typeof bulkCreatePlayersSchema>;

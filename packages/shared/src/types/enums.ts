@@ -4,6 +4,9 @@
  * the Prisma runtime into the browser bundle.
  */
 
+export const SPORTS = ['CRICKET', 'FOOTBALL'] as const;
+export type Sport = (typeof SPORTS)[number];
+
 export const TOURNAMENT_FORMATS = ['LEAGUE', 'KNOCKOUT', 'LEAGUE_PLAYOFFS'] as const;
 export type TournamentFormat = (typeof TOURNAMENT_FORMATS)[number];
 
@@ -60,3 +63,36 @@ export type WicketType = (typeof WICKET_TYPES)[number];
 
 export const NOTIFICATION_TYPES = ['SQUAD_ADDED', 'SCORER_ASSIGNED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+// ─────────────────────────────────────────────────────────── football ──
+
+export const FOOTBALL_EVENT_KINDS = ['GOAL', 'OWN_GOAL', 'YELLOW_CARD', 'RED_CARD'] as const;
+export type FootballEventKind = (typeof FOOTBALL_EVENT_KINDS)[number];
+
+export const FOOTBALL_EVENT_TYPES = ['EVENT', 'UNDO'] as const;
+export type FootballEventType = (typeof FOOTBALL_EVENT_TYPES)[number];
+
+export const CLOCK_STATUSES = [
+  'NOT_STARTED',
+  'RUNNING',
+  'PAUSED',
+  'PERIOD_BREAK',
+  'FINISHED',
+] as const;
+export type ClockStatus = (typeof CLOCK_STATUSES)[number];
+
+/**
+ * What the scorer can ask the clock to do. Deliberately a verb list rather
+ * than a target status: "resume" and "start next period" both end in RUNNING,
+ * but only one of them is legal at a given moment, and naming the intent is
+ * what lets the server say which.
+ */
+export const CLOCK_COMMANDS = [
+  'START',
+  'PAUSE',
+  'RESUME',
+  'END_PERIOD',
+  'START_NEXT_PERIOD',
+  'FULL_TIME',
+] as const;
+export type ClockCommand = (typeof CLOCK_COMMANDS)[number];

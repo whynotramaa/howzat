@@ -3,15 +3,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { HomePage } from '@/features/home/HomePage';
-import { LiveMatchPage } from '@/features/live/LiveMatchPage';
+import { LiveRoute, MatchRoute, ScoringRoute } from '@/features/matches/SportRoutes';
 import { AppShell } from '@/components/AppShell';
 import { RequireAuth } from '@/components/RequireAuth';
 import { TournamentsPage } from '@/features/organizer/TournamentsPage';
 import { TournamentDetailPage } from '@/features/organizer/TournamentDetailPage';
 import { TeamDetailPage } from '@/features/organizer/TeamDetailPage';
 import { FixturesPage } from '@/features/matches/FixturesPage';
-import { MatchPage } from '@/features/matches/MatchPage';
-import { ScoringPage } from '@/features/matches/ScoringPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { PlayerProfilePage } from '@/features/profile/PlayerProfilePage';
 import { PublicTournamentPage } from '@/features/organizer/PublicTournamentPage';
@@ -37,7 +35,8 @@ export function App() {
           <Routes>
             {/* Public: the front page, and the link people actually share. */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/live/:slug" element={<LiveMatchPage />} />
+            {/* One share URL for both codes; the route picks the scoreboard. */}
+            <Route path="/live/:slug" element={<LiveRoute />} />
             <Route path="/tournament/:tournamentId" element={<PublicTournamentPage />} />
 
             <Route path="/login" element={<LoginPage />} />
@@ -59,11 +58,11 @@ export function App() {
 
               {/* Match setup and scoring are addressed by id, not by slug: the slug
                   is the public read-only link and confers no access. */}
-              <Route path="/matches/:matchId" element={<MatchPage />} />
-              <Route path="/matches/:matchId/score" element={<ScoringPage />} />
+              <Route path="/matches/:matchId" element={<MatchRoute />} />
+              <Route path="/matches/:matchId/score" element={<ScoringRoute />} />
               {/* Public brief terminology: keep the shorter scorer-console URL as
                   an alias while preserving the existing match-scoped route. */}
-              <Route path="/score/:matchId" element={<ScoringPage />} />
+              <Route path="/score/:matchId" element={<ScoringRoute />} />
               <Route path="/players/:username" element={<PlayerProfilePage />} />
             </Route>
 

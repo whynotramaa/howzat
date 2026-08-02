@@ -25,6 +25,10 @@ export async function loadOwnedTeam(teamId: string, userId: string) {
           id: true,
           organizerId: true,
           status: true,
+          sport: true,
+          // The squad cap and the eligibility mark are both the tournament's
+          // number, so every caller that loads a team already has it.
+          playersPerTeam: true,
           // Both are here for the squad-addition notice, which names the
           // tournament and whoever did the adding.
           name: true,

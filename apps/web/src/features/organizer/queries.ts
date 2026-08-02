@@ -83,6 +83,20 @@ export function useCreateTournament() {
   });
 }
 
+/**
+ * Deleting a tournament takes its teams, squads, fixtures and every ball or
+ * goal recorded in it. The API refuses while matches are under way, which is
+ * the one case where the cascade would destroy something nobody could rebuild.
+ */
+export function useDeleteTournament() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tournamentId: string) => api.delete<void>(`/tournaments/${tournamentId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.tournaments }),
+  });
+}
+
 export function useCreateTeam(tournamentId: string) {
   const queryClient = useQueryClient();
 

@@ -161,7 +161,7 @@ export function FixturesPage() {
       ) : (
         <EmptyState
           title="No fixtures on the board yet"
-          description="Once every registered side has exactly eleven players, generate the draw and the matches will appear here."
+          description="Once every registered side has a full squad, generate the draw and the matches will appear here."
           action={
             <Button isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
               Generate fixtures
@@ -260,7 +260,7 @@ function MatchRow({ match }: { match: MatchDto }) {
           <p className="mono mt-3 text-[0.6875rem] tracking-[0.06em] text-muted uppercase">
             {match.stage === 'LEAGUE' ? `Round ${match.round}` : match.stage.replace(/_/g, ' ')}
             <span className="mx-2 text-line-strong">·</span>
-            {match.oversPerInnings} overs
+            {match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} overs`}
             {match.scorers.length > 0 ? (
               <>
                 <span className="mx-2 text-line-strong">·</span>

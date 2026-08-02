@@ -1,12 +1,11 @@
 import { Router } from 'express';
 import {
   aggregateCareer,
-  PLAYERS_PER_TEAM,
   type DashboardMatchDto,
   type PlayerDashboardDto,
   type SquadMembershipDto,
 } from '@howzat/shared';
-import type { Match, Team } from '@prisma/client';
+import type { Match, Sport, Team } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../lib/http';
 import { notFound } from '../../lib/errors';
@@ -58,6 +57,7 @@ meRouter.get(
               select: {
                 id: true,
                 name: true,
+                sport: true,
                 status: true,
                 format: true,
                 oversPerInnings: true,
@@ -93,7 +93,7 @@ meRouter.get(
             include: {
               team1: true,
               team2: true,
-              tournament: { select: { id: true, name: true } },
+              tournament: { select: { id: true, name: true, sport: true } },
             },
           }),
       prisma.scorerAssignment.findMany({
@@ -103,7 +103,7 @@ meRouter.get(
             include: {
               team1: true,
               team2: true,
-              tournament: { select: { id: true, name: true } },
+              tournament: { select: { id: true, name: true, sport: true } },
             },
           },
         },
@@ -175,7 +175,7 @@ meRouter.get(
         toTournamentDto(tournament, {
           registeredTeams: tournament.teams.length,
           eligibleTeams: tournament.teams.filter(
-            (team) => team._count.players === PLAYERS_PER_TEAM,
+            (team) => team._count.players === tournament.playersPerTeam,
           ).length,
         }),
       ),
@@ -193,7 +193,7 @@ meRouter.get(
 type MatchForDashboard = Match & {
   team1: Team | null;
   team2: Team | null;
-  tournament: { id: string; name: string };
+  tournament: { id: string; name: string; sport: Sport };
 };
 
 function toDashboardMatch(
@@ -213,6 +213,7 @@ function toDashboardMatch(
   return {
     id: match.id,
     publicSlug: match.publicSlug,
+    sport: match.tournament.sport,
     round: match.round,
     stage: match.stage,
     status: match.status,

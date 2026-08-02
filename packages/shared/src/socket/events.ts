@@ -1,4 +1,5 @@
 import type { MatchSnapshot } from '../types/scoring';
+import type { FootballSnapshot } from '../types/football';
 
 /**
  * The typed client↔server event map. Shared so the server cannot emit an event
@@ -18,6 +19,21 @@ export interface ServerToClientEvents {
   ball: (payload: BallBroadcast) => void;
   'innings:complete': (payload: InningsCompleteBroadcast) => void;
   'match:completed': (payload: MatchCompletedBroadcast) => void;
+  /**
+   * Football's equivalent of `ball` — one event per goal, card or undo.
+   *
+   * A separate name rather than a widened `ball` payload: a cricket viewer and
+   * a football viewer are never in the same room, and a union carried on one
+   * event would make every handler on both sides start with a discriminant
+   * check for a case that cannot occur.
+   */
+  'football:event': (payload: FootballEventBroadcast) => void;
+  /**
+   * The clock moved — started, paused, resumed, or a period ended. Sent on
+   * command only, never on a tick: viewers interpolate the seconds locally
+   * from `runningSince`, so a running clock costs no traffic at all.
+   */
+  'football:clock': (payload: FootballClockBroadcast) => void;
   /** Live viewer count for the room, so the page can show "142 watching". */
   viewers: (payload: { matchId: string; count: number }) => void;
   joined: (payload: { matchId: string; viewers: number }) => void;
@@ -52,6 +68,18 @@ export interface MatchCompletedBroadcast {
   winnerTeamId: string | null;
 }
 
+export interface FootballEventBroadcast {
+  matchId: string;
+  /** Whole snapshot, for the same self-healing reason as BallBroadcast. */
+  snapshot: FootballSnapshot;
+  seq: number;
+}
+
+export interface FootballClockBroadcast {
+  matchId: string;
+  snapshot: FootballSnapshot;
+}
+
 export const matchRoom = (matchId: string) => `match:${matchId}`;
 
 /**
@@ -81,4 +109,26 @@ export function hasSequenceGap(current: MatchSnapshot | null, incoming: MatchSna
   if (!current) return false;
   if (incoming.inningsNumber !== current.inningsNumber) return false;
   return incoming.lastEventSeq > current.lastEventSeq + 1;
+}
+
+/**
+ * The football twin of isNewerSnapshot. Simpler, because a football match has
+ * no innings to restart the sequence: `seq` alone is monotonic for the whole
+ * match, so a strictly greater one is strictly newer.
+ *
+ * The `>=` is deliberate. A clock broadcast carries the same seq as the last
+ * event — pausing the watch does not record an incident — and dropping it as
+ * "not newer" would leave every viewer's clock running after the whistle.
+ */
+export function isNewerFootballSnapshot(
+  current: FootballSnapshot | null,
+  incoming: FootballSnapshot,
+): boolean {
+  if (!current) return true;
+  if (incoming.matchId !== current.matchId) return true;
+  if (incoming.lastEventSeq !== current.lastEventSeq) {
+    return incoming.lastEventSeq > current.lastEventSeq;
+  }
+
+  return Date.parse(incoming.updatedAt) >= Date.parse(current.updatedAt);
 }

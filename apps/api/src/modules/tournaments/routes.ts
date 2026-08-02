@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import {
-  PLAYERS_PER_TEAM,
   createTeamSchema,
   createTournamentSchema,
   updateTournamentSchema,
@@ -36,7 +35,7 @@ tournamentsRouter.get(
 
     const items: TournamentDto[] = tournaments.map((tournament) => {
       const eligible = tournament.teams.filter(
-        (team) => team._count.players === PLAYERS_PER_TEAM,
+        (team) => team._count.players === tournament.playersPerTeam,
       ).length;
 
       return toTournamentDto(tournament, {
@@ -74,7 +73,7 @@ tournamentsRouter.get(
     });
 
     const eligible = tournament.teams.filter(
-      (team) => team._count.players === PLAYERS_PER_TEAM,
+      (team) => team._count.players === tournament.playersPerTeam,
     ).length;
 
     res.json(
@@ -149,7 +148,7 @@ tournamentsRouter.get(
   '/:tournamentId/teams',
   asyncHandler(async (req, res) => {
     const tournamentId = requireParam(req, 'tournamentId');
-    await loadOwnedTournament(tournamentId, req.user!.id);
+    const tournament = await loadOwnedTournament(tournamentId, req.user!.id);
 
     const teams = await prisma.team.findMany({
       where: { tournamentId },
@@ -160,7 +159,16 @@ tournamentsRouter.get(
     // playerCount + isEligible travel with every team so the UI can show
     // "9/11 players" as progress instead of failing at submit time.
     const items: TeamDto[] = teams.map((team) =>
-      toTeamDto(team, evaluateEligibility(team.id, team._count.players)),
+      toTeamDto(
+        team,
+        evaluateEligibility(
+          team.id,
+          team._count.players,
+          tournament.playersPerTeam,
+          tournament.sport,
+        ),
+        tournament.sport,
+      ),
     );
 
     res.json({
@@ -196,6 +204,12 @@ tournamentsRouter.post(
       },
     });
 
-    res.status(201).json(toTeamDto(team, evaluateEligibility(team.id, 0)));
+    res.status(201).json(
+      toTeamDto(
+        team,
+        evaluateEligibility(team.id, 0, tournament.playersPerTeam, tournament.sport),
+        tournament.sport,
+      ),
+    );
   }),
 );

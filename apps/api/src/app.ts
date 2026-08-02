@@ -21,6 +21,7 @@ import { teamsRouter } from './modules/teams/routes';
 import { playersRouter } from './modules/players/routes';
 import { matchesRouter } from './modules/matches/routes';
 import { scoringRouter } from './modules/scoring/routes';
+import { footballRouter } from './modules/football/routes';
 import { statsRouter } from './modules/stats/routes';
 
 export function createApp() {
@@ -95,6 +96,7 @@ export function createApp() {
   app.use('/players', playersRouter);
   app.use('/matches', matchesRouter);
   app.use('/matches', scoringRouter);
+  app.use('/matches', footballRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

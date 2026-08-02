@@ -116,10 +116,15 @@ function materialize(events: ScoredEvent[]): ScoredEvent[] {
 export async function recomputePlayerStatsForMatch(matchId: string): Promise<number> {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
-    select: { id: true, tournamentId: true },
+    select: { id: true, tournamentId: true, tournament: { select: { sport: true } } },
   });
 
   if (!match) return 0;
+
+  // A football match has a team sheet and no ball events, so this would happily
+  // write a row of zeroes for all twenty-two players — inflating "matches
+  // played" on a cricket career profile with matches that were not cricket.
+  if (match.tournament.sport !== 'CRICKET') return 0;
 
   const [xi, rawEvents] = await Promise.all([
     prisma.matchPlayer.findMany({
@@ -361,6 +366,7 @@ export async function getTournamentStats(tournamentId: string): Promise<Tourname
     .sort((a, b) => b.runs - a.runs || b.wickets - a.wickets || a.playerName.localeCompare(b.playerName));
 
   const result: TournamentStatsDto = {
+    sport: 'CRICKET',
     tournamentId,
     players,
     orangeCap: players.reduce<TournamentPlayerStatsDto | null>(

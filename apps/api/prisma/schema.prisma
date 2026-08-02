@@ -24,6 +24,19 @@ datasource db {
 
 // ─────────────────────────────────────────────────────────────── Enums ──
 
+/// Which game a tournament is played under.
+///
+/// This is the one axis the whole schema branches on, and it is deliberately a
+/// column on Tournament rather than two parallel sets of tables: a team, a
+/// squad, a fixture, a scorer assignment and a points table mean the same thing
+/// in both codes. Only what happens *during* a match differs, so only the
+/// match-time models are duplicated — BallEvent/Innings for cricket,
+/// FootballEvent/MatchClock for football.
+enum Sport {
+  CRICKET
+  FOOTBALL
+}
+
 enum TournamentFormat {
   LEAGUE
   KNOCKOUT
@@ -101,6 +114,38 @@ enum WicketType {
   OBSTRUCTING_FIELD
 }
 
+// ──────────────────────────────────────────────────── Football enums ──
+
+/// What a football scorer can record. Deliberately short: the brief is goals
+/// and cards, and every extra button on a touchline console is a button that
+/// gets pressed by accident.
+enum FootballEventKind {
+  GOAL
+  OWN_GOAL
+  YELLOW_CARD
+  RED_CARD
+}
+
+/// Mirrors BallEventType. The football log is append-only for the same reason
+/// the cricket one is: a goal that was wrongly given has to stay visible as a
+/// goal that was wrongly given.
+enum FootballEventType {
+  EVENT
+  UNDO
+}
+
+/// Where the referee's watch is.
+///
+/// PERIOD_BREAK is distinct from PAUSED because they end differently: a pause
+/// resumes the same period, a break advances to the next one.
+enum ClockStatus {
+  NOT_STARTED
+  RUNNING
+  PAUSED
+  PERIOD_BREAK
+  FINISHED
+}
+
 // ──────────────────────────────────────────────────────── Identity ──
 
 /// There is no role column, and that is deliberate. Whoever creates a
@@ -126,6 +171,7 @@ model User {
   scorerAssignments ScorerAssignment[] @relation("AssignedScorer")
   assignmentsMade   ScorerAssignment[] @relation("AssignedBy")
   ballEvents        BallEvent[]
+  footballEvents    FootballEvent[]
   refreshTokens     RefreshToken[]
   /// One row per squad this account has been added to, across all tournaments.
   playerProfiles    Player[]
@@ -218,11 +264,25 @@ model Tournament {
   id               String           @id @default(cuid())
   organizerId      String
   name             String
+  sport            Sport            @default(CRICKET)
   format           TournamentFormat @default(LEAGUE)
   teamsCount       Int
+  /// How many players make a full squad. Eleven for cricket, always; football
+  /// is played five, seven and eleven a side on the same municipal ground, so
+  /// the number that gates a fixture has to be the organizer's, not ours.
+  playersPerTeam   Int              @default(11)
   oversPerInnings  Int              @default(20)
   doubleRoundRobin Boolean          @default(false)
   status           TournamentStatus @default(DRAFT)
+
+  // ── Football clock defaults ────────────────────────────────────────
+  // Copied onto MatchClock at kickoff rather than read live, so changing the
+  // tournament's settings can never move the clock of a match in progress.
+  /// Periods in a match: 2 for halves, 4 for quarters.
+  periods          Int              @default(2)
+  /// Regulation length of one period, in minutes.
+  periodMinutes    Int              @default(45)
+
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -256,6 +316,7 @@ model Team {
   battingInnings Innings[]   @relation("BattingTeam")
   bowlingInnings Innings[]   @relation("BowlingTeam")
   pointsRows   PointsTable[]
+  footballEvents FootballEvent[] @relation("FootballEventTeam")
 
   @@unique([tournamentId, name])
   @@unique([tournamentId, shortName])
@@ -297,6 +358,9 @@ model Player {
   ballsFaced   BallEvent[] @relation("Striker")
   ballsAtOther BallEvent[] @relation("NonStriker")
   ballsBowled  BallEvent[] @relation("Bowler")
+
+  goalsScored  FootballEvent[] @relation("FootballScorer")
+  assists      FootballEvent[] @relation("FootballAssist")
 
   /// One account cannot occupy two slots in the same squad.
   @@unique([teamId, userId])
@@ -373,6 +437,20 @@ model Match {
   tossWinnerId    String?
   tossDecision    TossDecision?
   oversPerInnings Int
+  /// Football only: "4-3-3" and friends, per side. Null until the scorer picks
+  /// one in the team-sheet step.
+  team1Formation  String?
+  team2Formation  String?
+  /// Football clock, per match. Null means "use the tournament's setting".
+  ///
+  /// The tournament's numbers are a default, not a rule: the same league plays
+  /// 2×45 on a Sunday and 2×30 when the pitch is booked until four, and the
+  /// person who knows which is the one standing there about to blow the
+  /// whistle. Nullable rather than copied at fixture generation so that
+  /// changing the tournament default still moves every match nobody has
+  /// deliberately overridden.
+  periods         Int?
+  periodMinutes   Int?
   winnerTeamId    String?
   resultText      String?
   /// Short, shareable, unguessable — never expose a raw id in a public URL.
@@ -391,6 +469,8 @@ model Match {
   innings           Innings[]
   ballEvents        BallEvent[]
   playerStats       PlayerMatchStats[]
+  footballEvents    FootballEvent[]
+  clock             MatchClock?
 
   @@index([tournamentId, round])
   @@index([status])
@@ -417,6 +497,12 @@ model ScorerAssignment {
 
 /// The playing XI, frozen at toss. Separate from Player because a squad may
 /// be larger than eleven and the XI differs match to match.
+///
+/// Football reuses this table wholesale — it is the same fact, "these are the
+/// people on the field" — and adds two columns. `lineupSlot` is an index into
+/// the chosen formation, which is what lets the pitch graphic be derived from
+/// the team sheet rather than stored as coordinates that would go stale the
+/// moment someone changed 4-4-2 to 4-3-3.
 model MatchPlayer {
   id           String  @id @default(cuid())
   matchId      String
@@ -425,6 +511,13 @@ model MatchPlayer {
   battingOrder Int?
   isCaptain    Boolean @default(false)
   isKeeper     Boolean @default(false)
+  /// Football: 0 is the goalkeeper, then the formation's lines front to back.
+  ///
+  /// Null marks a substitute — named on the team sheet, on the bench, and not
+  /// on the pitch graphic. That is the whole distinction, so there is no
+  /// separate isStarter flag to contradict it.
+  lineupSlot   Int?
+  shirtNumber  Int?
 
   match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -509,6 +602,87 @@ model BallEvent {
   @@map("ball_events")
 }
 
+// ───────────────────────────────────────────────────────── Football ──
+
+/// Append-only, exactly like BallEvent: the sole source of truth for what
+/// happened in a football match, and the only thing the score is ever derived
+/// from. A mistake is fixed by appending an UNDO that points at the event it
+/// removes — nothing here is updated or deleted.
+///
+/// `minute` is stamped by the server from the clock at the moment of the write
+/// and then never recomputed. It has to be frozen: a goal was scored on 63
+/// minutes whatever the clock says an hour later, and a minute derived at read
+/// time would drift every time the match was paused.
+model FootballEvent {
+  id            String            @id @default(cuid())
+  matchId       String
+  /// Client-generated, unique — makes retries idempotent.
+  clientEventId String            @unique
+  /// Monotonic and gap-free per match; lets a client detect a missed delta.
+  seq           Int
+  eventType     FootballEventType @default(EVENT)
+  supersedesEventId String?
+
+  kind   FootballEventKind
+  /// The side the event is *credited to*. For an own goal that is the side
+  /// that benefits, not the side of the player who scored it — which is why
+  /// this cannot be inferred from the player.
+  teamId String
+  /// Null when nobody could say who it was, which at this level is common.
+  playerId       String?
+  assistPlayerId String?
+
+  /// Elapsed minute, 1-indexed, and the period it fell in.
+  minute Int
+  period Int @default(1)
+  /// Minutes past the end of regulation time, 0 during normal play — the "+3"
+  /// in 45+3. Stored separately so it can be displayed the way it is spoken.
+  stoppage Int @default(0)
+
+  createdBy String
+  createdAt DateTime @default(now())
+
+  match          Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  supersedes     FootballEvent? @relation("FootballSupersedes", fields: [supersedesEventId], references: [id])
+  supersededBy   FootballEvent[] @relation("FootballSupersedes")
+  team           Team           @relation("FootballEventTeam", fields: [teamId], references: [id])
+  player         Player?        @relation("FootballScorer", fields: [playerId], references: [id])
+  assistPlayer   Player?        @relation("FootballAssist", fields: [assistPlayerId], references: [id])
+  author         User           @relation(fields: [createdBy], references: [id])
+
+  @@unique([matchId, seq])
+  @@index([matchId, createdAt])
+  @@map("football_events")
+}
+
+/// The referee's watch, kept on the server.
+///
+/// The client renders a smooth ticking clock, but it never owns the time. What
+/// is stored is a running total plus the instant the current run started, and
+/// the elapsed time is `elapsedMs + (now - runningSince)` — which means two
+/// phones, a laptop and a projector all agree, a viewer who joins at the 70th
+/// minute sees the 70th minute, and a scorer whose browser crashed comes back
+/// to a clock that never stopped.
+model MatchClock {
+  matchId String @id
+  /// Copied from the tournament at kickoff so later edits cannot move it.
+  periods       Int
+  periodMinutes Int
+
+  currentPeriod Int         @default(1)
+  status        ClockStatus @default(NOT_STARTED)
+  /// Time already banked in the current period, in milliseconds.
+  elapsedMs     Int         @default(0)
+  /// The wall-clock instant the current run began; null whenever not RUNNING.
+  runningSince  DateTime?
+  startedAt     DateTime?
+  updatedAt     DateTime    @updatedAt
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_clocks")
+}
+
 /// Fully recomputed from Innings rows on every match completion, so it is
 /// idempotent and self-healing rather than incrementally drifting. NRR's
 /// inputs are stored alongside it so a disputed number can be traced.
@@ -529,6 +703,11 @@ model PointsTable {
   runsConceded  Int     @default(0)
   ballsBowled   Int     @default(0)
   nrr           Float   @default(0)
+  /// Football's equivalent of the NRR inputs. Goal difference is derived at
+  /// read time rather than stored, for the same reason NRR's inputs are kept
+  /// beside it: a disputed number should be traceable to the two it came from.
+  goalsFor      Int     @default(0)
+  goalsAgainst  Int     @default(0)
   updatedAt     DateTime @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)

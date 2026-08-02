@@ -1,4 +1,4 @@
-import type { MatchSnapshot } from '@howzat/shared';
+import type { FootballSnapshot, MatchSnapshot } from '@howzat/shared';
 import { logger } from '../lib/logger';
 
 /**
@@ -14,6 +14,8 @@ export interface MatchEvents {
   ball: { matchId: string; snapshot: MatchSnapshot; seq: number };
   'innings:complete': { matchId: string; inningsNumber: number; snapshot: MatchSnapshot };
   'match:completed': { matchId: string; tournamentId: string; winnerTeamId: string | null };
+  'football:event': { matchId: string; snapshot: FootballSnapshot; seq: number };
+  'football:clock': { matchId: string; snapshot: FootballSnapshot };
 }
 
 export type MatchEventName = keyof MatchEvents;

@@ -1,4 +1,4 @@
-import type { Match, Team, User } from '@prisma/client';
+import type { Match, Sport, Team, User } from '@prisma/client';
 import type { InningsDto, MatchDto } from '@howzat/shared';
 import { toTeamRef } from '../fixtures/service';
 
@@ -7,6 +7,12 @@ type MatchWithRelations = Match & {
   team2: Team | null;
   scorerAssignments?: Array<{ scorer: Pick<User, 'id' | 'username' | 'name'> }>;
   innings?: Array<{ number: number; status: string }>;
+  /**
+   * Optional because most callers already know the sport from context. When it
+   * is absent the DTO says CRICKET, which is what every match in the database
+   * was before football existed — a safe default rather than a guess.
+   */
+  tournament?: { sport: Sport };
 };
 
 export function toMatchDto(match: MatchWithRelations): MatchDto {
@@ -15,6 +21,7 @@ export function toMatchDto(match: MatchWithRelations): MatchDto {
   return {
     id: match.id,
     tournamentId: match.tournamentId,
+    sport: match.tournament?.sport ?? 'CRICKET',
     round: match.round,
     stage: match.stage,
     team1: match.team1 ? toTeamRef(match.team1) : null,
@@ -28,6 +35,8 @@ export function toMatchDto(match: MatchWithRelations): MatchDto {
     winnerTeamId: match.winnerTeamId,
     resultText: match.resultText,
     publicSlug: match.publicSlug,
+    team1Formation: match.team1Formation,
+    team2Formation: match.team2Formation,
     scorers:
       match.scorerAssignments?.map((assignment) => ({
         id: assignment.scorer.id,

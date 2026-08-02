@@ -264,7 +264,7 @@ function MatchCard({ match, accent = false }: { match: DashboardMatchDto; accent
         <p className="mono text-[0.75rem] text-muted">
           {formatWhen(match.scheduledAt)}
           <span className="mx-2 text-line-strong">·</span>
-          {match.oversPerInnings} overs
+          {match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} overs`}
           {match.venue ? (
             <>
               <span className="mx-2 text-line-strong">·</span>
@@ -319,7 +319,9 @@ function OrganizingCard({ tournament }: { tournament: TournamentDto }) {
         </div>
 
         <p className="mono mt-2.5 text-[0.8125rem] text-muted">
-          {tournament.oversPerInnings} overs
+          {tournament.sport === 'FOOTBALL'
+            ? `${tournament.periods} × ${tournament.periodMinutes} min`
+            : `${tournament.oversPerInnings} overs`}
           <span className="mx-2 text-line-strong">·</span>
           {tournament.teamsCount} teams
         </p>
@@ -338,7 +340,7 @@ function OrganizingCard({ tournament }: { tournament: TournamentDto }) {
           ) : registered < tournament.teamsCount ? (
             `${tournament.teamsCount - registered} more to register`
           ) : (
-            `${shortBy} short of a full XI`
+            `${shortBy} short of a full squad`
           )}
         </p>
       </div>

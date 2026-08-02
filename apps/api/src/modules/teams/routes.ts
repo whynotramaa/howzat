@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import {
-  PLAYERS_PER_TEAM,
   bulkCreatePlayersSchema,
   createPlayerSchema,
   updateTeamSchema,
@@ -19,7 +18,7 @@ import {
   type ResolvedPlayer,
 } from '../players/resolve';
 import { notifySquadAdditions } from '../notifications/service';
-import { evaluateEligibility } from './eligibility';
+import { evaluateEligibility, maxSquadSizeFor } from './eligibility';
 import { toPlayerDto, toTeamDto } from './serialize';
 
 /**
@@ -36,7 +35,7 @@ teamsRouter.get(
   '/:teamId',
   asyncHandler(async (req, res) => {
     const teamId = requireParam(req, 'teamId');
-    await loadOwnedTeam(teamId, req.user!.id);
+    const existing = await loadOwnedTeam(teamId, req.user!.id);
 
     const team = await prisma.team.findUniqueOrThrow({
       where: { id: teamId },
@@ -44,7 +43,16 @@ teamsRouter.get(
     });
 
     const dto: TeamWithPlayersDto = {
-      ...toTeamDto(team, evaluateEligibility(team.id, team.players.length)),
+      ...toTeamDto(
+        team,
+        evaluateEligibility(
+          team.id,
+          team.players.length,
+          existing.tournament.playersPerTeam,
+          existing.tournament.sport,
+        ),
+        existing.tournament.sport,
+      ),
       players: team.players.map(toPlayerDto),
     };
 
@@ -71,7 +79,18 @@ teamsRouter.patch(
       include: { _count: { select: { players: true } } },
     });
 
-    res.json(toTeamDto(team, evaluateEligibility(team.id, team._count.players)));
+    res.json(
+      toTeamDto(
+        team,
+        evaluateEligibility(
+          team.id,
+          team._count.players,
+          existing.tournament.playersPerTeam,
+          existing.tournament.sport,
+        ),
+        existing.tournament.sport,
+      ),
+    );
   }),
 );
 
@@ -93,7 +112,7 @@ teamsRouter.get(
   '/:teamId/players',
   asyncHandler(async (req, res) => {
     const teamId = requireParam(req, 'teamId');
-    await loadOwnedTeam(teamId, req.user!.id);
+    const owned = await loadOwnedTeam(teamId, req.user!.id);
 
     const players = await prisma.player.findMany({
       where: { teamId },
@@ -103,7 +122,12 @@ teamsRouter.get(
     res.json({
       items: players.map(toPlayerDto),
       total: players.length,
-      ...evaluateEligibility(teamId, players.length),
+      ...evaluateEligibility(
+        teamId,
+        players.length,
+        owned.tournament.playersPerTeam,
+        owned.tournament.sport,
+      ),
     });
   }),
 );
@@ -116,7 +140,11 @@ teamsRouter.post(
     assertSquadEditable(team.tournament.status);
 
     const input = parseBody(createPlayerSchema, req.body);
-    await assertRoomInSquad(teamId, 1);
+    await assertRoomInSquad(
+      teamId,
+      1,
+      maxSquadSizeFor(team.tournament.sport, team.tournament.playersPerTeam),
+    );
 
     const identity = await resolvePlayerIdentity(input, teamId);
 
@@ -142,7 +170,11 @@ teamsRouter.post(
     assertSquadEditable(team.tournament.status);
 
     const { players } = parseBody(bulkCreatePlayersSchema, req.body);
-    await assertRoomInSquad(teamId, players.length);
+    await assertRoomInSquad(
+      teamId,
+      players.length,
+      maxSquadSizeFor(team.tournament.sport, team.tournament.playersPerTeam),
+    );
 
     const identities = await resolvePlayerIdentities(players, teamId);
 
@@ -162,7 +194,12 @@ teamsRouter.post(
     res.status(201).json({
       items: all.map(toPlayerDto),
       total: all.length,
-      ...evaluateEligibility(teamId, all.length),
+      ...evaluateEligibility(
+        teamId,
+        all.length,
+        team.tournament.playersPerTeam,
+        team.tournament.sport,
+      ),
     });
   }),
 );
@@ -214,17 +251,18 @@ async function notifyAddedAccounts(
 }
 
 /**
- * A squad may not exceed eleven. Capping on the way in means the eligibility
- * check only ever has to report "too few", and the organizer finds out at the
- * moment they overfill rather than at fixture generation.
+ * A squad may not exceed its maximum — the starting side in cricket, that plus
+ * the bench in football. Capping on the way in means the eligibility check only
+ * ever has to report "too few", and the organizer finds out at the moment they
+ * overfill rather than at fixture generation.
  */
-async function assertRoomInSquad(teamId: string, adding: number): Promise<void> {
+async function assertRoomInSquad(teamId: string, adding: number, maxSquad: number): Promise<void> {
   const current = await prisma.player.count({ where: { teamId } });
 
-  if (current + adding > PLAYERS_PER_TEAM) {
+  if (current + adding > maxSquad) {
     throw conflict(
-      `A squad holds exactly ${PLAYERS_PER_TEAM} players. This team has ${current}; adding ${adding} would make ${current + adding}.`,
-      { current, adding, max: PLAYERS_PER_TEAM },
+      `A squad holds at most ${maxSquad} players. This team has ${current}; adding ${adding} would make ${current + adding}.`,
+      { current, adding, max: maxSquad },
     );
   }
 }

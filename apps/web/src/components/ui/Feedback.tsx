@@ -1,4 +1,3 @@
-import { PLAYERS_PER_TEAM } from '@howzat/shared';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
@@ -87,13 +86,27 @@ export function ErrorText({ error }: { error: unknown }) {
   );
 }
 
-/** Compact squad copy; a progress gauge made incomplete squads look broken. */
-export function SquadProgress({ count, showLabel = true }: { count: number; showLabel?: boolean }) {
+/**
+ * Compact squad copy; a progress gauge made incomplete squads look broken.
+ *
+ * The denominator is passed in rather than read from a constant: a cricket side
+ * is eleven, but a football tournament may be five, seven or nine a side, and
+ * "9 on 11" under a full seven-a-side squad is simply wrong.
+ */
+export function SquadProgress({
+  count,
+  squadSize,
+  showLabel = true,
+}: {
+  count: number;
+  squadSize: number;
+  showLabel?: boolean;
+}) {
   return (
     <div className="flex shrink-0 items-center">
       {showLabel ? (
         <p className="mono text-[0.75rem] font-medium text-secondary">
-          {count} on {PLAYERS_PER_TEAM}
+          {count > squadSize ? `${count} · ${squadSize} start` : `${count} on ${squadSize}`}
         </p>
       ) : null}
     </div>

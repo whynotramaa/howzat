@@ -46,7 +46,7 @@ fixturesRouter.post(
     const matches = await prisma.match.findMany({
       where: { tournamentId },
       orderBy: [{ round: 'asc' }, { createdAt: 'asc' }],
-      include: { team1: true, team2: true },
+      include: { team1: true, team2: true, tournament: { select: { sport: true } } },
     });
 
     res.status(201).json({
@@ -73,6 +73,7 @@ fixturesRouter.get(
           select: { scorer: { select: { id: true, username: true, name: true } } },
         },
         innings: { select: { number: true, status: true } },
+        tournament: { select: { sport: true } },
       },
     });
 
@@ -112,7 +113,7 @@ fixturesRouter.patch(
           ? { oversPerInnings: input.oversPerInnings }
           : {}),
       },
-      include: { team1: true, team2: true },
+      include: { team1: true, team2: true, tournament: { select: { sport: true } } },
     });
 
     res.json(toMatchDto(match));

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import type { StandingsRowDto } from '@howzat/shared';
+import type { Sport, StandingsRowDto } from '@howzat/shared';
 import { apiFetch } from '@/lib/api';
 import { TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -9,7 +9,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 
 interface PublicTournamentResponse {
-  tournament: { id: string; name: string; format: string; status: string };
+  tournament: { id: string; name: string; sport: Sport; format: string; status: string };
   items: StandingsRowDto[];
   matches: Array<{
     id: string;
@@ -57,7 +57,8 @@ export function PublicTournamentPage() {
             <div className="flex flex-wrap items-end justify-between gap-5 border-b border-line pb-8">
               <div>
                 <p className="eyebrow">
-                  Live tournament · {data.tournament.format.replace(/_/g, ' + ').toLowerCase()}
+                  Live {data.tournament.sport === 'FOOTBALL' ? 'football' : 'cricket'} ·{' '}
+                  {data.tournament.format.replace(/_/g, ' + ').toLowerCase()}
                 </p>
                 <h1 className="serif mt-3 text-[2.5rem] text-primary sm:text-[3.5rem]">
                   {data.tournament.name}
@@ -87,7 +88,15 @@ export function PublicTournamentPage() {
                       <th className="eyebrow px-5 py-3 text-left">Team</th>
                       <th className="eyebrow px-3 py-3 text-center">P</th>
                       <th className="eyebrow px-3 py-3 text-center">W</th>
-                      <th className="eyebrow px-3 py-3 text-center">L</th>
+                      <th className="eyebrow px-3 py-3 text-center">
+                        {data.tournament.sport === 'FOOTBALL' ? 'D' : 'L'}
+                      </th>
+                      <th className="eyebrow px-3 py-3 text-center">
+                        {data.tournament.sport === 'FOOTBALL' ? 'L' : 'T'}
+                      </th>
+                      <th className="eyebrow px-3 py-3 text-right">
+                        {data.tournament.sport === 'FOOTBALL' ? 'GD' : 'NRR'}
+                      </th>
                       <th className="eyebrow px-5 py-3 text-right">Pts</th>
                     </tr>
                   </thead>
@@ -105,7 +114,17 @@ export function PublicTournamentPage() {
                         </td>
                         <td className="mono px-3 py-4 text-center text-secondary">{row.played}</td>
                         <td className="mono px-3 py-4 text-center text-secondary">{row.won}</td>
-                        <td className="mono px-3 py-4 text-center text-secondary">{row.lost}</td>
+                        <td className="mono px-3 py-4 text-center text-secondary">
+                          {data.tournament.sport === 'FOOTBALL' ? row.tied : row.lost}
+                        </td>
+                        <td className="mono px-3 py-4 text-center text-secondary">
+                          {data.tournament.sport === 'FOOTBALL' ? row.lost : row.tied}
+                        </td>
+                        <td className="mono px-3 py-4 text-right text-secondary">
+                          {data.tournament.sport === 'FOOTBALL'
+                            ? row.goalDifferenceText
+                            : row.nrrText}
+                        </td>
                         <td className="mono px-5 py-4 text-right font-medium text-primary">
                           {row.points}
                         </td>

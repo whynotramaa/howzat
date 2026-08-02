@@ -1,15 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import type { TournamentStatsDto } from '@howzat/shared';
+import type { AnyTournamentStatsDto, TournamentStatsDto } from '@howzat/shared';
 import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { Table, Td, Th } from '@/components/ui/Table';
+import { FootballStatsPanel } from '@/features/football/FootballStatsPanel';
 import { api } from '@/lib/api';
 
+/**
+ * The leaders board for whichever sport this tournament is.
+ *
+ * The fetch lives here rather than in each sport's panel so the caller — a
+ * tournament page that already knows nothing about sport-specific stats — can
+ * keep rendering one component. The endpoint answers a union discriminated by
+ * `sport`, so the branch below is the only place that has to know there are two.
+ */
 export function TournamentStatsPanel({ tournamentId }: { tournamentId: string }) {
   const query = useQuery({
     queryKey: ['tournaments', tournamentId, 'stats'],
-    queryFn: () => api.get<TournamentStatsDto>(`/tournaments/${tournamentId}/stats`),
+    queryFn: () => api.get<AnyTournamentStatsDto>(`/tournaments/${tournamentId}/stats`),
     enabled: Boolean(tournamentId),
     staleTime: 60_000,
   });
@@ -18,7 +27,13 @@ export function TournamentStatsPanel({ tournamentId }: { tournamentId: string })
   if (query.error) return <ErrorText error={query.error} />;
   if (!query.data || query.data.players.length === 0) return null;
 
-  const { orangeCap, purpleCap, players } = query.data;
+  if (query.data.sport === 'FOOTBALL') return <FootballStatsPanel stats={query.data} />;
+
+  return <CricketStatsPanel stats={query.data} />;
+}
+
+function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
+  const { orangeCap, purpleCap, players } = stats;
 
   return (
     <section className="flex flex-col gap-7">

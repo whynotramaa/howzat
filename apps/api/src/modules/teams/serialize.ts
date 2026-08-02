@@ -1,8 +1,12 @@
 import type { Player, Team } from '@prisma/client';
-import type { PlayerDto, TeamDto } from '@howzat/shared';
+import type { PlayerDto, Sport, TeamDto } from '@howzat/shared';
 import type { TeamEligibility } from './eligibility';
 
-export function toTeamDto(team: Team, eligibility: TeamEligibility): TeamDto {
+export function toTeamDto(
+  team: Team,
+  eligibility: TeamEligibility,
+  sport: Sport = 'CRICKET',
+): TeamDto {
   return {
     id: team.id,
     tournamentId: team.tournamentId,
@@ -12,6 +16,9 @@ export function toTeamDto(team: Team, eligibility: TeamEligibility): TeamDto {
     createdAt: team.createdAt.toISOString(),
     playerCount: eligibility.playerCount,
     isEligible: eligibility.isEligible,
+    squadSize: eligibility.squadSize,
+    maxSquadSize: eligibility.maxSquadSize,
+    sport,
   };
 }
 

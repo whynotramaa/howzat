@@ -3,6 +3,7 @@ import { asyncHandler, requireParam } from '../../lib/http';
 import { requireAuth } from '../../middleware/auth';
 import { loadOwnedTournament } from '../tournaments/guards';
 import { getTournamentStats } from './service';
+import { getFootballTournamentStats } from './football';
 
 export const statsRouter = Router();
 
@@ -12,7 +13,13 @@ statsRouter.get(
   '/:tournamentId/stats',
   asyncHandler(async (req, res) => {
     const tournamentId = requireParam(req, 'tournamentId');
-    await loadOwnedTournament(tournamentId, req.user!.id);
-    res.json(await getTournamentStats(tournamentId));
+    const tournament = await loadOwnedTournament(tournamentId, req.user!.id);
+
+    // One route, two shapes, discriminated by `sport` — see AnyTournamentStatsDto.
+    res.json(
+      tournament.sport === 'FOOTBALL'
+        ? await getFootballTournamentStats(tournamentId)
+        : await getTournamentStats(tournamentId),
+    );
   }),
 );

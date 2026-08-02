@@ -5,6 +5,7 @@ import type {
   MatchStatus,
   NotificationType,
   PlayerRole,
+  Sport,
   TossDecision,
   TournamentFormat,
   TournamentStatus,
@@ -43,10 +44,16 @@ export interface TournamentDto {
   id: string;
   organizerId: string;
   name: string;
+  sport: Sport;
   format: TournamentFormat;
   teamsCount: number;
+  /** Eleven for cricket, always; the organizer's choice for football. */
+  playersPerTeam: number;
   oversPerInnings: number;
   doubleRoundRobin: boolean;
+  /** Football clock settings. Inert on a cricket tournament. */
+  periods: number;
+  periodMinutes: number;
   status: TournamentStatus;
   createdAt: string;
   /** Present on list/detail reads so the UI can show setup progress. */
@@ -64,6 +71,24 @@ export interface TeamDto {
   /** Derived, not stored — see assertTeamEligible on the API side. */
   playerCount: number;
   isEligible: boolean;
+  /**
+   * The tournament's squad size, carried on the team so a squad screen can
+   * render "9 on 11" without also fetching the tournament it belongs to.
+   * In football this is the *starting* side; the squad may exceed it.
+   */
+  squadSize: number;
+  /**
+   * The largest squad this team may hold. Equal to squadSize in cricket, where
+   * a squad is exactly the eleven who play; larger in football, where the bench
+   * is part of the team sheet.
+   */
+  maxSquadSize: number;
+  /**
+   * Carried for the same reason squadSize is: a squad screen has to know
+   * whether to ask for a batting role or stay out of the way, and making that
+   * cost a second request would flash the wrong form.
+   */
+  sport: Sport;
 }
 
 export interface PlayerDto {
@@ -95,6 +120,13 @@ export interface MatchTeamRef {
 export interface MatchDto {
   id: string;
   tournamentId: string;
+  /**
+   * Denormalized from the tournament. Every screen that opens a match has to
+   * decide which console to show before it knows anything else, and making
+   * that decision cost a second request would put a flash of the wrong sport
+   * on the page.
+   */
+  sport: Sport;
   round: number;
   stage: MatchStage;
   team1: MatchTeamRef | null;
@@ -110,15 +142,28 @@ export interface MatchDto {
   publicSlug: string;
   scorers: UserRef[];
   currentInnings: number | null;
+  /** Football only, null on a cricket match. */
+  team1Formation?: string | null;
+  team2Formation?: string | null;
 }
 
-/** One row of the points table, as rendered. */
+/**
+ * One row of the points table, as rendered.
+ *
+ * Both codes share the row rather than having one each, because the left half
+ * — position, played, won, lost, points — is identical and the table component
+ * that renders it should not have to be written twice. What differs is the
+ * tie-breaker column: NRR and its inputs for cricket, goals and goal
+ * difference for football. Each side fills its own and leaves the other at
+ * zero, and `sport` on the table tells the renderer which to show.
+ */
 export interface StandingsRowDto {
   position: number;
   team: MatchTeamRef;
   played: number;
   won: number;
   lost: number;
+  /** Ties in cricket; draws in football. */
   tied: number;
   noResult: number;
   points: number;
@@ -129,6 +174,11 @@ export interface StandingsRowDto {
   oversBowled: string;
   nrr: number;
   nrrText: string;
+  /** Football's tie-breakers, exposed on the same principle. */
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  goalDifferenceText: string;
 }
 
 /** What fixture generation will produce, shown before anything is written. */
@@ -291,11 +341,67 @@ export interface TournamentPlayerStatsDto {
 }
 
 export interface TournamentStatsDto {
+  sport: 'CRICKET';
   tournamentId: string;
   players: TournamentPlayerStatsDto[];
   orangeCap: TournamentPlayerStatsDto | null;
   purpleCap: TournamentPlayerStatsDto | null;
 }
+
+/** One player's tournament record in football. */
+export interface FootballPlayerStatsDto {
+  playerId: string;
+  playerName: string;
+  username: string;
+  team: TeamRef;
+  /** Team sheets named in matches that have finished. */
+  matches: number;
+  goals: number;
+  assists: number;
+  /**
+   * Kept out of `goals` and shown in its own column. An own goal is a thing
+   * that happened to a player, not something they achieved, and adding it to
+   * their tally would make the golden boot a lie.
+   */
+  ownGoals: number;
+  yellowCards: number;
+  redCards: number;
+  /** Goals per appearance, null before they have played. */
+  goalsPerMatch: number | null;
+  /**
+   * Yellows plus three per red — the usual weighting, so one sending-off
+   * outranks two bookings. Drives the "most booked" ordering.
+   */
+  disciplinePoints: number;
+}
+
+export interface FootballTournamentStatsDto {
+  sport: 'FOOTBALL';
+  tournamentId: string;
+  players: FootballPlayerStatsDto[];
+  /** Most goals, most assists, and the worst disciplinary record. */
+  goldenBoot: FootballPlayerStatsDto | null;
+  playmaker: FootballPlayerStatsDto | null;
+  mostBooked: FootballPlayerStatsDto | null;
+  totals: {
+    goals: number;
+    ownGoals: number;
+    yellowCards: number;
+    redCards: number;
+    matchesPlayed: number;
+    /** Across finished matches only, so it is comparable between tournaments. */
+    goalsPerMatch: number | null;
+  };
+}
+
+/**
+ * What `GET /tournaments/:id/stats` answers with, for either code.
+ *
+ * One endpoint and a discriminated union rather than two routes: the caller is
+ * a single panel on a single screen, and making it choose a URL before it knows
+ * the sport would push the dispatch up into every page that renders it.
+ */
+export type AnyTournamentStatsDto = TournamentStatsDto | FootballTournamentStatsDto;
 
 // ────────────────────────────────────────── notifications & dashboard ──
 
@@ -331,6 +437,7 @@ export interface SquadMembershipDto {
   tournament: {
     id: string;
     name: string;
+    sport: Sport;
     status: TournamentStatus;
     format: TournamentFormat;
     oversPerInnings: number;
@@ -344,13 +451,14 @@ export interface SquadMembershipDto {
 export interface DashboardMatchDto {
   id: string;
   publicSlug: string;
+  sport: Sport;
   round: number;
   stage: MatchStage;
   status: MatchStatus;
   scheduledAt: string | null;
   venue: string | null;
   oversPerInnings: number;
-  tournament: { id: string; name: string };
+  tournament: { id: string; name: string; sport: Sport };
   /** Null when this match is on the list only because they are scoring it. */
   myTeam: MatchTeamRef | null;
   opponent: MatchTeamRef | null;

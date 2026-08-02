@@ -1,8 +1,13 @@
 import {
+  aggregateFootballStandings,
   aggregateStandings,
   ballsAsOversText,
+  formatGoalDifference,
   formatNrr,
+  materializeFootballEvents,
+  sortFootballStandings,
   sortStandings,
+  type FootballMatchResult,
   type MatchResult,
   type StandingsRowDto,
 } from '@howzat/shared';
@@ -108,13 +113,161 @@ async function fillInningsTotals(results: MatchResult[]): Promise<void> {
   }
 }
 
+// ───────────────────────────────────────────────────────────  football ──
+
+/**
+ * Finished football matches, with the goals folded out of the event log rather
+ * than read from a stored total — the same discipline as fillInningsTotals, and
+ * for the same reason: the log is the truth, and an undone goal must leave the
+ * league table without anyone remembering a second place to update.
+ */
+async function loadFootballResults(tournamentId: string): Promise<FootballMatchResult[]> {
+  const matches = await prisma.match.findMany({
+    where: {
+      tournamentId,
+      status: { in: ['COMPLETED', 'ABANDONED'] },
+      team1Id: { not: null },
+      team2Id: { not: null },
+    },
+    include: { footballEvents: { orderBy: { seq: 'asc' } } },
+  });
+
+  return matches.map((match) => {
+    let homeGoals = 0;
+    let awayGoals = 0;
+
+    for (const event of materializeFootballEvents(
+      match.footballEvents.map((event) => ({
+        ...event,
+        matchId: match.id,
+        createdAt: event.createdAt.toISOString(),
+      })),
+    )) {
+      if (event.kind !== 'GOAL' && event.kind !== 'OWN_GOAL') continue;
+      // teamId is the side credited, own goals included — so this needs no
+      // special case, which is precisely why the column stores it that way.
+      if (event.teamId === match.team1Id) homeGoals += 1;
+      else if (event.teamId === match.team2Id) awayGoals += 1;
+    }
+
+    return {
+      matchId: match.id,
+      teamIds: [match.team1Id!, match.team2Id!] as [string, string],
+      goals: [homeGoals, awayGoals] as [number, number],
+      winnerTeamId: match.winnerTeamId,
+      noResult: match.status === 'ABANDONED',
+    };
+  });
+}
+
+async function recomputeFootballStandings(tournamentId: string, teamIds: string[]): Promise<void> {
+  const results = await loadFootballResults(tournamentId);
+  const totals = aggregateFootballStandings(teamIds, results);
+
+  await prisma.$transaction(
+    totals.map((row) => {
+      const values = {
+        played: row.played,
+        won: row.won,
+        lost: row.lost,
+        // "tied" is the shared column; in football it holds draws.
+        tied: row.drawn,
+        noResult: 0,
+        points: row.points,
+        goalsFor: row.goalsFor,
+        goalsAgainst: row.goalsAgainst,
+      };
+
+      return prisma.pointsTable.upsert({
+        where: { tournamentId_teamId: { tournamentId, teamId: row.teamId } },
+        update: values,
+        create: { tournamentId, teamId: row.teamId, ...values },
+      });
+    }),
+  );
+
+  await redis.del(cacheKey(tournamentId)).catch(() => undefined);
+
+  logger.info({ tournamentId, teams: totals.length }, 'Football standings recomputed');
+}
+
+async function getFootballStandings(tournamentId: string): Promise<StandingsRowDto[]> {
+  const [rows, teams, results] = await Promise.all([
+    prisma.pointsTable.findMany({ where: { tournamentId } }),
+    prisma.team.findMany({ where: { tournamentId } }),
+    loadFootballResults(tournamentId),
+  ]);
+
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+
+  // A team with no points row yet still belongs in the table on zero.
+  const totals = teams.map((team) => {
+    const row = rows.find((entry) => entry.teamId === team.id);
+    const goalsFor = row?.goalsFor ?? 0;
+    const goalsAgainst = row?.goalsAgainst ?? 0;
+
+    return {
+      teamId: team.id,
+      played: row?.played ?? 0,
+      won: row?.won ?? 0,
+      drawn: row?.tied ?? 0,
+      lost: row?.lost ?? 0,
+      points: row?.points ?? 0,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+    };
+  });
+
+  const sorted = sortFootballStandings(totals, results, (id) => teamsById.get(id)?.name ?? id);
+
+  return sorted.map((row, index) => ({
+    position: index + 1,
+    team: toTeamRef(teamsById.get(row.teamId)!),
+    played: row.played,
+    won: row.won,
+    lost: row.lost,
+    tied: row.drawn,
+    noResult: 0,
+    points: row.points,
+    // Cricket's columns stay at zero on a football row rather than being
+    // absent: one row shape means one table component, and a renderer that
+    // knows the sport knows which half to draw.
+    runsScored: 0,
+    oversFaced: '0.0',
+    runsConceded: 0,
+    oversBowled: '0.0',
+    nrr: 0,
+    nrrText: '+0.000',
+    goalsFor: row.goalsFor,
+    goalsAgainst: row.goalsAgainst,
+    goalDifference: row.goalDifference,
+    goalDifferenceText: formatGoalDifference(row.goalDifference),
+  }));
+}
+
+// ────────────────────────────────────────────────────────────  shared ──
+
 export async function recomputeStandings(tournamentId: string): Promise<void> {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { sport: true },
+  });
+
   const teams = await prisma.team.findMany({
     where: { tournamentId },
     select: { id: true },
   });
 
   if (teams.length === 0) return;
+
+  if (tournament?.sport === 'FOOTBALL') {
+    await recomputeFootballStandings(
+      tournamentId,
+      teams.map((team) => team.id),
+    );
+    return;
+  }
 
   const results = await loadResults(tournamentId);
   await fillInningsTotals(results);
@@ -173,10 +326,20 @@ export async function getStandings(tournamentId: string): Promise<StandingsRowDt
 
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { id: true },
+    select: { id: true, sport: true },
   });
 
   if (!tournament) throw notFound('Tournament');
+
+  if (tournament.sport === 'FOOTBALL') {
+    const footballTable = await getFootballStandings(tournamentId);
+
+    await redis
+      .set(cacheKey(tournamentId), JSON.stringify(footballTable), 'EX', CACHE_TTL_SECONDS)
+      .catch(() => undefined);
+
+    return footballTable;
+  }
 
   const [rows, teams, results] = await Promise.all([
     prisma.pointsTable.findMany({ where: { tournamentId } }),
@@ -222,6 +385,10 @@ export async function getStandings(tournamentId: string): Promise<StandingsRowDt
     oversBowled: ballsAsOversText(row.ballsBowled),
     nrr: row.nrr,
     nrrText: formatNrr(row.nrr),
+    goalsFor: 0,
+    goalsAgainst: 0,
+    goalDifference: 0,
+    goalDifferenceText: '0',
   }));
 
   await redis

@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { PLAYERS_PER_TEAM, type TeamDto } from '@howzat/shared';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import type { TeamDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, SectionHeading, StatTile } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard, SquadProgress } from '@/components/ui/Feedback';
-import { Pill, TeamMark } from '@/components/ui/Pill';
+import { TeamMark } from '@/components/ui/Pill';
 import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -15,7 +15,14 @@ import { cn } from '@/lib/cn';
 import { StandingsTable } from './StandingsTable';
 import { TournamentStatsPanel } from './TournamentStatsPanel';
 import { QualificationPanel } from './QualificationPanel';
-import { useCreateTeam, useDeleteTeam, useTeams, useTournament } from './queries';
+import { SportEyebrow } from '@/components/ui/SportMark';
+import {
+  useCreateTeam,
+  useDeleteTeam,
+  useDeleteTournament,
+  useTeams,
+  useTournament,
+} from './queries';
 
 /**
  * One tournament: what is registered, what is missing, and the way through to
@@ -24,14 +31,17 @@ import { useCreateTeam, useDeleteTeam, useTeams, useTournament } from './queries
  */
 export function TournamentDetailPage() {
   const { tournamentId = '' } = useParams();
+  const navigate = useNavigate();
 
   const tournament = useTournament(tournamentId);
   const teams = useTeams(tournamentId);
   const fixtures = useFixtures(tournamentId);
   const deleteTeam = useDeleteTeam(tournamentId);
+  const deleteTournament = useDeleteTournament();
 
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<TeamDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   if (tournament.isPending) return <SkeletonCard rows={4} />;
   if (tournament.error) return <ErrorText error={tournament.error} />;
@@ -51,9 +61,13 @@ export function TournamentDetailPage() {
 
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-5">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <SportEyebrow
+                sport={tournament.data.sport}
+                detail={tournament.data.format.replace(/_/g, ' + ').toLowerCase()}
+              />
+              <span aria-hidden className="h-3 w-px bg-line" />
               <p className="eyebrow">{tournament.data.status.replace(/_/g, ' ')}</p>
-              <Pill>{tournament.data.format.replace(/_/g, ' + ').toLowerCase()}</Pill>
             </div>
 
             <h1 className="serif mt-4 text-[2.5rem] text-primary sm:text-[3rem]">
@@ -61,9 +75,13 @@ export function TournamentDetailPage() {
             </h1>
 
             <p className="mono mt-3 text-[0.8125rem] text-muted">
-              {tournament.data.oversPerInnings} overs per innings
+              {tournament.data.sport === 'FOOTBALL'
+                ? `${tournament.data.periods} × ${tournament.data.periodMinutes} minutes`
+                : `${tournament.data.oversPerInnings} overs per innings`}
               <span className="mx-2 text-line-strong">·</span>
               {tournament.data.teamsCount} sides
+              <span className="mx-2 text-line-strong">·</span>
+              {tournament.data.playersPerTeam} a side
             </p>
           </div>
 
@@ -86,6 +104,22 @@ export function TournamentDetailPage() {
                 {fixtureCount > 0 ? `Fixtures (${fixtureCount})` : 'Generate fixtures'}
               </Button>
             </Link>
+
+            {/* Last in the row and quiet, because it is the one action here
+                that cannot be undone. The API refuses outright once matches
+                are under way, so this says so rather than offering a button
+                that only fails when pressed. */}
+            <Button
+              variant="quiet"
+              onClick={() => setDeleting(true)}
+              title={
+                tournament.data.status === 'IN_PROGRESS'
+                  ? 'Matches are under way — a live tournament cannot be deleted'
+                  : undefined
+              }
+            >
+              Delete
+            </Button>
           </div>
         </div>
 
@@ -97,7 +131,7 @@ export function TournamentDetailPage() {
             value={`${registered}/${tournament.data.teamsCount}`}
           />
           <StatTile
-            label="With a full XI"
+            label="With a full squad"
             value={`${eligible}/${registered}`}
             tone={readyForFixtures ? 'success' : 'default'}
           />
@@ -111,14 +145,14 @@ export function TournamentDetailPage() {
           )}
         >
           {readyForFixtures
-            ? 'Every side has eleven players. You can generate the fixture list.'
+            ? `Every side has ${tournament.data.playersPerTeam} players. You can generate the fixture list.`
             : !full
               ? `Register ${tournament.data.teamsCount - registered} more side${
                   tournament.data.teamsCount - registered === 1 ? '' : 's'
                 } before generating fixtures.`
               : `${registered - eligible} side${
                   registered - eligible === 1 ? '' : 's'
-                } still need a full XI of eleven players.`}
+                } still need a full squad of ${tournament.data.playersPerTeam} players.`}
         </p>
       </div>
 
@@ -146,14 +180,14 @@ export function TournamentDetailPage() {
                     </Link>
                     <p className="mt-0.5 text-[0.8125rem] text-muted">
                       {team.isEligible
-                        ? 'Full XI — can be scheduled'
-                        : `${PLAYERS_PER_TEAM - team.playerCount} more player${
-                            PLAYERS_PER_TEAM - team.playerCount === 1 ? '' : 's'
+                        ? 'Full squad — can be scheduled'
+                        : `${team.squadSize - team.playerCount} more player${
+                            team.squadSize - team.playerCount === 1 ? '' : 's'
                           } needed`}
                     </p>
                   </div>
 
-                  <SquadProgress count={team.playerCount} />
+                  <SquadProgress count={team.playerCount} squadSize={team.squadSize} />
 
                   <button
                     type="button"
@@ -188,7 +222,7 @@ export function TournamentDetailPage() {
             title="Points table"
             description="Recomputed from the innings records every time a result lands, so it never drifts."
           />
-          <StandingsTable tournamentId={tournamentId} />
+          <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
         </section>
       ) : null}
 
@@ -201,6 +235,48 @@ export function TournamentDetailPage() {
       ) : null}
 
       <AddTeamSheet tournamentId={tournamentId} open={adding} onClose={() => setAdding(false)} />
+
+      <Sheet
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        title={`Delete ${tournament.data.name}?`}
+        description="Every side, squad, fixture and score recorded in this tournament goes with it. It cannot be undone."
+        footer={
+          <>
+            <Button
+              variant="danger"
+              disabled={tournament.data.status === 'IN_PROGRESS'}
+              isLoading={deleteTournament.isPending}
+              onClick={async () => {
+                await deleteTournament.mutateAsync(tournamentId);
+                setDeleting(false);
+                // Nothing left to look at, so leave rather than render a 404.
+                void navigate('/tournaments');
+              }}
+            >
+              Delete it
+            </Button>
+            <Button variant="quiet" onClick={() => setDeleting(false)}>
+              Keep it
+            </Button>
+          </>
+        }
+      >
+        {tournament.data.status === 'IN_PROGRESS' ? (
+          <p className="text-secondary">
+            Matches are under way. A tournament being played cannot be deleted — abandon
+            or finish the remaining fixtures first.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="text-secondary">
+              {registered} side{registered === 1 ? '' : 's'} and {fixtureCount} fixture
+              {fixtureCount === 1 ? '' : 's'} will be removed.
+            </p>
+            {deleteTournament.error ? <ErrorText error={deleteTournament.error} /> : null}
+          </div>
+        )}
+      </Sheet>
 
       <Sheet
         open={removing !== null}

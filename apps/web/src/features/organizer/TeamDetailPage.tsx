@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { PLAYER_ROLES, PLAYERS_PER_TEAM, type PlayerDto, type PlayerRole } from '@howzat/shared';
+import { PLAYER_ROLES, type PlayerDto, type PlayerRole, type Sport } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
+import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { Pill, TeamMark } from '@/components/ui/Pill';
 import { Reveal } from '@/components/ui/Reveal';
@@ -27,10 +28,13 @@ const ROLE_LABELS: Record<PlayerRole, string> = {
 };
 
 /**
- * One squad. Eleven slots, filled either from a Howzat account or as a guest.
+ * One squad, filled either from Howzat accounts or as guests.
  *
- * The entry forms disappear once the XI is complete rather than sitting there
- * greyed out — a full squad is a finished job, and the page should look finished.
+ * In cricket the squad is the side: eleven slots, and the entry forms disappear
+ * once it is complete, because a full squad is a finished job and the page
+ * should look finished. Football splits the two — the squad is a register of
+ * who is available and the team sheet picks the starters out of it on match day
+ * — so there the forms stay open well past the number who take the field.
  */
 export function TeamDetailPage() {
   const { teamId = '' } = useParams();
@@ -41,7 +45,12 @@ export function TeamDetailPage() {
   if (!team.data) return null;
 
   const squad = team.data;
-  const remaining = PLAYERS_PER_TEAM - squad.players.length;
+  // Room left in the *squad*, which in football is much larger than the side
+  // that starts: the extras are the bench, and the team sheet picks the
+  // starters out of the whole list on match day.
+  const remaining = squad.maxSquadSize - squad.players.length;
+  /** Still needed before this side can be scheduled at all. */
+  const shortOfStarting = Math.max(0, squad.squadSize - squad.players.length);
 
   return (
     <div className="flex flex-col gap-12">
@@ -62,15 +71,25 @@ export function TeamDetailPage() {
 
           <div className="flex items-center gap-5">
             <p className="mono text-[0.75rem] font-medium text-secondary">
-              {squad.players.length} on {PLAYERS_PER_TEAM}
+              {/* "12 on 5" is nonsense for a five-a-side squad of twelve. In
+                  football the two numbers are registered and starting, not a
+                  fraction of one thing. */}
+              {squad.sport === 'FOOTBALL'
+                ? `${squad.players.length} registered · ${squad.squadSize} start`
+                : `${squad.players.length} on ${squad.squadSize}`}
             </p>
             <p className="max-w-[15rem] text-[0.9375rem] text-secondary">
               {squad.isEligible ? (
                 <span className="text-success">
-                  Full XI. This side can be scheduled and take the field.
+                  {squad.sport === 'FOOTBALL' && squad.players.length > squad.squadSize
+                    ? `Ready to play, with ${squad.players.length - squad.squadSize} on the bench.`
+                    : 'Full squad. This side can be scheduled and take the field.'}
                 </span>
               ) : (
-                `${remaining} more player${remaining === 1 ? '' : 's'} before this side can be scheduled.`
+                // The shortfall against the *starting* side. Against the squad
+                // ceiling it would read "25 more players" on a five-a-side team
+                // that needs one.
+                `${shortOfStarting} more player${shortOfStarting === 1 ? '' : 's'} before this side can be scheduled.`
               )}
             </p>
           </div>
@@ -82,10 +101,21 @@ export function TeamDetailPage() {
       {remaining > 0 ? (
         <div className="grid gap-5 lg:grid-cols-2">
           <Reveal index={0}>
-            <AddPlayerCard teamId={teamId} tournamentId={squad.tournamentId} />
+            <AddPlayerCard
+              teamId={teamId}
+              tournamentId={squad.tournamentId}
+              sport={squad.sport}
+            />
           </Reveal>
           <Reveal index={1}>
-            <BulkAddCard teamId={teamId} tournamentId={squad.tournamentId} remaining={remaining} />
+            <BulkAddCard
+              teamId={teamId}
+              tournamentId={squad.tournamentId}
+              remaining={remaining}
+              shortOfStarting={shortOfStarting}
+              startingSize={squad.squadSize}
+              sport={squad.sport}
+            />
           </Reveal>
         </div>
       ) : null}
@@ -94,7 +124,7 @@ export function TeamDetailPage() {
         <SectionHeading
           eyebrow={`${squad.players.length} registered`}
           title="The squad"
-          description="Batting order is chosen at the toss, not here — this is the pool the XI comes from."
+          description="The team sheet is picked at the toss or the team-sheet step, not here — this is the pool it comes from."
         />
 
         <Card>
@@ -111,6 +141,8 @@ export function TeamDetailPage() {
                   key={player.id}
                   index={index}
                   player={player}
+                  sport={squad.sport}
+                  color={squad.primaryColor}
                   teamId={teamId}
                   tournamentId={squad.tournamentId}
                 />
@@ -125,11 +157,15 @@ export function TeamDetailPage() {
 
 function PlayerRow({
   player,
+  sport,
+  color,
   index,
   teamId,
   tournamentId,
 }: {
   player: PlayerDto;
+  sport: Sport;
+  color: string;
   index: number;
   teamId: string;
   tournamentId: string;
@@ -142,7 +178,14 @@ function PlayerRow({
         {String(index + 1).padStart(2, '0')}
       </span>
 
-      <PlayerAvatar seed={player.id} name={player.name} size="sm" />
+      {/* Football gets a drawn kit rather than a photographic sprite: four
+          faces cycling through a squad of twenty-four stops meaning anything,
+          and a shirt is what football identifies people by anyway. */}
+      {sport === 'FOOTBALL' ? (
+        <FootballAvatar seed={player.id} name={player.name} size="sm" color={color} />
+      ) : (
+        <PlayerAvatar seed={player.id} name={player.name} size="sm" />
+      )}
 
       <span className="min-w-0 flex-1">
         <span className="block truncate text-primary">{player.name}</span>
@@ -163,7 +206,10 @@ function PlayerRow({
         )}
       </span>
 
-      <Pill>{ROLE_LABELS[player.role]}</Pill>
+      {/* Cricket only. A football player is just a player: the sport has no
+          equivalent of a batting role, and the one position it does name — the
+          goalkeeper — belongs to a team sheet, not to a squad list. */}
+      {sport === 'CRICKET' ? <Pill>{ROLE_LABELS[player.role]}</Pill> : null}
 
       <button
         type="button"
@@ -188,7 +234,15 @@ function PlayerRow({
  * Making the account path the default would be wrong — most club players will
  * never sign up — so it sits alongside, not in front.
  */
-function AddPlayerCard({ teamId, tournamentId }: { teamId: string; tournamentId: string }) {
+function AddPlayerCard({
+  teamId,
+  tournamentId,
+  sport,
+}: {
+  teamId: string;
+  tournamentId: string;
+  sport: Sport;
+}) {
   const addPlayer = useAddPlayer(teamId, tournamentId);
   const [mode, setMode] = useState<'name' | 'account'>('name');
   const [name, setName] = useState('');
@@ -201,19 +255,22 @@ function AddPlayerCard({ teamId, tournamentId }: { teamId: string; tournamentId:
     setName('');
   }
 
-  const roleField = (
-    <Select
-      label="Role"
-      value={role}
-      onChange={(event) => setRole(event.target.value as PlayerRole)}
-    >
-      {PLAYER_ROLES.map((option) => (
-        <option key={option} value={option}>
-          {ROLE_LABELS[option]}
-        </option>
-      ))}
-    </Select>
-  );
+  // Cricket only. In football the field is not merely hidden — there is no
+  // answer to give, so the stored value stays at its default and is never read.
+  const roleField =
+    sport === 'CRICKET' ? (
+      <Select
+        label="Role"
+        value={role}
+        onChange={(event) => setRole(event.target.value as PlayerRole)}
+      >
+        {PLAYER_ROLES.map((option) => (
+          <option key={option} value={option}>
+            {ROLE_LABELS[option]}
+          </option>
+        ))}
+      </Select>
+    ) : null;
 
   return (
     <Card className="h-full">
@@ -350,10 +407,16 @@ function BulkAddCard({
   teamId,
   tournamentId,
   remaining,
+  shortOfStarting,
+  startingSize,
+  sport,
 }: {
   teamId: string;
   tournamentId: string;
   remaining: number;
+  shortOfStarting: number;
+  startingSize: number;
+  sport: Sport;
 }) {
   const addPlayers = useAddPlayersBulk(teamId, tournamentId);
   const [text, setText] = useState('');
@@ -385,7 +448,9 @@ function BulkAddCard({
       <CardHeader>
         <h3 className="serif text-xl text-primary">Paste the whole squad</h3>
         <p className="mt-1.5 text-[0.8125rem] text-secondary">
-          One name per line. Roles default to batsman and can be changed after.
+          {sport === 'FOOTBALL'
+            ? `One name per line — paste everybody. The ${startingSize} who start are picked on match day; the rest are substitutes.`
+            : 'One name per line — the fastest way to fill a squad.'}
         </p>
       </CardHeader>
 
@@ -401,8 +466,16 @@ function BulkAddCard({
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className={cn('mono text-[0.8125rem]', overflow ? 'text-alert' : 'text-muted')}>
-              {names.length} name{names.length === 1 ? '' : 's'} · {remaining} slot
-              {remaining === 1 ? '' : 's'} left
+              {names.length} name{names.length === 1 ? '' : 's'}
+              <span className="mx-1.5 text-line-strong">·</span>
+              {/* In football the useful number is how many more are needed
+                  before the side can play at all — the squad ceiling is a
+                  sanity bound nobody is working towards. */}
+              {sport === 'FOOTBALL'
+                ? shortOfStarting > 0
+                  ? `${shortOfStarting} more to field a side`
+                  : 'enough to play — the rest are subs'
+                : `${remaining} slot${remaining === 1 ? '' : 's'} left`}
             </p>
 
             <Button
