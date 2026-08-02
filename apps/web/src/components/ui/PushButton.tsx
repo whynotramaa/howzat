@@ -5,15 +5,20 @@ import { cn } from '@/lib/cn';
  * A control with mass.
  *
  * The rest of the system is flat on purpose — a scorecard is a document, and
- * documents do not have buttons that stick out of them. The scoring console is
- * the exception, and the reason is not decoration:
+ * documents do not have buttons that stick out of them. Exactly one control in
+ * the product is the exception: the goal key on the scoring console. Not the
+ * transport, not the three occasional actions beside it, not anything on any
+ * other screen. The reason is not decoration:
  *
- *   • It is operated one-handed, at a ground, in daylight, by somebody whose
+ *   • It is pressed one-handed, at a ground, in daylight, by somebody whose
  *     eyes are on the pitch rather than the phone. A flat rectangle gives a
  *     thumb nothing to aim at; an extrusion does.
  *   • The most expensive mistake on this screen is a goal recorded a minute
  *     late because the scorer was not sure the tap had registered. A control
  *     that visibly travels is the confirmation, and it costs no time.
+ *
+ * A second raised control would spend that hierarchy for nothing, which is why
+ * this component has one caller.
  *
  * The travel is real rather than a scale: the face moves down, the side wall it
  * was riding on is consumed, and the cast shadow tightens. Press is 34ms and

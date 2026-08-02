@@ -2,10 +2,10 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   FOOTBALL_EVENT_LABELS,
-  periodName,
   type ClockCommand,
   type FootballEventKind,
   type LineupPlayer,
+  type MatchClockDto,
   type PlayerRef,
   type TeamLineup,
   type TeamRef,
@@ -40,19 +40,16 @@ import {
  * Everything on this screen is sized for one hand, in daylight, while watching
  * something else. That constraint decides the whole layout.
  *
- * It is built as one instrument in two halves:
+ * It is one panel in two bands:
  *
- *   the head   the dial and its transport. Glanced at constantly, so it is the
- *              largest object on the screen and it sits at the top of the
- *              thumb's reach rather than under it.
- *   the deck   a recessed plate carrying the controls, with GOAL as a single
- *              enormous key at the centre and the three occasional actions —
- *              save, card, change — as smaller keys beneath it. A goal is what
- *              this screen exists for; the hierarchy says so in one look.
- *
- * The controls are extruded rather than flat, which is the one place the product
- * departs from its own visual language. See PushButton for why that is a
- * usability decision rather than a decorative one.
+ *   the bar    the figures and the transport, side by side on one line. The
+ *              clock is glanced at constantly and the transport is the second
+ *              most-pressed thing here, so they share a row rather than
+ *              stacking — which also gives the deck below the room it needs.
+ *   the deck   GOAL as a single raised key, and the three occasional actions —
+ *              save, card, change — as flat plates beneath it. A goal is what
+ *              this screen exists for; the hierarchy says so in one look, and
+ *              the one extrusion in the product is spent saying it.
  *
  * Every action opens a sheet rather than firing immediately. A mis-tap that puts
  * a goal on the board is worse than one extra tap, and the sheet is where the
@@ -159,44 +156,37 @@ export function FootballScoringPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         {/* ── the instrument ─────────────────────────────────────────── */}
         <Card className="overflow-hidden">
-          <div className="flex flex-col items-center gap-8 px-6 py-10 sm:px-10">
-            <MatchTimer clock={watch.clock} size="lg" />
-
-            <ClockControls
-              commands={watch.commands}
-              periods={watch.clock?.periods ?? 0}
-              currentPeriod={watch.clock?.currentPeriod ?? 1}
-              isRunning={watch.isRunning}
-              isPending={watch.isPending}
-              onCommand={watch.run}
-            />
-
-            {clockCommand.error ? <ErrorText error={clockCommand.error} /> : null}
-          </div>
+          <ClockBar
+            clock={watch.clock}
+            commands={watch.commands}
+            isRunning={watch.isRunning}
+            isPending={watch.isPending}
+            onCommand={watch.run}
+            error={clockCommand.error}
+          />
 
           {/*
-           * The deck. Recessed and hairlined off the dial above it, because the
-           * two halves of this panel are read differently: one is watched, the
-           * other is operated.
+           * The deck. Hairlined off the bar above it and set on the sunken
+           * ground, because the two bands of this panel are read differently:
+           * one is watched, the other is operated.
            */}
-          <div className="border-t border-line bg-sunken px-6 py-8 sm:px-10">
+          <div className="border-t border-line bg-sunken px-5 py-6 sm:px-8 sm:py-7">
             {watch.clock ? (
               <>
                 <GoalKey disabled={!canRecord || busy} onPress={() => setPending({ kind: 'GOAL' })} />
 
-                <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="mt-3 grid grid-cols-3 gap-3">
                   <MinorKey
                     label="Save"
-                    tone="var(--success)"
                     disabled={!canRecord || busy}
                     onPress={() => setPending({ kind: 'SAVE' })}
                     glyph={
                       <span
-                        className="grid size-6 place-items-center rounded-full border-2"
+                        className="grid size-[1.375rem] place-items-center rounded-full border-2"
                         style={{ borderColor: 'var(--success)' }}
                       >
                         <span
-                          className="size-2 rounded-full"
+                          className="size-1.5 rounded-full"
                           style={{ background: 'var(--success)' }}
                         />
                       </span>
@@ -205,28 +195,26 @@ export function FootballScoringPage() {
 
                   <MinorKey
                     label="Card"
-                    tone="#e0b23c"
                     disabled={!canRecord || busy}
                     onPress={() => setPending({ kind: 'CARD' })}
                     glyph={
-                      <span className="flex h-6 items-center gap-[3px]">
-                        <span className="h-6 w-[15px] -rotate-6 rounded-[2px] bg-[#e0b23c] ring-1 ring-black/20" />
-                        <span className="h-6 w-[15px] rotate-6 rounded-[2px] bg-[#c8332a] ring-1 ring-black/20" />
+                      <span className="flex h-[1.375rem] items-center gap-[3px]">
+                        <span className="h-[1.375rem] w-[13px] -rotate-6 rounded-[2px] bg-[#e0b23c]" />
+                        <span className="h-[1.375rem] w-[13px] rotate-6 rounded-[2px] bg-[#c8332a]" />
                       </span>
                     }
                   />
 
                   <MinorKey
                     label="Change"
-                    tone="var(--accent-strong)"
                     disabled={!canRecord || busy}
                     onPress={() => setPending({ kind: 'SUB' })}
                     glyph={
                       <svg
                         viewBox="0 0 16 16"
-                        className="size-6"
+                        className="size-[1.375rem]"
                         fill="none"
-                        stroke="currentColor"
+                        stroke="var(--accent-strong)"
                         aria-hidden
                       >
                         <path
@@ -375,13 +363,15 @@ function Scoreline({
     <Card className="overflow-hidden">
       <div
         aria-hidden
-        className="h-[3px]"
+        className="h-[2px]"
         style={{
           background: `linear-gradient(90deg, ${home.primaryColor} 0 50%, ${away.primaryColor} 50% 100%)`,
         }}
       />
 
-      <CardBody className="flex items-center justify-between gap-4 py-7">
+      {/* Tighter than a scoreboard on purpose: on a phone every pixel spent here
+          is a pixel between the scorer's thumb and the goal key. */}
+      <CardBody className="flex items-center justify-between gap-4 py-5">
         <TeamScore team={home} align="left" />
 
         <div className="flex shrink-0 flex-col items-center gap-2">
@@ -389,7 +379,7 @@ function Scoreline({
             // Keyed on the scoreline so the figure re-mounts, and the bump runs,
             // on the goal that changed it and on nothing else.
             key={`${homeGoals}-${awayGoals}`}
-            className="score-bump score-figure flex items-center gap-3 text-[2.75rem] text-primary sm:text-[3.5rem]"
+            className="score-bump score-figure flex items-center gap-3 text-[2.25rem] text-primary sm:text-[2.75rem]"
           >
             {homeGoals}
             <span className="text-[0.5em] text-line-strong">—</span>
@@ -442,17 +432,17 @@ function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void
   return (
     <PushButton
       tone="var(--accent-strong)"
-      depth={13}
+      depth={10}
       radius="var(--radius-xl)"
       disabled={disabled}
       onClick={onPress}
       className="w-full"
-      faceClassName="h-[8.5rem] gap-2 text-white"
+      faceClassName="h-[7rem] gap-1.5 text-white"
       ariaLabel="Record a goal"
     >
-      <SportMark sport="FOOTBALL" className="size-9 opacity-95" />
-      <span className="text-[1.75rem] leading-none font-semibold tracking-[0.02em]">GOAL</span>
-      <span className="text-[0.75rem] text-white/70">Name the scorer</span>
+      <SportMark sport="FOOTBALL" className="size-7 opacity-95" />
+      <span className="text-[1.5rem] leading-none font-semibold tracking-[-0.01em]">Goal</span>
+      <span className="text-[0.75rem] text-white/75">Name the scorer</span>
     </PushButton>
   );
 }
@@ -460,40 +450,34 @@ function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void
 /**
  * The occasional actions.
  *
- * Same construction as the goal key, a third of the travel and a neutral face:
- * these are things that happen a handful of times a match, and a deck of four
- * equally loud keys is a deck with no hierarchy at all. The colour lives in the
- * mark rather than the surface, which is the rule everywhere else in the
- * product.
+ * Flat plates: a hairline, a mark and a word. These happen a handful of times a
+ * match, and giving them the goal key's extrusion would spend the one piece of
+ * hierarchy this screen has. The colour lives in the mark rather than the
+ * surface, which is the rule everywhere else in the product.
  */
 function MinorKey({
   label,
-  tone,
   glyph,
   disabled,
   onPress,
 }: {
   label: string;
-  tone: string;
   glyph: ReactNode;
   disabled: boolean;
   onPress: () => void;
 }) {
   return (
-    <PushButton
-      tone="var(--surface-raised)"
-      depth={6}
-      radius="var(--radius-md)"
+    <button
+      type="button"
+      className="console-key h-[4.75rem] w-full"
       disabled={disabled}
       onClick={onPress}
-      className="w-full"
-      faceClassName="h-[5.25rem] gap-2 text-primary"
     >
-      <span aria-hidden style={{ color: tone }} className="flex items-center">
+      <span aria-hidden className="flex items-center">
         {glyph}
       </span>
       <span className="text-[0.8125rem] font-medium">{label}</span>
-    </PushButton>
+    </button>
   );
 }
 
@@ -509,74 +493,88 @@ const COMMAND_LABELS: Record<ClockCommand, string> = {
 };
 
 /**
- * What the watch will accept right now, and nothing else.
+ * The bar: the figures on the left, the transport on the right, one line.
  *
- * The list comes from the same table the server refuses commands with, so the
- * button that is missing here is exactly the command that would have been
+ * The command list comes from the same table the server refuses commands with,
+ * so the button that is missing here is exactly the command that would have been
  * rejected. There is no client-side guess to drift out of step.
+ *
+ * Whatever the clock will accept next is the round key; everything else it will
+ * accept sits quietly on the line below, behind a hairline. Ending a period and
+ * blowing full time are deliberate, occasional acts, and a deliberate act should
+ * not be the same size as the one pressed every few minutes.
  */
-function ClockControls({
+function ClockBar({
+  clock,
   commands,
-  periods,
-  currentPeriod,
   isRunning,
   isPending,
   onCommand,
+  error,
 }: {
+  clock: MatchClockDto | null;
   commands: ClockCommand[];
-  periods: number;
-  currentPeriod: number;
   isRunning: boolean;
   isPending: boolean;
   onCommand: (command: ClockCommand) => void;
+  error: unknown;
 }) {
-  if (commands.length === 0) {
-    return <p className="text-[0.8125rem] text-muted">Full time — the clock is stopped.</p>;
-  }
-
-  const primary = commands[0]!;
+  const primary = commands[0] ?? null;
   const rest = commands.slice(1);
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      {/* A transport control, not a text button. The second most-pressed thing
-          on this screen deserves a target you can hit without looking, and a
-          play/pause glyph is read faster than a word. */}
-      <PushButton
-        tone={isRunning ? 'var(--surface-raised)' : 'var(--accent-strong)'}
-        depth={7}
-        radius="var(--radius-full)"
-        disabled={isPending}
-        onClick={() => onCommand(primary)}
-        ariaLabel={COMMAND_LABELS[primary]}
-        faceClassName={cn('size-[4.5rem]', isRunning ? 'text-primary' : 'text-white')}
-      >
-        {isRunning ? (
-          <svg viewBox="0 0 24 24" className="size-7" fill="currentColor" aria-hidden>
-            <rect x="7" y="5" width="4" height="14" rx="1.2" />
-            <rect x="13" y="5" width="4" height="14" rx="1.2" />
-          </svg>
-        ) : (
-          <svg
-            viewBox="0 0 24 24"
-            className="size-7 translate-x-[2px]"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M8 5.5v13l11-6.5z" />
-          </svg>
-        )}
-      </PushButton>
+    <div className="px-5 py-6 sm:px-8 sm:py-7">
+      <div className="flex items-center justify-between gap-5 sm:gap-8">
+        <MatchTimer clock={clock} size="lg" className="min-w-0 flex-1" />
 
-      <p className="text-[0.8125rem] font-medium text-primary">{COMMAND_LABELS[primary]}</p>
+        {primary ? (
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            {/* A transport, not a text button. The second most-pressed thing on
+                this screen deserves a target you can hit without looking, and a
+                play/pause glyph is read faster than a word. */}
+            <button
+              type="button"
+              className={cn(
+                'transport size-[3.75rem] sm:size-[4.25rem]',
+                isRunning
+                  ? 'border border-line bg-raised text-primary hover:bg-hover'
+                  : 'bg-[var(--accent-strong)] text-white',
+              )}
+              disabled={isPending}
+              aria-label={COMMAND_LABELS[primary]}
+              onClick={() => onCommand(primary)}
+            >
+              {isRunning ? (
+                <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
+                  <rect x="7" y="5" width="4" height="14" rx="1.4" />
+                  <rect x="13" y="5" width="4" height="14" rx="1.4" />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  className="size-6 translate-x-[2px]"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+              )}
+            </button>
+
+            <span className="max-w-[7rem] text-center text-[0.75rem] leading-tight text-secondary">
+              {COMMAND_LABELS[primary]}
+            </span>
+          </div>
+        ) : null}
+      </div>
 
       {rest.length > 0 ? (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-wrap gap-2 border-t border-line pt-5">
           {rest.map((command) => (
             <Button
               key={command}
               size="sm"
-              variant={command === 'FULL_TIME' ? 'danger' : 'secondary'}
+              variant={command === 'FULL_TIME' ? 'danger' : 'quiet'}
               disabled={isPending}
               onClick={() => onCommand(command)}
             >
@@ -586,7 +584,11 @@ function ClockControls({
         </div>
       ) : null}
 
-      {periods > 1 ? <p className="eyebrow">{periodName(currentPeriod, periods)}</p> : null}
+      {error ? (
+        <div className="mt-4">
+          <ErrorText error={error} />
+        </div>
+      ) : null}
     </div>
   );
 }

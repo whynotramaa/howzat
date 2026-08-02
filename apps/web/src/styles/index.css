@@ -590,94 +590,130 @@ input {
 }
 
 /*
- * The dial is the one object in the product built to be looked *at* rather than
- * read past, so it is allowed depth the rest of the system refuses.
+ * The figures.
  *
- * Three layers, in this order:
- *
- *   .dial-well   the recess the instrument sits in — an inset shadow, so the
- *                face reads as sunk into the panel instead of pasted onto it
- *   .dial-face   the face itself: a top-lit plate, one hairline, no gradient
- *                strong enough to notice
- *   .dial-gloss  a single specular arc across the upper left, at 6% — the
- *                difference between "a circle" and "a watch"
- *
- * Every value is derived from a token, so the whole instrument re-lights in dark
- * mode without a second definition.
+ * Set in the mono face at a weight that holds at 60px, tabular so the width
+ * never moves as the digits do, and optically tightened because large figures
+ * over-space. There is no dial, no bezel and no gloss: the number is the
+ * instrument.
  */
-.dial-well {
-  border-radius: 50%;
-  background: var(--surface-sunken);
-  box-shadow:
-    inset 0 2px 6px -2px rgb(0 0 0 / 0.28),
-    inset 0 0 0 1px color-mix(in oklab, var(--line) 90%, transparent),
-    0 1px 0 color-mix(in oklab, var(--surface-raised) 80%, #fff 20%);
-}
-
-.dial-face {
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      110% 110% at 50% 4%,
-      color-mix(in oklab, var(--surface-raised) 88%, #fff 12%) 0%,
-      var(--surface-raised) 46%,
-      color-mix(in oklab, var(--surface-raised) 92%, #000 8%) 100%
-    );
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--line) 70%, transparent),
-    0 10px 30px -18px rgb(0 0 0 / 0.5);
-}
-
-.dial-gloss {
-  border-radius: 50%;
-  background: linear-gradient(
-    152deg,
-    color-mix(in oklab, #fff 12%, transparent) 0%,
-    transparent 42%,
-    transparent 100%
-  );
-  pointer-events: none;
+.clock-digits {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  letter-spacing: -0.045em;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  transition: color var(--dur) var(--ease);
 }
 
 /*
- * The head of the progress arc. A small lit cap that travels the ring is what
- * makes a gauge read as *moving* rather than as a static fraction — the arc
- * itself advances a third of a degree a second, which nobody perceives.
+ * The period, as one hairline filling left to right. It is the whole gauge —
+ * a line answers "how far through" without asking anyone to read a ring.
  */
-.dial-head {
-  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--accent-strong) 70%, transparent));
+.clock-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
 }
 
-/* The seconds, when the watch is stopped, sit back rather than going grey. */
-@keyframes dial-breathe {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.16;
-  }
+.clock-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-strong);
 }
 
-.dial-breathe {
-  animation: dial-breathe 2.6s var(--ease-in-out) infinite;
-}
-
-/* ── The push button ─────────────────────────────────────────────────────── */
+/* ── The console keys ────────────────────────────────────────────────────── */
 
 /*
- * A button with a side wall.
+ * The flat key.
  *
- * Everything else in this system is flat, and that is right for a page you read.
- * The console is not a page you read — it is an instrument someone operates
- * one-handed, without looking, while a match happens in front of them. A control
- * on that surface has to look like it has a top and a side and something
- * underneath it, because that is what tells a thumb where the target is and what
- * tells the eye, in peripheral vision, that the tap landed.
+ * The three occasional actions — save, card, change — are plates: one hairline,
+ * one radius, no extrusion. They are pressed a handful of times a match and a
+ * deck of four equally raised keys is a deck with no hierarchy at all. The
+ * feedback is motion rather than mass: the plate settles a hair on press and
+ * comes back, which is enough on a target this size.
+ */
+.console-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.console-key:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--line-strong);
+}
+
+.console-key:active:not(:disabled) {
+  transform: scale(0.97);
+  transition-duration: 60ms;
+}
+
+.console-key:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+/*
+ * The transport. One circular target for whatever the clock will accept next —
+ * filled with the accent while stopped, a plain plate while running, because a
+ * pause control shouting at you all half is a control you learn to ignore.
+ */
+.transport {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.transport:active:not(:disabled) {
+  transform: scale(0.93);
+  transition-duration: 60ms;
+}
+
+.transport:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+/* ── The goal key ────────────────────────────────────────────────────────── */
+
+/*
+ * The one control in the product with mass.
+ *
+ * Everything else here is flat, and that is right for a page you read. Recording
+ * a goal is not reading: it is done one-handed, at a ground, in daylight, by
+ * somebody whose eyes are on the pitch rather than the phone. That target has to
+ * look like it has a top and a side and something underneath it, because that is
+ * what tells a thumb where it is and what tells the eye, in peripheral vision,
+ * that the tap landed. Nothing else on the screen earns that, so nothing else
+ * gets it.
  *
  * Three stacked layers, all sharing one radius and one tone:
  *
- *   .push__shadow  what the button casts onto the panel
+ *   .push__shadow  what the key casts onto the panel
  *   .push__edge    the side wall — the darker extrusion the face rides on
  *   .push__face    the top, lifted by --push-depth
  *
@@ -710,21 +746,18 @@ input {
 .push__shadow {
   position: absolute;
   inset: 0;
-  background: rgb(0 0 0 / 0.2);
-  transform: translateY(3px);
-  filter: blur(6px);
+  background: color-mix(in oklab, var(--push-tone) 55%, #000);
+  opacity: 0.22;
+  transform: translateY(4px);
+  filter: blur(10px);
   transition: transform 200ms var(--ease), opacity 200ms var(--ease);
 }
 
+/* The side wall. One flat darker tone, not a gradient — a wall is one plane. */
 .push__edge {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--push-tone) 68%, #000) 0%,
-    color-mix(in oklab, var(--push-tone) 46%, #000) 55%,
-    color-mix(in oklab, var(--push-tone) 62%, #000) 100%
-  );
+  background: color-mix(in oklab, var(--push-tone) 62%, #000);
 }
 
 .push__face {
@@ -733,15 +766,17 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /*
+   * A single soft top-light, not a three-stop gradient. The old face had a
+   * highlight, a body and a shaded foot and read as a plastic toy; this is one
+   * lit surface with a hairline of specular at the very top edge.
+   */
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, var(--push-tone) 84%, #fff) 0%,
-    var(--push-tone) 52%,
-    color-mix(in oklab, var(--push-tone) 90%, #000) 100%
+    color-mix(in oklab, var(--push-tone) 93%, #fff) 0%,
+    var(--push-tone) 62%
   );
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, #fff 32%, transparent),
-    inset 0 -1px 0 color-mix(in oklab, #000 18%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 24%, transparent);
   transform: translateY(calc(var(--push-depth) * -1));
   /* Snappy going down, unhurried coming back — the asymmetry is the feel. */
   transition: transform 220ms cubic-bezier(0.3, 0.7, 0.4, 1.2);

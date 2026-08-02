@@ -9,7 +9,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
 import type { ConnectionState } from '@/features/live/useLiveMatch';
-import { MatchTimer } from './MatchTimer';
+import { InlineClock, MatchTimer } from './MatchTimer';
 import { IncidentTimeline } from './IncidentTimeline';
 import { Bench, Pitch } from './Pitch';
 import { useLiveFootball } from './useLiveFootball';
@@ -55,6 +55,9 @@ export function LiveFootballPage({ slug }: { slug: string }) {
                 {snapshot.home.short} {snapshot.home.goals}–{snapshot.away.goals}{' '}
                 {snapshot.away.short}
               </p>
+              {/* The minute travels with the score, so someone who has scrolled
+                  past the scoreboard still knows how late it is. */}
+              <InlineClock clock={snapshot.clock} className="text-[0.8125rem] text-secondary" />
             </div>
           ) : null}
 
@@ -163,13 +166,23 @@ function Scoreboard({ snapshot }: { snapshot: FootballSnapshot }) {
         <TeamBlock side={snapshot.home} align="left" />
 
         <div className="flex flex-col items-center gap-4 sm:gap-5">
-          <p className="score-figure text-[3.5rem] text-primary sm:text-[4.5rem]">
+          <p
+            // Keyed on the scoreline so the figures re-mount, and the bump runs,
+            // on the goal that changed them and on nothing else.
+            key={`${snapshot.home.goals}-${snapshot.away.goals}`}
+            className="score-bump score-figure text-[3.5rem] text-primary sm:text-[4.5rem]"
+          >
             {snapshot.home.goals}
-            <span className="mx-2 text-muted sm:mx-3">–</span>
+            <span className="mx-2 text-line-strong sm:mx-3">–</span>
             {snapshot.away.goals}
           </p>
 
-          <MatchTimer clock={snapshot.clock} size="sm" />
+          <MatchTimer
+            clock={snapshot.clock}
+            size="sm"
+            align="center"
+            className="w-full max-w-[11rem]"
+          />
         </div>
 
         <TeamBlock side={snapshot.away} align="right" />
