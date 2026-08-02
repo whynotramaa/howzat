@@ -364,6 +364,19 @@ export interface FootballPlayerStatsDto {
    * their tally would make the golden boot a lie.
    */
   ownGoals: number;
+  /** Shots kept out. Mostly a goalkeeper's column, but not exclusively. */
+  saves: number;
+  /**
+   * Goals let in while this player was their side's goalkeeper, and zero for
+   * everybody else. Attributed by position rather than by event, because a
+   * goal is scored *against a team* — nobody records which keeper was beaten,
+   * they record who scored.
+   */
+  goalsConceded: number;
+  /** Matches keeping goal in which nothing was let in. */
+  cleanSheets: number;
+  /** True when they kept goal in at least one match — gates the keeper columns. */
+  isGoalkeeper: boolean;
   yellowCards: number;
   redCards: number;
   /** Goals per appearance, null before they have played. */
@@ -383,9 +396,12 @@ export interface FootballTournamentStatsDto {
   goldenBoot: FootballPlayerStatsDto | null;
   playmaker: FootballPlayerStatsDto | null;
   mostBooked: FootballPlayerStatsDto | null;
+  /** The keeper with the most clean sheets, then the fewest goals conceded. */
+  goldenGlove: FootballPlayerStatsDto | null;
   totals: {
     goals: number;
     ownGoals: number;
+    saves: number;
     yellowCards: number;
     redCards: number;
     matchesPlayed: number;

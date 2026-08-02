@@ -53,6 +53,12 @@ export function TournamentDetailPage() {
   const readyForFixtures = full && eligible === registered;
   const fixtureCount = fixtures.data?.total ?? 0;
   const played = fixtures.data?.items.filter((match) => match.status === 'COMPLETED').length ?? 0;
+  // The leaders board counts anything that has kicked off, so it is offered as
+  // soon as there is a match under way rather than only after a final whistle.
+  const started =
+    fixtures.data?.items.filter((match) =>
+      ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
+    ).length ?? 0;
 
   return (
     <div className="flex flex-col gap-12">
@@ -226,7 +232,7 @@ export function TournamentDetailPage() {
         </section>
       ) : null}
 
-      {played > 0 ? <TournamentStatsPanel tournamentId={tournamentId} /> : null}
+      {started > 0 ? <TournamentStatsPanel tournamentId={tournamentId} /> : null}
       {played > 0 && teams.data ? (
         <QualificationPanel
           tournamentId={tournamentId}

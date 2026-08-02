@@ -1,122 +1,115 @@
-import { useEffect, useState } from 'react';
 import {
-  CLOCK_TICK_MS,
   clockStatusLabel,
   periodName,
-  readClock,
   shortPeriodName,
   type ClockReading,
   type MatchClockDto,
 } from '@howzat/shared';
 import { cn } from '@/lib/cn';
+import { useClockReading } from './useMatchClock';
 
 /*
  * The watch.
  *
- * Everything a football match hangs off is this number, so it is drawn as an
- * instrument rather than as a label: a sunken dial, a hairline track, and one
- * accent arc sweeping through the period. The figures are the mono face at a
- * size nobody has to lean in for, because the person reading it is holding a
- * phone at arm's length on a touchline in daylight.
+ * Drawn as an instrument rather than a label, because everything in a football
+ * match hangs off this number and the person reading it is holding a phone at
+ * arm's length on a touchline in daylight.
  *
- * Three deliberate restraints, all of them the same restraint the rest of the
- * system observes. The arc is a stroke, never a fill — a filled pie chart of
- * elapsed time reads as a loading spinner. There is no drop shadow under the
- * dial; it rests on the page like every other surface here. And nothing pulses
- * except the running indicator, which is a status, not decoration.
+ * What it is made of, and why:
  *
- * Once regulation time is gone the arc completes and a second, thinner arc
- * begins over the top in amber. That is what stoppage time *is* — time past the
- * end of the allotment — and drawing it as an overrun rather than letting the
- * first arc keep going is the difference between a clock that means something
- * and a progress bar that has run out of road.
+ *  • A minute ring of sixty ticks, lit up to the current minute. A bare arc
+ *    tells you roughly how far through you are; ticks tell you *which minute*,
+ *    which is the thing anyone actually wants off a football clock.
+ *  • One accent arc over the top, at hairline weight, in the same stroke as
+ *    every rule on the page.
+ *  • A colon that blinks once a second while running. This is the oldest
+ *    running-clock affordance there is, it costs nothing, and it means the
+ *    clock reads as live even in a still screenshot.
+ *  • No transition on the arc while running. It advances four times a second
+ *    in imperceptible steps; a 400ms ease on top of that made it lag visibly
+ *    behind the digits, which was most of why the old one felt wrong.
+ *
+ * Stoppage time is drawn as a second, thinner arc *over* the completed first
+ * one rather than by letting the first keep going — because that is what
+ * stoppage time is, and a ring that silently overfills means nothing.
  */
-
-/**
- * The live reading, ticked locally.
- *
- * The clock is never polled. The server sends a banked total and the instant
- * the current run started; everything after that is arithmetic this component
- * does four times a second against its own `Date.now()`, corrected for the skew
- * between the two machines. A paused clock does not tick at all.
- */
-export function useClockReading(clock: MatchClockDto | null): ClockReading {
-  const [reading, setReading] = useState(() => readClock(clock, Date.now() + skewOf(clock)));
-
-  useEffect(() => {
-    const skew = skewOf(clock);
-    setReading(readClock(clock, Date.now() + skew));
-
-    if (!clock || clock.status !== 'RUNNING') return;
-
-    const timer = window.setInterval(
-      () => setReading(readClock(clock, Date.now() + skew)),
-      CLOCK_TICK_MS,
-    );
-
-    return () => window.clearInterval(timer);
-  }, [clock]);
-
-  return reading;
-}
-
-/**
- * How far this browser's clock is from the server's.
- *
- * A phone whose clock is three minutes fast would otherwise render the match
- * three minutes further along than everyone else's, and on a shared scoreboard
- * that is not a rounding error — it is two different matches.
- */
-function skewOf(clock: MatchClockDto | null): number {
-  if (!clock?.serverNow) return 0;
-  const server = Date.parse(clock.serverNow);
-  return Number.isNaN(server) ? 0 : server - Date.now();
-}
 
 type Size = 'sm' | 'md' | 'lg';
 
 const DIAL: Record<Size, { box: number; stroke: number; digits: string; label: string }> = {
-  sm: { box: 132, stroke: 5, digits: 'text-[1.5rem]', label: 'text-[0.5625rem]' },
-  md: { box: 200, stroke: 7, digits: 'text-[2.5rem]', label: 'text-[0.625rem]' },
-  lg: { box: 264, stroke: 8, digits: 'text-[3.5rem]', label: 'text-[0.6875rem]' },
+  sm: { box: 128, stroke: 4, digits: 'text-[1.375rem]', label: 'text-[0.5rem]' },
+  md: { box: 196, stroke: 6, digits: 'text-[2.25rem]', label: 'text-[0.5625rem]' },
+  lg: { box: 260, stroke: 7, digits: 'text-[3.25rem]', label: 'text-[0.625rem]' },
 };
 
 export function MatchTimer({
   clock,
+  reading: providedReading,
   size = 'md',
   className,
 }: {
   clock: MatchClockDto | null;
+  /** Supplied by the console, which already holds an optimistic reading. */
+  reading?: ClockReading;
   size?: Size;
   className?: string;
 }) {
-  const reading = useClockReading(clock);
+  // The spectator page has no controller of its own, so it ticks from the
+  // snapshot. The console passes its optimistic reading straight through.
+  const own = useClockReading(providedReading ? null : clock);
+  const reading = providedReading ?? own;
+
   const { box, stroke, digits, label } = DIAL[size];
 
-  const radius = (box - stroke * 2 - 10) / 2;
+  const radius = (box - stroke * 2 - 14) / 2;
   const centre = box / 2;
   const circumference = 2 * Math.PI * radius;
 
   const inStoppage = reading.stoppage > 0;
+  const periodMinutes = clock?.periodMinutes ?? 45;
+
   // Stoppage rarely runs past a tenth of the period, so the overrun arc is
-  // scaled against that rather than the whole dial — otherwise six added
-  // minutes would draw as a sliver nobody could see.
-  const overrunFraction = inStoppage
-    ? Math.min(1, reading.stoppage / Math.max(1, (clock?.periodMinutes ?? 45) * 0.15))
+  // scaled against that — otherwise six added minutes would draw as a sliver.
+  const overrun = inStoppage
+    ? Math.min(1, reading.stoppage / Math.max(1, periodMinutes * 0.15))
     : 0;
+
+  const [minutes, seconds] = reading.display.split(':');
+  const litTicks = Math.round(reading.progress * 60);
 
   return (
     <div className={cn('flex flex-col items-center gap-4', className)}>
       <div className="relative" style={{ width: box, height: box }}>
-        <svg
-          width={box}
-          height={box}
-          viewBox={`0 0 ${box} ${box}`}
-          className="-rotate-90"
-          aria-hidden
-        >
-          {/* The recess the dial sits in. */}
+        <svg width={box} height={box} viewBox={`0 0 ${box} ${box}`} className="-rotate-90" aria-hidden>
           <circle cx={centre} cy={centre} r={radius} fill="var(--surface-sunken)" />
+
+          {/* The minute ring. Sixty marks, lit to where the clock is. */}
+          <g>
+            {Array.from({ length: 60 }).map((_, index) => {
+              const angle = (index / 60) * 2 * Math.PI;
+              const outer = radius + stroke + 5;
+              const inner = outer - (index % 5 === 0 ? 5 : 3);
+
+              return (
+                <line
+                  key={index}
+                  x1={centre + Math.cos(angle) * inner}
+                  y1={centre + Math.sin(angle) * inner}
+                  x2={centre + Math.cos(angle) * outer}
+                  y2={centre + Math.sin(angle) * outer}
+                  stroke={
+                    index < litTicks
+                      ? inStoppage
+                        ? 'var(--warning)'
+                        : 'var(--accent-strong)'
+                      : 'var(--line)'
+                  }
+                  strokeWidth={index % 5 === 0 ? 1.4 : 0.9}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </g>
 
           <circle
             cx={centre}
@@ -137,9 +130,14 @@ export function MatchTimer({
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference * (1 - reading.progress)}
-            // Long enough to read as a sweep, short enough that a resumed clock
-            // catches up immediately rather than crawling to where it belongs.
-            style={{ transition: 'stroke-dashoffset 400ms var(--ease), stroke 300ms linear' }}
+            style={{
+              // While running the arc steps four times a second in increments
+              // too small to see; easing on top of that only makes it lag the
+              // digits. A transition is for the jumps — a pause, a new period.
+              transition: reading.isRunning
+                ? 'stroke 300ms linear'
+                : 'stroke-dashoffset 420ms var(--ease), stroke 300ms linear',
+            }}
           />
 
           {inStoppage ? (
@@ -149,11 +147,11 @@ export function MatchTimer({
               r={radius - stroke - 3}
               fill="none"
               stroke="var(--warning)"
-              strokeWidth={Math.max(2, stroke - 3)}
+              strokeWidth={Math.max(2, stroke - 2)}
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * (radius - stroke - 3)}
-              strokeDashoffset={2 * Math.PI * (radius - stroke - 3) * (1 - overrunFraction)}
-              style={{ transition: 'stroke-dashoffset 400ms var(--ease)' }}
+              strokeDashoffset={2 * Math.PI * (radius - stroke - 3) * (1 - overrun)}
+              style={{ transition: 'stroke-dashoffset 420ms var(--ease)' }}
             />
           ) : null}
         </svg>
@@ -161,27 +159,30 @@ export function MatchTimer({
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
           <span
             className={cn(
-              'mono leading-none font-medium tabular-nums',
+              'mono flex items-baseline leading-none font-medium tabular-nums',
               digits,
               inStoppage ? 'text-warning' : 'text-primary',
+              // Paused reads as held rather than broken: the figures step back
+              // to secondary instead of greying out entirely.
+              !reading.isRunning && clock?.status === 'PAUSED' && 'text-secondary',
             )}
           >
-            {reading.display}
+            {minutes}
+            <span
+              className={cn(
+                'px-[0.06em]',
+                reading.isRunning ? 'clock-colon' : 'opacity-45',
+              )}
+            >
+              :
+            </span>
+            {seconds}
           </span>
 
           <span className={cn('eyebrow', label)}>
             {clock ? shortPeriodName(reading.period, clock.periods) : '—'}
           </span>
         </div>
-
-        {/* The running mark rides the rim rather than sitting in the middle,
-            where it would compete with the figures for the same glance. */}
-        {reading.isRunning ? (
-          <span
-            aria-hidden
-            className="live-pulse absolute top-1.5 left-1/2 size-2 -translate-x-1/2 rounded-full bg-[var(--accent-strong)]"
-          />
-        ) : null}
       </div>
 
       <p className="text-[0.8125rem] text-secondary" aria-live="polite">
@@ -197,8 +198,8 @@ export function MatchTimer({
 
 /**
  * Where the match is in its shape: one mark per period, the one being played
- * filled. Marks rather than a written "2 of 4" because it is read at a glance,
- * beside a number that is already being read carefully.
+ * filled. Marks rather than "2 of 4" because it is read at a glance, beside a
+ * number that is already being read carefully.
  */
 function PeriodPips({
   current,
@@ -223,7 +224,7 @@ function PeriodPips({
           <span
             key={period}
             className={cn(
-              'h-1 rounded-full transition-all duration-[var(--dur)]',
+              'h-1 rounded-full transition-all duration-[var(--dur)] ease-[var(--ease)]',
               period === current && status !== 'FINISHED'
                 ? 'w-7 bg-[var(--accent-strong)]'
                 : done
@@ -267,3 +268,5 @@ export function InlineClock({
     </span>
   );
 }
+
+export { useClockReading };

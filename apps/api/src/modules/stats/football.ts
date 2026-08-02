@@ -25,18 +25,25 @@ import { prisma } from '../../lib/prisma';
 export async function getFootballTournamentStats(
   tournamentId: string,
 ): Promise<FootballTournamentStatsDto> {
-  // Only finished matches count. A goal in a match still being played is on the
-  // live scoreboard already, and letting it into the leaderboard would make the
-  // table shuffle under an organizer reading it.
+  // Every match that has kicked off, not only the finished ones.
+  //
+  // The stricter rule was wrong in practice: a tournament played over one
+  // evening has nothing to show until the last whistle, and the question people
+  // ask at half-time — "who has scored?" — had no answer. The table does shuffle
+  // while a match is on, which is correct; it is a live leaderboard.
   const matches = await prisma.match.findMany({
-    where: { tournamentId, status: 'COMPLETED' },
+    where: { tournamentId, status: { in: ['LIVE', 'INNINGS_BREAK', 'COMPLETED'] } },
     select: {
       id: true,
       footballEvents: { orderBy: { seq: 'asc' } },
+      team1Id: true,
+      team2Id: true,
       matchPlayers: {
         select: {
           playerId: true,
           teamId: true,
+          // Slot 0 is the goalkeeper by definition of the formation geometry.
+          lineupSlot: true,
           player: { select: { id: true, name: true, username: true } },
         },
       },
@@ -58,8 +65,12 @@ export async function getFootballTournamentStats(
     goals: number;
     assists: number;
     ownGoals: number;
+    saves: number;
     yellowCards: number;
     redCards: number;
+    goalsConceded: number;
+    cleanSheets: number;
+    keptGoal: number;
   }
 
   const rows = new Map<string, Row>();
@@ -67,6 +78,7 @@ export async function getFootballTournamentStats(
   const totals = {
     goals: 0,
     ownGoals: 0,
+    saves: 0,
     yellowCards: 0,
     redCards: 0,
     matchesPlayed: matches.length,
@@ -94,10 +106,18 @@ export async function getFootballTournamentStats(
         goals: 0,
         assists: 0,
         ownGoals: 0,
+        saves: 0,
         yellowCards: 0,
         redCards: 0,
+        goalsConceded: 0,
+        cleanSheets: 0,
+        keptGoal: 0,
       });
     }
+
+    // Goals against are settled per match, after the log has been read, so the
+    // two keepers can be charged with what the other side scored.
+    const conceded = { [match.team1Id ?? '']: 0, [match.team2Id ?? '']: 0 };
 
     for (const event of materializeFootballEvents(
       match.footballEvents.map((event) => ({
@@ -109,6 +129,7 @@ export async function getFootballTournamentStats(
       switch (event.kind) {
         case 'GOAL':
           totals.goals += 1;
+          conceded[event.teamId] = (conceded[event.teamId] ?? 0) + 1;
           if (event.playerId) bump(rows, event.playerId, (row) => (row.goals += 1));
           if (event.assistPlayerId) {
             bump(rows, event.assistPlayerId, (row) => (row.assists += 1));
@@ -118,7 +139,13 @@ export async function getFootballTournamentStats(
         case 'OWN_GOAL':
           totals.goals += 1;
           totals.ownGoals += 1;
+          conceded[event.teamId] = (conceded[event.teamId] ?? 0) + 1;
           if (event.playerId) bump(rows, event.playerId, (row) => (row.ownGoals += 1));
+          break;
+
+        case 'SAVE':
+          totals.saves += 1;
+          if (event.playerId) bump(rows, event.playerId, (row) => (row.saves += 1));
           break;
 
         case 'YELLOW_CARD':
@@ -131,6 +158,23 @@ export async function getFootballTournamentStats(
           if (event.playerId) bump(rows, event.playerId, (row) => (row.redCards += 1));
           break;
       }
+    }
+
+    // Whoever started in goal is charged with what the *other* side scored.
+    // Attributed by position rather than by event because a goal is scored
+    // against a team: nobody records which keeper was beaten, only who scored.
+    for (const entry of match.matchPlayers) {
+      if (entry.lineupSlot !== 0) continue;
+
+      const against =
+        (entry.teamId === match.team1Id ? conceded[match.team2Id ?? ''] : conceded[match.team1Id ?? '']) ??
+        0;
+
+      bump(rows, entry.playerId, (row) => {
+        row.keptGoal += 1;
+        row.goalsConceded += against;
+        if (against === 0) row.cleanSheets += 1;
+      });
     }
   }
 
@@ -155,6 +199,10 @@ export async function getFootballTournamentStats(
         goals: row.goals,
         assists: row.assists,
         ownGoals: row.ownGoals,
+        saves: row.saves,
+        goalsConceded: row.goalsConceded,
+        cleanSheets: row.cleanSheets,
+        isGoalkeeper: row.keptGoal > 0,
         yellowCards: row.yellowCards,
         redCards: row.redCards,
         goalsPerMatch: row.matches > 0 ? round2(row.goals / row.matches) : null,
@@ -179,6 +227,7 @@ export async function getFootballTournamentStats(
     goldenBoot: best(players, (player) => player.goals),
     playmaker: best(players, (player) => player.assists),
     mostBooked: best(players, (player) => player.disciplinePoints),
+    goldenGlove: bestKeeper(players),
     totals,
   };
 }
@@ -195,6 +244,26 @@ function bump<T>(rows: Map<string, T>, playerId: string, apply: (row: T) => void
  * The leader on one measure, or null when nobody has any of it. A zero-goal
  * "golden boot" is worse than an empty card — it names somebody for nothing.
  */
+/**
+ * The golden glove: most clean sheets, then fewest goals let in.
+ *
+ * Ordered that way round rather than on goals conceded alone, because conceded
+ * rewards a keeper who has played fewer matches — and a keeper who played once
+ * and let in nothing is not having a better season than one who has kept four
+ * clean sheets out of six.
+ */
+function bestKeeper(players: FootballPlayerStatsDto[]): FootballPlayerStatsDto | null {
+  const keepers = players.filter((player) => player.isGoalkeeper);
+  if (keepers.length === 0) return null;
+
+  return keepers.reduce((leader, player) => {
+    if (player.cleanSheets !== leader.cleanSheets) {
+      return player.cleanSheets > leader.cleanSheets ? player : leader;
+    }
+    return player.goalsConceded < leader.goalsConceded ? player : leader;
+  });
+}
+
 function best(
   players: FootballPlayerStatsDto[],
   measure: (player: FootballPlayerStatsDto) => number,

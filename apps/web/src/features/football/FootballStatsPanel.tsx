@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn';
  * players on six goals are not level if one of them took nine games about it.
  */
 export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDto }) {
-  const { goldenBoot, playmaker, mostBooked, players, totals } = stats;
+  const { goldenBoot, playmaker, mostBooked, goldenGlove, players, totals } = stats;
 
   if (players.length === 0) return null;
 
@@ -43,6 +43,12 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
           tone="text-[#9b8cff]"
         />
         <AwardCard
+          label="Golden glove · clean sheets"
+          player={goldenGlove}
+          value={(player) => player.cleanSheets}
+          tone="text-success"
+        />
+        <AwardCard
           label="Most booked"
           player={mostBooked}
           value={(player) =>
@@ -52,9 +58,10 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile label="Matches played" value={totals.matchesPlayed} />
         <StatTile label="Goals scored" value={totals.goals} tone="accent" />
+        <StatTile label="Saves made" value={totals.saves} tone="success" />
         <StatTile
           label="Goals a match"
           value={totals.goalsPerMatch ?? '—'}
@@ -68,7 +75,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
       </div>
 
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-        <Table className="min-w-[48rem]">
+        <Table className="min-w-[58rem]">
           <thead>
             <tr className="border-b border-line">
               <Th align="left">Player</Th>
@@ -77,6 +84,9 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
               <Th>Assists</Th>
               <Th>G/match</Th>
               <Th>OG</Th>
+              <Th>Saves</Th>
+              <Th>Conceded</Th>
+              <Th>CS</Th>
               <Th>Yellow</Th>
               <Th>Red</Th>
             </tr>
@@ -108,6 +118,12 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
                 <Td>{player.assists || '—'}</Td>
                 <Td>{player.goalsPerMatch ?? '—'}</Td>
                 <Td>{player.ownGoals || '—'}</Td>
+                <Td>{player.saves || '—'}</Td>
+                {/* Only a keeper has a goals-against column. An outfield player
+                    showing 0 conceded would read as a clean sheet they had
+                    nothing to do with. */}
+                <Td>{player.isGoalkeeper ? player.goalsConceded : '—'}</Td>
+                <Td>{player.isGoalkeeper ? player.cleanSheets : '—'}</Td>
 
                 <td className="px-4 py-4 text-center">
                   <CardCount tone="yellow" count={player.yellowCards} />

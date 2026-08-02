@@ -565,3 +565,99 @@ input {
     transform: none !important;
   }
 }
+
+/* ── The match clock ─────────────────────────────────────────────────────── */
+
+/*
+ * The colon between the minutes and the seconds blinks once a second while the
+ * clock is running. It is the oldest running-clock affordance there is, it
+ * costs one keyframe, and it means the timer reads as live even in a still
+ * screenshot — which no amount of arc animation achieves.
+ */
+@keyframes clock-colon {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+.clock-colon {
+  animation: clock-colon 1s steps(1, end) infinite;
+}
+
+/* ── Recording an incident ───────────────────────────────────────────────── */
+
+/*
+ * The confirmation that flies over the console when a goal, card or save lands.
+ *
+ * A scorer on a touchline is not looking at the screen when they tap — they are
+ * looking at the pitch. Without a confirmation the only feedback that a goal
+ * was recorded is a number changing somewhere they are not looking, which is
+ * why the console felt inert. This rises, holds long enough to be caught in
+ * peripheral vision, and leaves.
+ *
+ * It is deliberately the one piece of theatre in the product, and it is
+ * theatre that does a job: it is the receipt.
+ */
+@keyframes incident-flash {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+.incident-flash {
+  animation: incident-flash 1.6s var(--ease) forwards;
+}
+
+/* The tally underneath ticks up as the flash lands, so the eye is drawn to the
+   number that actually changed rather than only to the announcement. */
+@keyframes score-bump {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.score-bump {
+  animation: score-bump 520ms var(--ease);
+}
+
+/* A pressed action slab settles rather than bouncing — the same 1px settle the
+   buttons use, because a console that bounces reads as a toy. */
+@keyframes slab-press {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.slab-press {
+  animation: slab-press 220ms var(--ease);
+}

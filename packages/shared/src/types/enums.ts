@@ -66,7 +66,13 @@ export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 // ─────────────────────────────────────────────────────────── football ──
 
-export const FOOTBALL_EVENT_KINDS = ['GOAL', 'OWN_GOAL', 'YELLOW_CARD', 'RED_CARD'] as const;
+export const FOOTBALL_EVENT_KINDS = [
+  'GOAL',
+  'OWN_GOAL',
+  'YELLOW_CARD',
+  'RED_CARD',
+  'SAVE',
+] as const;
 export type FootballEventKind = (typeof FOOTBALL_EVENT_KINDS)[number];
 
 export const FOOTBALL_EVENT_TYPES = ['EVENT', 'UNDO'] as const;

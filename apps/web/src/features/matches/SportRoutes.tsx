@@ -1,15 +1,31 @@
+import { Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { Sport } from '@howzat/shared';
 import { apiFetch } from '@/lib/api';
 import { ErrorText, Skeleton, SkeletonCard } from '@/components/ui/Feedback';
-import { FootballMatchPage } from '@/features/football/FootballMatchPage';
-import { FootballScoringPage } from '@/features/football/FootballScoringPage';
-import { LiveFootballPage } from '@/features/football/LiveFootballPage';
-import { LiveMatchPage } from '@/features/live/LiveMatchPage';
-import { MatchPage } from './MatchPage';
-import { ScoringPage } from './ScoringPage';
 import { useMatch } from './queries';
+
+// Each sport's screens are their own chunk. The dispatch below already knows
+// which one it needs before it renders, so the other never leaves the server.
+const FootballMatchPage = lazy(() =>
+  import('@/features/football/FootballMatchPage').then((m) => ({ default: m.FootballMatchPage })),
+);
+const FootballScoringPage = lazy(() =>
+  import('@/features/football/FootballScoringPage').then((m) => ({
+    default: m.FootballScoringPage,
+  })),
+);
+const LiveFootballPage = lazy(() =>
+  import('@/features/football/LiveFootballPage').then((m) => ({ default: m.LiveFootballPage })),
+);
+const LiveMatchPage = lazy(() =>
+  import('@/features/live/LiveMatchPage').then((m) => ({ default: m.LiveMatchPage })),
+);
+const MatchPage = lazy(() => import('./MatchPage').then((m) => ({ default: m.MatchPage })));
+const ScoringPage = lazy(() =>
+  import('./ScoringPage').then((m) => ({ default: m.ScoringPage })),
+);
 
 /*
  * Which sport's screen to draw.
@@ -35,7 +51,11 @@ export function MatchRoute() {
   if (error) return <ErrorText error={error} />;
   if (!data) return null;
 
-  return data.sport === 'FOOTBALL' ? <FootballMatchPage match={data} /> : <MatchPage />;
+  return (
+    <Suspense fallback={<SkeletonCard rows={4} />}>
+      {data.sport === 'FOOTBALL' ? <FootballMatchPage match={data} /> : <MatchPage />}
+    </Suspense>
+  );
 }
 
 export function ScoringRoute() {
@@ -46,7 +66,11 @@ export function ScoringRoute() {
   if (error) return <ErrorText error={error} />;
   if (!data) return null;
 
-  return data.sport === 'FOOTBALL' ? <FootballScoringPage /> : <ScoringPage />;
+  return (
+    <Suspense fallback={<SkeletonCard rows={6} />}>
+      {data.sport === 'FOOTBALL' ? <FootballScoringPage /> : <ScoringPage />}
+    </Suspense>
+  );
 }
 
 interface PublicMatchHeader {
@@ -71,18 +95,26 @@ export function LiveRoute() {
     staleTime: Infinity,
   });
 
-  if (isPending) {
-    return (
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-10 sm:px-8">
-        <Skeleton className="h-72" />
-        <Skeleton className="h-40" />
-      </div>
-    );
-  }
+  if (isPending) return <RouteSkeleton />;
 
-  // A slug that does not resolve is still a cricket page's job to explain —
-  // it renders the same "could not load the score" message either way.
-  if (error) return <LiveMatchPage />;
+  return (
+    <Suspense fallback={<RouteSkeleton />}>
+      {/* A slug that does not resolve is still the cricket page's job to
+          explain — it renders the same "could not load the score" message. */}
+      {!error && data?.sport === 'FOOTBALL' ? (
+        <LiveFootballPage slug={slug} />
+      ) : (
+        <LiveMatchPage />
+      )}
+    </Suspense>
+  );
+}
 
-  return data?.sport === 'FOOTBALL' ? <LiveFootballPage slug={slug} /> : <LiveMatchPage />;
+function RouteSkeleton() {
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-10 sm:px-8">
+      <Skeleton className="h-72" />
+      <Skeleton className="h-40" />
+    </div>
+  );
 }

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   FOOTBALL_EVENT_LABELS,
-  allowedCommands,
   periodName,
   type ClockCommand,
   type FootballEventKind,
@@ -21,6 +20,8 @@ import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 import { MatchTimer } from './MatchTimer';
 import { IncidentTimeline } from './IncidentTimeline';
+import { IncidentFlash, type FlashPayload } from './IncidentFlash';
+import { useMatchClock } from './useMatchClock';
 import {
   useClockCommand,
   useFootballState,
@@ -44,10 +45,7 @@ import {
  * afterwards.
  */
 
-type Pending =
-  | { kind: 'GOAL' }
-  | { kind: 'CARD' }
-  | null;
+type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | null;
 
 export function FootballScoringPage() {
   const { matchId = '' } = useParams();
@@ -57,7 +55,12 @@ export function FootballScoringPage() {
   const recordEvent = useRecordFootballEvent(matchId);
   const undoEvent = useUndoFootballEvent(matchId);
 
+  // Applies a command locally before the round trip, so the whistle and the
+  // display agree. See useMatchClock for why that was the whole problem.
+  const watch = useMatchClock(data?.clock ?? null, clockCommand.mutateAsync);
+
   const [pending, setPending] = useState<Pending>(null);
+  const [flash, setFlash] = useState<FlashPayload | null>(null);
 
   if (isPending) {
     return (
@@ -71,12 +74,9 @@ export function FootballScoringPage() {
   if (error) return <ErrorText error={error} />;
   if (!data) return null;
 
-  const { clock, snapshot, state } = data;
-  const isLastPeriod = clock ? clock.currentPeriod >= clock.periods : false;
-  const commands = clock ? allowedCommands(clock.status, isLastPeriod) : [];
-  const finished = clock?.status === 'FINISHED' || data.status === 'COMPLETED';
-
-  const canRecord = Boolean(clock) && !finished;
+  const { snapshot, state } = data;
+  const finished = watch.clock?.status === 'FINISHED' || data.status === 'COMPLETED';
+  const canRecord = Boolean(watch.clock) && !finished;
 
   async function submit(
     kind: FootballEventKind,
@@ -91,6 +91,22 @@ export function FootballScoringPage() {
       playerId,
       assistPlayerId,
     });
+
+    // Fired on success, never on the optimistic start: a receipt for something
+    // that had not landed would lie in exactly the moment it mattered.
+    const side = teamId === data!.home.team.id ? data!.home : data!.away;
+    const named =
+      [...data!.home.squad, ...data!.away.squad].find((entry) => entry.id === playerId)?.name ??
+      null;
+
+    setFlash({
+      kind,
+      teamShort: side.team.shortName,
+      teamColor: side.team.primaryColor,
+      playerName: named,
+      minuteLabel: watch.reading.minuteLabel,
+    });
+
     setPending(null);
   }
 
@@ -121,14 +137,15 @@ export function FootballScoringPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr]">
         <Card>
           <CardBody className="flex flex-col items-center gap-7 py-8">
-            <MatchTimer clock={clock} size="lg" />
+            <MatchTimer clock={watch.clock} reading={watch.reading} size="lg" />
 
             <ClockControls
-              commands={commands}
-              periods={clock?.periods ?? 0}
-              currentPeriod={clock?.currentPeriod ?? 1}
-              isPending={clockCommand.isPending}
-              onCommand={(command) => void clockCommand.mutateAsync(command)}
+              commands={watch.commands}
+              periods={watch.clock?.periods ?? 0}
+              currentPeriod={watch.clock?.currentPeriod ?? 1}
+              isRunning={watch.reading.isRunning}
+              isPending={watch.isPending}
+              onCommand={watch.run}
             />
 
             {clockCommand.error ? <ErrorText error={clockCommand.error} /> : null}
@@ -138,13 +155,20 @@ export function FootballScoringPage() {
         <div className="flex flex-col gap-5">
           {/* The two buttons. Deliberately enormous, deliberately the only
               two things on this half of the screen with any weight. */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <ActionSlab
               tone="goal"
               label="Goal"
               hint="Name the scorer"
               disabled={!canRecord || recordEvent.isPending}
               onClick={() => setPending({ kind: 'GOAL' })}
+            />
+            <ActionSlab
+              tone="save"
+              label="Save"
+              hint="Keeper kept it out"
+              disabled={!canRecord || recordEvent.isPending}
+              onClick={() => setPending({ kind: 'SAVE' })}
             />
             <ActionSlab
               tone="card"
@@ -155,7 +179,7 @@ export function FootballScoringPage() {
             />
           </div>
 
-          {!clock ? (
+          {!watch.clock ? (
             <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
               This match has not kicked off yet.{' '}
               <Link to={`/matches/${matchId}`} className="text-accent">
@@ -212,6 +236,17 @@ export function FootballScoringPage() {
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
+
+      <SaveSheet
+        open={pending?.kind === 'SAVE'}
+        home={data.home}
+        away={data.away}
+        isPending={recordEvent.isPending}
+        onClose={() => setPending(null)}
+        onSubmit={submit}
+      />
+
+      <IncidentFlash payload={flash} />
     </div>
   );
 }
@@ -301,12 +336,14 @@ function ClockControls({
   commands,
   periods,
   currentPeriod,
+  isRunning,
   isPending,
   onCommand,
 }: {
   commands: ClockCommand[];
   periods: number;
   currentPeriod: number;
+  isRunning: boolean;
   isPending: boolean;
   onCommand: (command: ClockCommand) => void;
 }) {
@@ -318,16 +355,37 @@ function ClockControls({
   const rest = commands.slice(1);
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <Button
-        size="lg"
-        fullWidth
-        isLoading={isPending}
+    <div className="flex w-full flex-col items-center gap-4">
+      {/* A transport control, not a text button. The single most-pressed thing
+          on this screen deserves a target you can hit without looking, and a
+          play/pause glyph is read faster than a word. */}
+      <button
+        type="button"
+        aria-label={COMMAND_LABELS[primary]}
+        disabled={isPending}
         onClick={() => onCommand(primary)}
-        className="max-w-xs"
+        className={cn(
+          'grid size-16 place-items-center rounded-full border-2 transition-all',
+          'duration-[var(--dur-fast)] ease-[var(--ease)] active:scale-95',
+          'disabled:pointer-events-none disabled:opacity-50',
+          isRunning
+            ? 'border-line-strong bg-raised text-primary hover:border-[var(--accent-strong)]'
+            : 'border-[var(--accent-strong)] bg-[var(--accent-strong)] text-white hover:brightness-110',
+        )}
       >
-        {COMMAND_LABELS[primary]}
-      </Button>
+        {isRunning ? (
+          <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
+            <rect x="7" y="5" width="4" height="14" rx="1" />
+            <rect x="13" y="5" width="4" height="14" rx="1" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" className="size-6 translate-x-[1px]" fill="currentColor" aria-hidden>
+            <path d="M8 5.5v13l11-6.5z" />
+          </svg>
+        )}
+      </button>
+
+      <p className="text-[0.8125rem] font-medium text-primary">{COMMAND_LABELS[primary]}</p>
 
       {rest.length > 0 ? (
         <div className="flex flex-wrap justify-center gap-2">
@@ -345,10 +403,103 @@ function ClockControls({
         </div>
       ) : null}
 
-      {periods > 1 ? (
-        <p className="eyebrow">{periodName(currentPeriod, periods)}</p>
-      ) : null}
+      {periods > 1 ? <p className="eyebrow">{periodName(currentPeriod, periods)}</p> : null}
     </div>
+  );
+}
+
+/**
+ * A save.
+ *
+ * The team picked here is the side that *kept the ball out*, not the side that
+ * shot — the same inversion an own goal has, in the other direction. The player
+ * list is filtered to the goalkeeper first because that is who made it nine
+ * times in ten, but it is not restricted to them: outfield players clear shots
+ * off the line, and a console that refused to record that would be wrong.
+ */
+function SaveSheet({
+  open,
+  home,
+  away,
+  isPending,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  home: SideData;
+  away: SideData;
+  isPending: boolean;
+  onClose: () => void;
+  onSubmit: (
+    kind: FootballEventKind,
+    teamId: string,
+    playerId: string | null,
+    assistPlayerId: string | null,
+  ) => Promise<void>;
+}) {
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+
+  function reset() {
+    setTeamId(null);
+    setPlayerId(null);
+  }
+
+  const side = teamId === home.team.id ? home : teamId === away.team.id ? away : null;
+
+  return (
+    <Sheet
+      open={open}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+      size="lg"
+      title="Save"
+      description="A shot kept out — credited to the side that defended it."
+      footer={
+        <>
+          <Button
+            disabled={!teamId}
+            isLoading={isPending}
+            onClick={() => void onSubmit('SAVE', teamId!, playerId, null).then(reset)}
+          >
+            Record save
+          </Button>
+          <Button
+            variant="quiet"
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <TeamChoice
+          home={home.team}
+          away={away.team}
+          value={teamId}
+          onChange={(next) => {
+            setTeamId(next);
+            setPlayerId(null);
+          }}
+        />
+
+        {side ? (
+          <PlayerChoice
+            label="Who saved it"
+            players={side.squad}
+            value={playerId}
+            onChange={setPlayerId}
+            allowUnknown
+          />
+        ) : null}
+      </div>
+    </Sheet>
   );
 }
 
@@ -368,24 +519,35 @@ function ActionSlab({
   disabled,
   onClick,
 }: {
-  tone: 'goal' | 'card';
+  tone: 'goal' | 'card' | 'save';
   label: string;
   hint: string;
   disabled: boolean;
   onClick: () => void;
 }) {
+  // Bumped on each press so the node re-animates; a scorer tapping twice in
+  // quick succession must feel two presses, not one.
+  const [presses, setPresses] = useState(0);
+
   return (
     <button
+      key={presses}
       type="button"
       disabled={disabled}
-      onClick={onClick}
+      onClick={() => {
+        setPresses((count) => count + 1);
+        onClick();
+      }}
       className={cn(
         'group flex min-h-[7.5rem] flex-col items-center justify-center gap-2 rounded-[var(--radius-lg)]',
         'border transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+        presses > 0 && 'slab-press',
         'active:translate-y-px disabled:pointer-events-none disabled:opacity-35',
         tone === 'goal'
           ? 'border-[var(--accent-strong)] bg-[var(--accent-strong)] text-white hover:brightness-110'
-          : 'border-line-strong bg-raised text-primary hover:border-[var(--warning)] hover:bg-warning-soft',
+          : tone === 'save'
+            ? 'border-line-strong bg-raised text-primary hover:border-[var(--success)] hover:bg-success-soft'
+            : 'border-line-strong bg-raised text-primary hover:border-[var(--warning)] hover:bg-warning-soft',
       )}
     >
       {/* Drawn, not an emoji: these are the two largest marks on the console
@@ -393,16 +555,20 @@ function ActionSlab({
           the label colour underneath it, and reads as decoration stuck on. */}
       {tone === 'goal' ? (
         <SportMark sport="FOOTBALL" className="size-7" />
-      ) : (
+      ) : tone === 'save' ? (
         <span
           aria-hidden
-          className="h-7 w-5 rounded-[2px] bg-[#e0b23c] ring-1 ring-black/25"
-        />
+          className="grid size-7 place-items-center rounded-full border-2 border-[var(--success)]"
+        >
+          <span className="size-2 rounded-full bg-[var(--success)]" />
+        </span>
+      ) : (
+        <span aria-hidden className="h-7 w-5 rounded-[2px] bg-[#e0b23c] ring-1 ring-black/25" />
       )}
-      <span className="text-lg font-semibold tracking-[0.01em]">{label}</span>
+      <span className="text-base font-semibold tracking-[0.01em] sm:text-lg">{label}</span>
       <span
         className={cn(
-          'text-[0.75rem]',
+          'px-1 text-center text-[0.6875rem] leading-tight',
           tone === 'goal' ? 'text-white/75' : 'text-muted',
         )}
       >

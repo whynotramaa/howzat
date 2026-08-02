@@ -103,6 +103,7 @@ export interface LineupPlayer extends PlayerRef {
   x: number;
   y: number;
   goals: number;
+  saves: number;
   yellowCards: number;
   redCards: number;
   /** True once sent off — the pitch graphic greys them out. */
@@ -140,10 +141,13 @@ export interface FootballIncident {
 export interface FootballTeamState {
   teamId: string;
   goals: number;
+  /** Shots this side's goalkeeper kept out. */
+  saves: number;
   yellowCards: number;
   redCards: number;
   /** Player id → their tally, for the pitch graphic and the team sheet. */
   scorers: Record<string, number>;
+  savesBy: Record<string, number>;
   cards: Record<string, { yellow: number; red: number }>;
   /** Sent off, either straight red or a second yellow. */
   sentOff: string[];
@@ -174,6 +178,7 @@ export interface FootballSnapshot {
     short: string;
     color: string;
     goals: number;
+    saves: number;
     yellowCards: number;
     redCards: number;
   };
@@ -183,6 +188,7 @@ export interface FootballSnapshot {
     short: string;
     color: string;
     goals: number;
+    saves: number;
     yellowCards: number;
     redCards: number;
   };

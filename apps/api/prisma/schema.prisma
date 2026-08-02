@@ -124,6 +124,10 @@ enum FootballEventKind {
   OWN_GOAL
   YELLOW_CARD
   RED_CARD
+  /// A shot the goalkeeper kept out. The only event here credited to the side
+  /// that did *not* have the ball, which is why `teamId` on a SAVE is the
+  /// keeper's team rather than the attacking one.
+  SAVE
 }
 
 /// Mirrors BallEventType. The football log is append-only for the same reason

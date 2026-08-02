@@ -1,4 +1,8 @@
-import type { FootballEventKind, FootballIncident } from '@howzat/shared';
+import {
+  FOOTBALL_EVENT_LABELS,
+  type FootballEventKind,
+  type FootballIncident,
+} from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
 /*
@@ -97,14 +101,25 @@ function Mark({ kind }: { kind: FootballEventKind }) {
     );
   }
 
+  // A save is a shot kept out, so it is drawn as an outlined ring against the
+  // goal's filled disc — the two read as opposites at a glance.
+  if (kind === 'SAVE') {
+    return (
+      <span
+        aria-hidden
+        className="grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] border-[var(--success)]"
+      >
+        <span className="size-1 rounded-full bg-[var(--success)]" />
+      </span>
+    );
+  }
+
   return (
     <span
       aria-hidden
       className={cn(
         'grid size-4 shrink-0 place-items-center rounded-full',
-        kind === 'OWN_GOAL'
-          ? 'bg-line-strong'
-          : 'bg-[var(--accent-strong)]',
+        kind === 'OWN_GOAL' ? 'bg-line-strong' : 'bg-[var(--accent-strong)]',
       )}
     >
       <span className="size-1.5 rounded-full bg-white/85" />
@@ -113,14 +128,5 @@ function Mark({ kind }: { kind: FootballEventKind }) {
 }
 
 function label(kind: FootballEventKind): string {
-  switch (kind) {
-    case 'GOAL':
-      return 'Goal';
-    case 'OWN_GOAL':
-      return 'Own goal';
-    case 'YELLOW_CARD':
-      return 'Yellow card';
-    case 'RED_CARD':
-      return 'Red card';
-  }
+  return FOOTBALL_EVENT_LABELS[kind];
 }

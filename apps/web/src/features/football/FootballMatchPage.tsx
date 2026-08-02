@@ -13,6 +13,7 @@ import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { cn } from '@/lib/cn';
+import { MatchScorersCard } from '@/features/matches/MatchScorersCard';
 import { Bench, Pitch } from './Pitch';
 import { PeriodDesigner } from './PeriodDesigner';
 import {
@@ -214,6 +215,14 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
           />
         ) : null}
       </div>
+
+      {/* Per-match, not per-tournament: four fixtures on a Sunday are four
+          different people holding four phones. */}
+      <MatchScorersCard
+        tournamentId={match.tournamentId}
+        matchId={match.id}
+        scorers={match.scorers}
+      />
 
       {saveLineups.error ? <ErrorText error={saveLineups.error} /> : null}
       {kickOff.error ? <ErrorText error={kickOff.error} /> : null}
@@ -555,6 +564,7 @@ function previewLineup(
           x: 0,
           y: 0,
           goals: 0,
+          saves: 0,
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,
@@ -576,6 +586,7 @@ function previewLineup(
           x: spot.x,
           y: spot.y,
           goals: 0,
+          saves: 0,
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,

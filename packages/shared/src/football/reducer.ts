@@ -54,7 +54,9 @@ function emptyTeamState(teamId: string): FootballTeamState {
     goals: 0,
     yellowCards: 0,
     redCards: 0,
+    saves: 0,
     scorers: {},
+    savesBy: {},
     cards: {},
     sentOff: [],
   };
@@ -83,6 +85,17 @@ export function buildFootballState(
         // than one that omits an own goal.
         if (event.kind === 'GOAL' && event.playerId) {
           side.scorers[event.playerId] = (side.scorers[event.playerId] ?? 0) + 1;
+        }
+        break;
+      }
+
+      case 'SAVE': {
+        // Credited to the defending side — the one that did *not* have the
+        // ball. That inversion is why a save carries its own teamId rather
+        // than being derived from whoever was attacking.
+        side.saves += 1;
+        if (event.playerId) {
+          side.savesBy[event.playerId] = (side.savesBy[event.playerId] ?? 0) + 1;
         }
         break;
       }
@@ -169,6 +182,7 @@ export const FOOTBALL_EVENT_LABELS: Record<FootballEventKind, string> = {
   OWN_GOAL: 'Own goal',
   YELLOW_CARD: 'Yellow card',
   RED_CARD: 'Red card',
+  SAVE: 'Save',
 };
 
 /**
