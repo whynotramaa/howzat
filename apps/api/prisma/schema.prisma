@@ -128,6 +128,9 @@ enum FootballEventKind {
   /// that did *not* have the ball, which is why `teamId` on a SAVE is the
   /// keeper's team rather than the attacking one.
   SAVE
+  /// A change: `playerId` comes on, `playerOffId` goes off. The only kind that
+  /// names two people, and the only one that changes who is on the pitch.
+  SUBSTITUTION
 }
 
 /// Mirrors BallEventType. The football log is append-only for the same reason
@@ -365,6 +368,7 @@ model Player {
 
   goalsScored  FootballEvent[] @relation("FootballScorer")
   assists      FootballEvent[] @relation("FootballAssist")
+  subbedOff    FootballEvent[] @relation("FootballSubbedOff")
 
   /// One account cannot occupy two slots in the same squad.
   @@unique([teamId, userId])
@@ -633,8 +637,16 @@ model FootballEvent {
   /// this cannot be inferred from the player.
   teamId String
   /// Null when nobody could say who it was, which at this level is common.
+  /// On a SUBSTITUTION this is the player coming *on*.
   playerId       String?
   assistPlayerId String?
+  /// SUBSTITUTION only: the player coming off.
+  ///
+  /// A column of its own rather than borrowing assistPlayerId. The two mean
+  /// entirely different things, and a field called "assist" holding the player
+  /// who was hooked at 60 minutes is the kind of saving that costs an hour to
+  /// understand a season later.
+  playerOffId    String?
 
   /// Elapsed minute, 1-indexed, and the period it fell in.
   minute Int
@@ -652,6 +664,7 @@ model FootballEvent {
   team           Team           @relation("FootballEventTeam", fields: [teamId], references: [id])
   player         Player?        @relation("FootballScorer", fields: [playerId], references: [id])
   assistPlayer   Player?        @relation("FootballAssist", fields: [assistPlayerId], references: [id])
+  playerOff      Player?        @relation("FootballSubbedOff", fields: [playerOffId], references: [id])
   author         User           @relation(fields: [createdBy], references: [id])
 
   @@unique([matchId, seq])

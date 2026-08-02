@@ -148,14 +148,16 @@ function Shirt({
         selected && 'z-20 scale-110',
       )}
     >
+      {/* Keyed on the player, not the slot: when a change puts somebody new in
+          this position the node remounts and plays the swap, while the position
+          itself stays exactly where it was. */}
       <span
+        key={player.id}
         className={cn(
           'mono relative grid size-7 place-items-center rounded-full text-[0.5625rem] font-semibold sm:size-9 sm:text-[0.6875rem]',
           'text-white ring-1 ring-black/20 ring-inset',
+          player.cameOnAt ? 'shirt-swap' : null,
           selected && 'ring-2 ring-[var(--accent-strong)] ring-offset-1',
-          // A sent-off player stays on the graphic rather than disappearing:
-          // the team sheet is a record of who started, and a shirt that
-          // vanishes takes the reason with it.
           player.isSentOff && 'opacity-40 grayscale',
         )}
         style={{ background: color }}
@@ -163,6 +165,7 @@ function Shirt({
         {number ?? initials(player.name)}
 
         {player.goals > 0 ? <Badge tone="accent">{player.goals}</Badge> : null}
+        {player.cameOnAt ? <SubArrow /> : null}
         {player.redCards > 0 ? (
           <CardMark tone="red" />
         ) : player.yellowCards > 0 ? (
@@ -180,6 +183,20 @@ function Shirt({
         {surname(player.name)}
       </span>
     </Tag>
+  );
+}
+
+/** Came on. Sits opposite the goals badge so the two never collide. */
+function SubArrow() {
+  return (
+    <span
+      aria-label="Substitute"
+      className="sub-arrows absolute -top-1 -left-1 grid size-3.5 place-items-center rounded-full bg-[var(--success)] ring-1 ring-white/40"
+    >
+      <svg viewBox="0 0 10 10" className="size-2.5" fill="none" stroke="white" strokeWidth={1.6}>
+        <path d="M2 7h6M6 5l2 2-2 2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
   );
 }
 
@@ -277,7 +294,9 @@ export function Bench({
           key={player.id}
           className={cn(
             'flex items-center gap-1.5 text-[0.75rem]',
-            player.isSentOff ? 'text-muted line-through' : 'text-secondary',
+            player.wentOffAt && 'bench-arrive',
+            player.isSentOff || player.wentOffAt ? 'text-muted' : 'text-secondary',
+            player.isSentOff && 'line-through',
           )}
         >
           <FootballAvatar
@@ -287,6 +306,10 @@ export function Bench({
             size="xs"
           />
           {player.name}
+          {/* Why they are not on the pitch, in the words a team sheet uses. */}
+          {player.wentOffAt ? (
+            <span className="mono text-[0.625rem] text-muted">↓{player.wentOffAt}</span>
+          ) : null}
           {player.goals > 0 ? (
             <span className="mono text-accent">
               {player.goals > 1 ? `${player.goals}⚬` : '⚬'}

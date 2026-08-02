@@ -2,6 +2,7 @@ import {
   buildFootballState,
   defaultFormation,
   formationSpots,
+  resolveOnPitch,
   type FootballContext,
   type FootballEvent,
   type FootballMatchState,
@@ -90,6 +91,7 @@ export function toFootballEvent(row: {
   teamId: string;
   playerId: string | null;
   assistPlayerId: string | null;
+  playerOffId: string | null;
   minute: number;
   period: number;
   stoppage: number;
@@ -107,6 +109,7 @@ export function toFootballEvent(row: {
     teamId: row.teamId,
     playerId: row.playerId,
     assistPlayerId: row.assistPlayerId,
+    playerOffId: row.playerOffId,
     minute: row.minute,
     period: row.period,
     stoppage: row.stoppage,
@@ -188,12 +191,28 @@ export function buildLineup(
   const side = isHome ? state.home : state.away;
   const spots = formationSpots(formation, match.tournament.playersPerTeam);
 
-  const toLineupPlayer = (
-    entry: (typeof entries)[number],
-    slot: number | null,
-  ): LineupPlayer => {
+  // Who is standing where *now* — the named XI with every change applied, not
+  // the sheet as it was at kick-off.
+  const onPitch = resolveOnPitch(
+    entries
+      .filter((entry) => entry.lineupSlot !== null)
+      .map((entry) => ({ playerId: entry.playerId, slot: entry.lineupSlot! })),
+    side,
+  );
+
+  const slotOf = new Map<string, number>();
+  for (const [slot, playerId] of onPitch) slotOf.set(playerId, slot);
+
+  const changeFor = (playerId: string) => ({
+    on: side.substitutions.find((change) => change.onId === playerId)?.minuteLabel ?? null,
+    off: side.substitutions.find((change) => change.offId === playerId)?.minuteLabel ?? null,
+  });
+
+  const toLineupPlayer = (entry: (typeof entries)[number]): LineupPlayer => {
+    const slot = slotOf.get(entry.playerId) ?? null;
     const spot = slot === null ? null : (spots.find((candidate) => candidate.slot === slot) ?? null);
     const cards = side.cards[entry.player.id] ?? { yellow: 0, red: 0 };
+    const change = changeFor(entry.playerId);
 
     return {
       id: entry.player.id,
@@ -201,9 +220,9 @@ export function buildLineup(
       slot,
       shirtNumber: entry.shirtNumber,
       isCaptain: entry.isCaptain,
-      // A substitute has no place on the grass. The coordinates are still
-      // present rather than optional so nothing downstream has to branch;
-      // they simply never get read, because subs are not rendered on the pitch.
+      // Anyone not on the pitch has no place on the grass. The coordinates are
+      // still present rather than optional so nothing downstream has to branch;
+      // they simply never get read.
       x: spot?.x ?? 0,
       y: spot?.y ?? 0,
       goals: side.scorers[entry.player.id] ?? 0,
@@ -211,25 +230,24 @@ export function buildLineup(
       yellowCards: cards.yellow,
       redCards: cards.red,
       isSentOff: side.sentOff.includes(entry.player.id),
+      isOnPitch: slot !== null,
+      cameOnAt: change.on,
+      wentOffAt: change.off,
     };
   };
 
-  // Null lineupSlot is the bench — that is the whole distinction, and it is why
-  // there is no isStarter column that could contradict it.
-  const starters = entries
-    .filter((entry) => entry.lineupSlot !== null)
-    .map((entry) => toLineupPlayer(entry, entry.lineupSlot))
-    .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
-
-  const substitutes = entries
-    .filter((entry) => entry.lineupSlot === null)
-    .map((entry) => toLineupPlayer(entry, null));
+  const all = entries.map(toLineupPlayer);
 
   return {
     team: toTeamRefFrom(team),
     formation,
-    players: starters,
-    substitutes,
+    // Membership of these two lists is now "playing" versus "not playing",
+    // rather than "started" versus "benched". A substitute who came on belongs
+    // on the pitch, and the player they replaced belongs beneath it.
+    players: all
+      .filter((player) => player.isOnPitch)
+      .sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0)),
+    substitutes: all.filter((player) => !player.isOnPitch),
   };
 }
 

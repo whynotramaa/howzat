@@ -59,6 +59,9 @@ function emptyTeamState(teamId: string): FootballTeamState {
     savesBy: {},
     cards: {},
     sentOff: [],
+    substitutions: [],
+    subbedOn: [],
+    subbedOff: [],
   };
 }
 
@@ -85,6 +88,24 @@ export function buildFootballState(
         // than one that omits an own goal.
         if (event.kind === 'GOAL' && event.playerId) {
           side.scorers[event.playerId] = (side.scorers[event.playerId] ?? 0) + 1;
+        }
+        break;
+      }
+
+      case 'SUBSTITUTION': {
+        // The one kind that changes who is playing. Recorded on the side making
+        // the change; `playerId` is coming on, `playerOffId` is going off.
+        if (event.playerId && event.playerOffId) {
+          side.substitutions.push({
+            onId: event.playerId,
+            offId: event.playerOffId,
+            minute: event.minute,
+            minuteLabel: formatMinute(event, context.periodMinutes),
+          });
+          if (!side.subbedOn.includes(event.playerId)) side.subbedOn.push(event.playerId);
+          if (!side.subbedOff.includes(event.playerOffId)) {
+            side.subbedOff.push(event.playerOffId);
+          }
         }
         break;
       }
@@ -151,6 +172,10 @@ function toIncident(event: FootballEvent, context: FootballContext): FootballInc
     assistPlayerName: event.assistPlayerId
       ? (context.players[event.assistPlayerId]?.name ?? null)
       : null,
+    playerOffId: event.playerOffId,
+    playerOffName: event.playerOffId
+      ? (context.players[event.playerOffId]?.name ?? null)
+      : null,
     minute: event.minute,
     period: event.period,
     stoppage: event.stoppage,
@@ -172,6 +197,48 @@ export function formatMinute(
   return `${event.minute}'`;
 }
 
+/**
+ * Who is standing on the pitch for one side, by the slot they occupy.
+ *
+ * Starters are placed first, then each substitution in order moves the incoming
+ * player into the slot the outgoing one held. Applying them in sequence rather
+ * than as a set is what makes a double change through the same position resolve
+ * correctly — the second sub replaces whoever the first one brought on.
+ *
+ * A player sent off leaves their slot empty. That is the point: a side down to
+ * ten should look like a side down to ten.
+ */
+export function resolveOnPitch(
+  starters: Array<{ playerId: string; slot: number }>,
+  team: FootballTeamState,
+): Map<number, string> {
+  const bySlot = new Map<number, string>();
+  for (const starter of starters) bySlot.set(starter.slot, starter.playerId);
+
+  const slotOf = (playerId: string): number | null => {
+    for (const [slot, occupant] of bySlot) {
+      if (occupant === playerId) return slot;
+    }
+    return null;
+  };
+
+  for (const change of team.substitutions) {
+    const slot = slotOf(change.offId);
+    // A change naming somebody who is not on the pitch cannot be honoured
+    // without inventing a position for them, so it is dropped rather than
+    // guessed at. The server refuses these; this is the belt to that brace.
+    if (slot === null) continue;
+    bySlot.set(slot, change.onId);
+  }
+
+  for (const playerId of team.sentOff) {
+    const slot = slotOf(playerId);
+    if (slot !== null) bySlot.delete(slot);
+  }
+
+  return bySlot;
+}
+
 /** Whether an event kind is a goal in either direction. */
 export function isGoalKind(kind: FootballEventKind): boolean {
   return kind === 'GOAL' || kind === 'OWN_GOAL';
@@ -183,6 +250,7 @@ export const FOOTBALL_EVENT_LABELS: Record<FootballEventKind, string> = {
   YELLOW_CARD: 'Yellow card',
   RED_CARD: 'Red card',
   SAVE: 'Save',
+  SUBSTITUTION: 'Substitution',
 };
 
 /**

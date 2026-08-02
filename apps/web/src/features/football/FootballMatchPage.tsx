@@ -568,6 +568,11 @@ function previewLineup(
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,
+          // Nothing has happened yet: this is the sheet as it will be named,
+          // not the pitch as it will look at 62 minutes.
+          isOnPitch: false,
+          cameOnAt: null,
+          wentOffAt: null,
         },
       ];
     }),
@@ -590,6 +595,11 @@ function previewLineup(
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,
+          // Nothing has happened yet: this is the sheet as it will be named,
+          // not the pitch as it will look at 62 minutes.
+          isOnPitch: false,
+          cameOnAt: null,
+          wentOffAt: null,
         },
       ];
     }),

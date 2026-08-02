@@ -72,6 +72,7 @@ export const FOOTBALL_EVENT_KINDS = [
   'YELLOW_CARD',
   'RED_CARD',
   'SAVE',
+  'SUBSTITUTION',
 ] as const;
 export type FootballEventKind = (typeof FOOTBALL_EVENT_KINDS)[number];
 

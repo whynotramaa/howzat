@@ -104,13 +104,29 @@ export type KickOffInput = z.infer<typeof kickOffSchema>;
  * clock, because a client that supplied its own could put a goal in a minute
  * the match never reached.
  */
-export const footballEventSchema = z.object({
-  clientEventId: z.string().uuid('clientEventId must be a UUID'),
-  kind: z.enum(FOOTBALL_EVENT_KINDS),
-  teamId: idSchema,
-  playerId: idSchema.nullable().default(null),
-  assistPlayerId: idSchema.nullable().default(null),
-});
+export const footballEventSchema = z
+  .object({
+    clientEventId: z.string().uuid('clientEventId must be a UUID'),
+    kind: z.enum(FOOTBALL_EVENT_KINDS),
+    teamId: idSchema,
+    /** On a substitution, the player coming *on*. */
+    playerId: idSchema.nullable().default(null),
+    assistPlayerId: idSchema.nullable().default(null),
+    /** Substitution only: the player coming off. */
+    playerOffId: idSchema.nullable().default(null),
+  })
+  .refine(
+    // Every other incident tolerates "nobody could say who" — a substitution
+    // cannot, because it is a statement about two specific people and there is
+    // nothing to record without both of them.
+    (input) =>
+      input.kind !== 'SUBSTITUTION' || (Boolean(input.playerId) && Boolean(input.playerOffId)),
+    { message: 'Name both the player coming on and the player going off', path: ['playerOffId'] },
+  )
+  .refine((input) => !input.playerOffId || input.playerOffId !== input.playerId, {
+    message: 'A player cannot replace themselves',
+    path: ['playerOffId'],
+  });
 export type FootballEventRequestInput = z.infer<typeof footballEventSchema>;
 
 /** An undo removes one earlier incident; the original is never deleted. */

@@ -234,6 +234,7 @@ footballRouter.get(
       orderBy: { seq: 'asc' },
       include: {
         player: { select: { name: true } },
+        playerOff: { select: { name: true } },
         team: { select: { shortName: true } },
         author: { select: { name: true } },
       },
@@ -248,6 +249,7 @@ footballRouter.get(
         kind: event.kind,
         team: event.team.shortName,
         player: event.player?.name ?? null,
+        playerOff: event.playerOff?.name ?? null,
         minute: event.minute,
         period: event.period,
         stoppage: event.stoppage,

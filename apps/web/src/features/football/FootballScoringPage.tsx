@@ -6,6 +6,7 @@ import {
   type ClockCommand,
   type FootballEventKind,
   type PlayerRef,
+  type TeamLineup,
   type TeamRef,
 } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
@@ -45,7 +46,7 @@ import {
  * afterwards.
  */
 
-type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | null;
+type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | { kind: 'SUB' } | null;
 
 export function FootballScoringPage() {
   const { matchId = '' } = useParams();
@@ -83,6 +84,7 @@ export function FootballScoringPage() {
     teamId: string,
     playerId: string | null,
     assistPlayerId: string | null,
+    playerOffId: string | null = null,
   ) {
     await recordEvent.mutateAsync({
       clientEventId: crypto.randomUUID(),
@@ -90,6 +92,7 @@ export function FootballScoringPage() {
       teamId,
       playerId,
       assistPlayerId,
+      playerOffId,
     });
 
     // Fired on success, never on the optimistic start: a receipt for something
@@ -179,6 +182,26 @@ export function FootballScoringPage() {
             />
           </div>
 
+          {/* Set apart from the three above: a substitution is not an incident
+              in the match so much as a change to who is playing it. */}
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            disabled={!canRecord || recordEvent.isPending}
+            onClick={() => setPending({ kind: 'SUB' })}
+          >
+            <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" aria-hidden>
+              <path
+                d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Make a substitution
+          </Button>
+
           {!watch.clock ? (
             <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
               This match has not kicked off yet.{' '}
@@ -241,6 +264,16 @@ export function FootballScoringPage() {
         open={pending?.kind === 'SAVE'}
         home={data.home}
         away={data.away}
+        isPending={recordEvent.isPending}
+        onClose={() => setPending(null)}
+        onSubmit={submit}
+      />
+
+      <SubstitutionSheet
+        open={pending?.kind === 'SUB'}
+        home={data.home}
+        away={data.away}
+        lineups={snapshot?.lineups ?? { home: null, away: null }}
         isPending={recordEvent.isPending}
         onClose={() => setPending(null)}
         onSubmit={submit}
@@ -417,6 +450,132 @@ function ClockControls({
  * times in ten, but it is not restricted to them: outfield players clear shots
  * off the line, and a console that refused to record that would be wrong.
  */
+/**
+ * A change.
+ *
+ * Both lists are drawn from the *current* pitch rather than from the team sheet
+ * as it was named — off can only be somebody playing, on can only be somebody
+ * who is not and has not already been hooked. Doing that filtering here means
+ * the illegal combinations are not merely refused, they are unofferable, and
+ * the server's rules only ever have to catch a stale tab.
+ */
+function SubstitutionSheet({
+  open,
+  home,
+  away,
+  lineups,
+  isPending,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  home: SideData;
+  away: SideData;
+  lineups: { home: TeamLineup | null; away: TeamLineup | null };
+  isPending: boolean;
+  onClose: () => void;
+  onSubmit: (
+    kind: FootballEventKind,
+    teamId: string,
+    playerId: string | null,
+    assistPlayerId: string | null,
+    playerOffId?: string | null,
+  ) => Promise<void>;
+}) {
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [offId, setOffId] = useState<string | null>(null);
+  const [onId, setOnId] = useState<string | null>(null);
+
+  function reset() {
+    setTeamId(null);
+    setOffId(null);
+    setOnId(null);
+  }
+
+  const isHome = teamId === home.team.id;
+  const lineup = teamId === null ? null : isHome ? lineups.home : lineups.away;
+
+  // On the pitch, minus anyone sent off — you cannot replace a red card.
+  const canComeOff = (lineup?.players ?? []).filter((player) => !player.isSentOff);
+  // On the bench and not already used. Football has no re-entry.
+  const canComeOn = (lineup?.substitutes ?? []).filter(
+    (player) => !player.wentOffAt && !player.isSentOff,
+  );
+
+  const ready = Boolean(teamId && offId && onId);
+
+  return (
+    <Sheet
+      open={open}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
+      size="lg"
+      title="Substitution"
+      description="Who is coming off, and who is taking their place."
+      footer={
+        <>
+          <Button
+            disabled={!ready}
+            isLoading={isPending}
+            onClick={() =>
+              void onSubmit('SUBSTITUTION', teamId!, onId, null, offId).then(reset)
+            }
+          >
+            Make the change
+          </Button>
+          <Button
+            variant="quiet"
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <TeamChoice
+          home={home.team}
+          away={away.team}
+          value={teamId}
+          onChange={(next) => {
+            setTeamId(next);
+            setOffId(null);
+            setOnId(null);
+          }}
+        />
+
+        {teamId ? (
+          canComeOn.length === 0 ? (
+            <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
+              No substitutes left on the bench for this side.
+            </p>
+          ) : (
+            <>
+              <PlayerChoice
+                label="Coming off"
+                players={canComeOff}
+                value={offId}
+                onChange={setOffId}
+              />
+              <PlayerChoice
+                label="Coming on"
+                players={canComeOn}
+                value={onId}
+                onChange={setOnId}
+              />
+            </>
+          )
+        ) : null}
+      </div>
+    </Sheet>
+  );
+}
+
 function SaveSheet({
   open,
   home,

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildFootballState, footballResultText, materializeFootballEvents } from './reducer';
+import {
+  buildFootballState,
+  footballResultText,
+  materializeFootballEvents,
+  resolveOnPitch,
+} from './reducer';
 import type { FootballContext } from './reducer';
 import type { FootballEvent } from '../types/football';
 import type { FootballEventKind } from '../types/enums';
@@ -12,6 +17,7 @@ const context: FootballContext = {
     p1: { id: 'p1', name: 'Sunil' },
     p2: { id: 'p2', name: 'Ravi' },
     p3: { id: 'p3', name: 'Imran' },
+    p4: { id: 'p4', name: 'Arun' },
   },
   periodMinutes: 45,
 };
@@ -36,6 +42,7 @@ function event(
     teamId,
     playerId,
     assistPlayerId: null,
+    playerOffId: null,
     minute: seq * 5,
     period: 1,
     stoppage: 0,
@@ -143,5 +150,79 @@ describe('footballResultText', () => {
       { name: 'United', goals: 2 },
     );
     expect(result).toEqual({ text: 'Match drawn 2–2', winner: null });
+  });
+});
+
+describe('substitutions', () => {
+  const starters = [
+    { playerId: 'p1', slot: 0 },
+    { playerId: 'p2', slot: 1 },
+  ];
+
+  function sub(onId: string, offId: string, teamId = 'home'): FootballEvent {
+    return event('SUBSTITUTION', teamId, onId, { playerOffId: offId });
+  }
+
+  it('records who came on and who went off', () => {
+    const state = buildFootballState(context, [sub('p3', 'p2')]);
+
+    expect(state.home.subbedOn).toEqual(['p3']);
+    expect(state.home.subbedOff).toEqual(['p2']);
+    expect(state.home.substitutions).toHaveLength(1);
+  });
+
+  it('puts the incoming player in the outgoing player’s position', () => {
+    const state = buildFootballState(context, [sub('p3', 'p2')]);
+    const onPitch = resolveOnPitch(starters, state.home);
+
+    expect(onPitch.get(1)).toBe('p3');
+    expect(onPitch.get(0)).toBe('p1');
+    expect([...onPitch.values()]).not.toContain('p2');
+  });
+
+  it('resolves a second change through the same position', () => {
+    // p2 off for p3, then p3 off for p4 — the shirt must end on p4, not p3.
+    const state = buildFootballState(context, [sub('p3', 'p2'), sub('p4', 'p3')]);
+    const onPitch = resolveOnPitch(starters, state.home);
+
+    expect(onPitch.get(1)).toBe('p4');
+  });
+
+  it('leaves the position empty when a player is sent off', () => {
+    const state = buildFootballState(context, [event('RED_CARD', 'home', 'p1')]);
+    const onPitch = resolveOnPitch(starters, state.home);
+
+    expect(onPitch.has(0)).toBe(false);
+    expect(onPitch.size).toBe(1);
+  });
+
+  it('drops a change naming somebody who is not on the pitch', () => {
+    // Rather than inventing a position for them. The server refuses these;
+    // this is the belt to that brace.
+    const state = buildFootballState(context, [sub('p4', 'nobody')]);
+    const onPitch = resolveOnPitch(starters, state.home);
+
+    expect([...onPitch.values()]).toEqual(['p1', 'p2']);
+  });
+
+  it('is undone like anything else in the log', () => {
+    const change = sub('p3', 'p2');
+    const undo: FootballEvent = {
+      ...event('SUBSTITUTION', 'home', null),
+      eventType: 'UNDO',
+      supersedesEventId: change.id,
+    };
+
+    const state = buildFootballState(context, [change, undo]);
+
+    expect(state.home.substitutions).toHaveLength(0);
+    expect(resolveOnPitch(starters, state.home).get(1)).toBe('p2');
+  });
+
+  it('names both players in the timeline', () => {
+    const state = buildFootballState(context, [sub('p3', 'p1')]);
+
+    expect(state.incidents[0]?.playerName).toBe('Imran');
+    expect(state.incidents[0]?.playerOffName).toBe('Sunil');
   });
 });

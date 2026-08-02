@@ -1,6 +1,7 @@
 import {
   buildFootballState,
   materializeFootballEvents,
+  resolveOnPitch,
   type FootballEventRequestInput,
   type FootballSnapshot,
 } from '@howzat/shared';
@@ -91,8 +92,8 @@ export async function recordFootballEvent(
     // A named player must be on one of the two team sheets. Which side they
     // are on is deliberately not checked against `teamId`: an own goal is
     // credited to the opposition, and that is the whole point of the field.
-    if (input.playerId || input.assistPlayerId) {
-      const named = [input.playerId, input.assistPlayerId].filter(
+    if (input.playerId || input.assistPlayerId || input.playerOffId) {
+      const named = [input.playerId, input.assistPlayerId, input.playerOffId].filter(
         (id): id is string => id !== null,
       );
       const onTeamSheet = new Set(match.matchPlayers.map((entry) => entry.playerId));
@@ -112,6 +113,12 @@ export async function recordFootballEvent(
       throw unprocessable('ASSIST_NOT_APPLICABLE', 'Only a goal can carry an assist');
     }
 
+    if (input.kind === 'SUBSTITUTION') {
+      await assertSubstitutionIsLegal(matchId, input.teamId, input.playerId!, input.playerOffId!);
+    } else if (input.playerOffId) {
+      throw unprocessable('SUB_NOT_APPLICABLE', 'Only a substitution names a player coming off');
+    }
+
     const reading = clockReadingFor(toClockDto(match.clock));
     const seq = await nextSeq(matchId);
 
@@ -125,6 +132,7 @@ export async function recordFootballEvent(
       teamId: input.teamId,
       playerId: input.playerId,
       assistPlayerId: input.assistPlayerId,
+      playerOffId: input.playerOffId,
       minute: reading.minute,
       period: reading.period,
       stoppage: reading.stoppage,
@@ -200,6 +208,7 @@ export async function undoFootballEvent(
       teamId: target.teamId,
       playerId: target.playerId,
       assistPlayerId: target.assistPlayerId,
+      playerOffId: target.playerOffId,
       minute: target.minute,
       period: target.period,
       stoppage: target.stoppage,
@@ -217,6 +226,62 @@ export async function undoFootballEvent(
 
     return { snapshot, duplicate: false, seq };
   });
+}
+
+/**
+ * The rules of a change, checked against the state the log actually produces
+ * rather than against the team sheet as it was named.
+ *
+ * Football has no re-entry: once a player is off, they are off. That single
+ * rule is what makes the other two checks necessary rather than paranoid — a
+ * console that let you bring back somebody already hooked would produce a
+ * pitch with twelve players on it, and no later correction could tell which of
+ * the two appearances was the mistake.
+ */
+async function assertSubstitutionIsLegal(
+  matchId: string,
+  teamId: string,
+  onId: string,
+  offId: string,
+): Promise<void> {
+  const match = await loadFootballMatch(matchId);
+  const events = await loadFootballEvents(matchId);
+  const state = buildFootballState(footballContextFor(match), events);
+
+  const side = teamId === match.team1!.id ? state.home : state.away;
+
+  const starters = match.matchPlayers
+    .filter((entry) => entry.teamId === teamId && entry.lineupSlot !== null)
+    .map((entry) => ({ playerId: entry.playerId, slot: entry.lineupSlot! }));
+
+  const onPitch = new Set(resolveOnPitch(starters, side).values());
+
+  const belongsToSide = match.matchPlayers.some(
+    (entry) => entry.teamId === teamId && (entry.playerId === onId || entry.playerId === offId),
+  );
+
+  if (!belongsToSide) {
+    throw unprocessable('WRONG_TEAM', 'Both players must be on that side of the team sheet');
+  }
+
+  if (!onPitch.has(offId)) {
+    throw unprocessable(
+      'NOT_ON_PITCH',
+      side.subbedOff.includes(offId)
+        ? 'That player has already been substituted'
+        : side.sentOff.includes(offId)
+          ? 'That player has been sent off — a side that goes down to ten plays on'
+          : 'That player is not on the pitch',
+    );
+  }
+
+  if (onPitch.has(onId)) {
+    throw unprocessable('ALREADY_ON', 'That player is already playing');
+  }
+
+  if (side.subbedOff.includes(onId)) {
+    throw unprocessable('NO_RE_ENTRY', 'A player who has been taken off cannot come back on');
+  }
 }
 
 /**

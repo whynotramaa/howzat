@@ -17,9 +17,14 @@ export interface FootballEventInput {
    * this is submitted rather than inferred from the player.
    */
   teamId: string;
-  /** Null when nobody could say who it was, which at this level is common. */
+  /**
+   * Null when nobody could say who it was, which at this level is common.
+   * On a substitution this is the player coming *on*.
+   */
   playerId: string | null;
   assistPlayerId: string | null;
+  /** Substitution only: the player coming off. */
+  playerOffId: string | null;
 }
 
 /** An incident as stored: the input plus everything the server decided. */
@@ -108,6 +113,15 @@ export interface LineupPlayer extends PlayerRef {
   redCards: number;
   /** True once sent off — the pitch graphic greys them out. */
   isSentOff: boolean;
+  /**
+   * On the field right now. False for an unused substitute, for anyone who has
+   * been taken off, and for anyone sent off — the three ways to be named on a
+   * team sheet and not be playing.
+   */
+  isOnPitch: boolean;
+  /** "62'" when they came on or went off, for the team sheet. */
+  cameOnAt: string | null;
+  wentOffAt: string | null;
 }
 
 export interface TeamLineup {
@@ -131,6 +145,8 @@ export interface FootballIncident {
   playerName: string | null;
   assistPlayerId: string | null;
   assistPlayerName: string | null;
+  playerOffId: string | null;
+  playerOffName: string | null;
   minute: number;
   period: number;
   stoppage: number;
@@ -151,6 +167,19 @@ export interface FootballTeamState {
   cards: Record<string, { yellow: number; red: number }>;
   /** Sent off, either straight red or a second yellow. */
   sentOff: string[];
+  /**
+   * Changes made, in the order they were made.
+   *
+   * Kept as a list rather than only as a final "who is on the pitch" set,
+   * because the pitch graphic needs the current answer *and* the team sheet
+   * needs to say that someone came on at 62 — and one of those cannot be
+   * recovered from the other.
+   */
+  substitutions: Array<{ onId: string; offId: string; minute: number; minuteLabel: string }>;
+  /** Came on at some point. */
+  subbedOn: string[];
+  /** Went off at some point. Football has no re-entry, so this is final. */
+  subbedOff: string[];
 }
 
 /**

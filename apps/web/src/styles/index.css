@@ -661,3 +661,73 @@ input {
 .slab-press {
   animation: slab-press 220ms var(--ease);
 }
+
+/* ── Substitutions ───────────────────────────────────────────────────────── */
+
+/*
+ * A shirt changing occupant.
+ *
+ * The position stays put and the *person* in it changes, which is exactly what
+ * a substitution is — so the mark rotates through a half-turn and comes back,
+ * rather than sliding in from off-screen. A shirt flying across the pitch would
+ * be describing a transfer, not a change.
+ *
+ * Keyed on the player's id in the markup, so React remounts the node and this
+ * runs once, at the moment the new name arrives.
+ */
+@keyframes shirt-swap {
+  0% {
+    transform: rotateY(90deg) scale(0.82);
+    opacity: 0;
+  }
+  55% {
+    transform: rotateY(0deg) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.shirt-swap {
+  animation: shirt-swap 520ms var(--ease) both;
+}
+
+/* The player leaving the pitch fades down into the bench strip rather than
+   vanishing — a name that disappears takes the reason with it. */
+@keyframes bench-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bench-arrive {
+  animation: bench-arrive 420ms var(--ease) both;
+}
+
+/*
+ * The two-arrow mark a substitution is written with everywhere in football.
+ * Drawn rather than animated on a loop: it appears in a timeline that may hold
+ * twenty of them, and twenty looping animations is a page that will not sit
+ * still while it is being read.
+ */
+@keyframes sub-arrows {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sub-arrows {
+  animation: sub-arrows 320ms var(--ease) both;
+}

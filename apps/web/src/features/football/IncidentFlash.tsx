@@ -36,6 +36,7 @@ const TONES: Record<FootballEventKind, { ring: string; accent: string }> = {
   YELLOW_CARD: { ring: 'border-[var(--warning)]', accent: 'text-warning' },
   RED_CARD: { ring: 'border-[var(--alert)]', accent: 'text-alert' },
   SAVE: { ring: 'border-[var(--success)]', accent: 'text-success' },
+  SUBSTITUTION: { ring: 'border-line-strong', accent: 'text-secondary' },
 };
 
 export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
@@ -108,6 +109,19 @@ function Glyph({ kind }: { kind: FootballEventKind }) {
           kind === 'RED_CARD' ? 'bg-[#c8332a]' : 'bg-[#e0b23c]',
         )}
       />
+    );
+  }
+
+  if (kind === 'SUBSTITUTION') {
+    return (
+      <span
+        aria-hidden
+        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line-strong text-secondary"
+      >
+        <svg viewBox="0 0 16 16" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     );
   }
 

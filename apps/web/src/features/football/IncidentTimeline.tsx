@@ -54,13 +54,24 @@ export function IncidentTimeline({
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-primary">
-                {incident.playerName ?? label(incident.kind)}
+                {incident.kind === 'SUBSTITUTION' ? (
+                  <>
+                    <span className="text-success">↑</span> {incident.playerName ?? 'Substitute'}
+                  </>
+                ) : (
+                  (incident.playerName ?? label(incident.kind))
+                )}
                 {incident.kind === 'OWN_GOAL' ? (
                   <span className="ml-1.5 text-[0.75rem] text-muted">(og)</span>
                 ) : null}
               </p>
 
-              {incident.assistPlayerName ? (
+              {incident.kind === 'SUBSTITUTION' ? (
+                <p className="truncate text-[0.75rem] text-muted">
+                  <span className="text-alert">↓</span>{' '}
+                  {incident.playerOffName ?? 'Player off'}
+                </p>
+              ) : incident.assistPlayerName ? (
                 <p className="truncate text-[0.75rem] text-muted">
                   assist {incident.assistPlayerName}
                 </p>
@@ -98,6 +109,16 @@ function Mark({ kind }: { kind: FootballEventKind }) {
           kind === 'RED_CARD' ? 'bg-[#c8332a]' : 'bg-[#e0b23c]',
         )}
       />
+    );
+  }
+
+  if (kind === 'SUBSTITUTION') {
+    return (
+      <span aria-hidden className="grid size-4 shrink-0 place-items-center text-secondary">
+        <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     );
   }
 
