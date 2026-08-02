@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { FOOTBALL_EVENT_LABELS, type FootballEventKind } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
@@ -15,6 +15,16 @@ import { cn } from '@/lib/cn';
  * catchable in peripheral vision, and says the two things the scorer needs to
  * verify without stopping: what was recorded, and for whom.
  *
+ * It is built out of four things happening on one beat:
+ *
+ *   the aura   a wash of the incident's colour thrown onto the page and let go
+ *   the card   arriving through the plane, overshooting a hair, settling
+ *   the sheen  one specular sweep, so the surface reads as lit rather than painted
+ *   the word   landing letter-spaced and closing up into something read
+ *
+ * All of it is one keyframe each and none of it loops. This is the only piece of
+ * theatre in the product, and it is theatre that does a job: it is the receipt.
+ *
  * It is fired from the mutation's success, not from its optimistic start. A
  * flash that appears before the write lands would be a receipt for something
  * that had not happened, and the one moment it mattered — a failed submission
@@ -30,14 +40,17 @@ export interface FlashPayload {
   minuteLabel: string;
 }
 
-const TONES: Record<FootballEventKind, { ring: string; accent: string }> = {
-  GOAL: { ring: 'border-[var(--accent-strong)]', accent: 'text-accent' },
-  OWN_GOAL: { ring: 'border-line-strong', accent: 'text-secondary' },
-  YELLOW_CARD: { ring: 'border-[var(--warning)]', accent: 'text-warning' },
-  RED_CARD: { ring: 'border-[var(--alert)]', accent: 'text-alert' },
-  SAVE: { ring: 'border-[var(--success)]', accent: 'text-success' },
-  SUBSTITUTION: { ring: 'border-line-strong', accent: 'text-secondary' },
+/** One colour per incident. Everything else on the card is mixed from it. */
+const TONE: Record<FootballEventKind, string> = {
+  GOAL: 'var(--accent-strong)',
+  OWN_GOAL: 'var(--text-muted)',
+  YELLOW_CARD: '#e0b23c',
+  RED_CARD: 'var(--alert)',
+  SAVE: 'var(--success)',
+  SUBSTITUTION: 'var(--text-secondary)',
 };
+
+const HOLD_MS = 1_900;
 
 export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
   const [shown, setShown] = useState<FlashPayload | null>(null);
@@ -51,13 +64,13 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
     setShown(payload);
     setNonce((value) => value + 1);
 
-    const timer = window.setTimeout(() => setShown(null), 1_600);
+    const timer = window.setTimeout(() => setShown(null), HOLD_MS);
     return () => window.clearTimeout(timer);
   }, [payload]);
 
   if (!shown) return null;
 
-  const tone = TONES[shown.kind];
+  const tone = TONE[shown.kind];
 
   return (
     <div
@@ -65,31 +78,50 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
       // reader is mid-task, and this is a confirmation, not an alert.
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-1/3 z-50 flex justify-center px-6"
+      key={nonce}
+      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center px-6"
+      style={{ '--flash-tone': tone } as CSSProperties}
     >
+      <div aria-hidden className="incident-aura absolute inset-0" />
+
       <div
-        key={nonce}
         className={cn(
-          'incident-flash flex items-center gap-4 rounded-[var(--radius-lg)] border-2 bg-raised',
-          'px-6 py-4 shadow-[var(--shadow-lg)]',
-          tone.ring,
+          'incident-flash relative flex items-center gap-5 overflow-hidden',
+          'rounded-[var(--radius-xl)] border bg-raised px-7 py-5',
+          'shadow-[var(--shadow-lg)]',
         )}
+        style={{
+          borderColor: `color-mix(in oklab, ${tone} 60%, transparent)`,
+          boxShadow: `0 32px 70px -30px color-mix(in oklab, ${tone} 55%, transparent), var(--shadow-lg)`,
+        }}
       >
-        <Glyph kind={shown.kind} />
+        <span aria-hidden className="incident-sheen" />
+
+        {/* The tone as a 3px bar down the leading edge — the same device the
+            timeline uses, so the receipt and the log read as one system. */}
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-[3px]"
+          style={{ background: tone }}
+        />
+
+        <Glyph kind={shown.kind} tone={tone} />
 
         <div className="min-w-0">
-          <p className={cn('serif text-2xl leading-tight', tone.accent)}>
+          <p
+            className="incident-word serif text-[1.75rem] leading-none whitespace-nowrap"
+            style={{ color: tone }}
+          >
             {FOOTBALL_EVENT_LABELS[shown.kind]}
           </p>
-          <p className="mt-1 truncate text-[0.8125rem] text-secondary">
-            {shown.playerName ? `${shown.playerName} · ` : ''}
-            <span
-              className="mono"
-              style={{ color: shown.teamColor }}
-            >
+
+          <p className="mt-2 truncate text-[0.8125rem] text-secondary">
+            {shown.playerName ? <span className="text-primary">{shown.playerName}</span> : null}
+            {shown.playerName ? <span className="mx-2 text-line-strong">·</span> : null}
+            <span className="mono font-medium" style={{ color: shown.teamColor }}>
               {shown.teamShort}
             </span>
-            <span className="mx-1.5 text-line-strong">·</span>
+            <span className="mx-2 text-line-strong">·</span>
             <span className="mono">{shown.minuteLabel}</span>
           </p>
         </div>
@@ -99,15 +131,15 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
 }
 
 /** The same marks the timeline uses, at the size this needs. */
-function Glyph({ kind }: { kind: FootballEventKind }) {
+function Glyph({ kind, tone }: { kind: FootballEventKind; tone: string }) {
+  const shell = 'incident-glyph grid size-12 shrink-0 place-items-center rounded-full';
+
   if (kind === 'YELLOW_CARD' || kind === 'RED_CARD') {
     return (
       <span
         aria-hidden
-        className={cn(
-          'h-10 w-7 shrink-0 rounded-[2px] ring-1 ring-black/25',
-          kind === 'RED_CARD' ? 'bg-[#c8332a]' : 'bg-[#e0b23c]',
-        )}
+        className="incident-glyph h-12 w-8 shrink-0 rounded-[3px] shadow-[0_6px_14px_-6px_rgb(0_0_0/0.5)] ring-1 ring-black/25"
+        style={{ background: kind === 'RED_CARD' ? '#c8332a' : '#e0b23c' }}
       />
     );
   }
@@ -116,9 +148,9 @@ function Glyph({ kind }: { kind: FootballEventKind }) {
     return (
       <span
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-line-strong text-secondary"
+        className={cn(shell, 'border-2 border-line-strong text-secondary')}
       >
-        <svg viewBox="0 0 16 16" className="size-5" fill="none" stroke="currentColor" strokeWidth={1.5}>
+        <svg viewBox="0 0 16 16" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.5}>
           <path d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
@@ -127,11 +159,8 @@ function Glyph({ kind }: { kind: FootballEventKind }) {
 
   if (kind === 'SAVE') {
     return (
-      <span
-        aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-[var(--success)]"
-      >
-        <span className="size-3 rounded-full bg-[var(--success)]" />
+      <span aria-hidden className={cn(shell, 'border-2')} style={{ borderColor: tone }}>
+        <span className="size-3.5 rounded-full" style={{ background: tone }} />
       </span>
     );
   }
@@ -139,12 +168,13 @@ function Glyph({ kind }: { kind: FootballEventKind }) {
   return (
     <span
       aria-hidden
-      className={cn(
-        'grid size-10 shrink-0 place-items-center rounded-full',
-        kind === 'OWN_GOAL' ? 'bg-line-strong' : 'bg-[var(--accent-strong)]',
-      )}
+      className={shell}
+      style={{
+        background: tone,
+        boxShadow: `0 8px 22px -8px color-mix(in oklab, ${tone} 80%, transparent)`,
+      }}
     >
-      <span className="size-4 rounded-full bg-white/85" />
+      <span className="size-5 rounded-full bg-white/85" />
     </span>
   );
 }

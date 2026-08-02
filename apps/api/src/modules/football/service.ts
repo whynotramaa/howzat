@@ -89,6 +89,22 @@ export async function recordFootballEvent(
       throw unprocessable('NOT_IN_MATCH', 'That team is not playing in this match');
     }
 
+    // A change may bring on anybody in the club squad, not only the names
+    // picked before kick-off. Grassroots team sheets are written when eleven
+    // players have turned up and the twelfth arrives ten minutes later; a
+    // console that could only offer the pre-match bench was refusing to record
+    // substitutions that had actually happened. Bringing an unnamed player on
+    // adds them to the sheet as a substitute, which is what the manager handing
+    // the referee a revised sheet does.
+    //
+    // Decided here, written just before the event is inserted: every check
+    // below can still refuse the change, and a refused change must not leave a
+    // player standing on the team sheet who never took the field.
+    const calledUp =
+      input.kind === 'SUBSTITUTION' && input.playerId
+        ? await isSquadCallUp(input.teamId, input.playerId, match.matchPlayers)
+        : false;
+
     // A named player must be on one of the two team sheets. Which side they
     // are on is deliberately not checked against `teamId`: an own goal is
     // credited to the opposition, and that is the whole point of the field.
@@ -97,6 +113,7 @@ export async function recordFootballEvent(
         (id): id is string => id !== null,
       );
       const onTeamSheet = new Set(match.matchPlayers.map((entry) => entry.playerId));
+      if (calledUp) onTeamSheet.add(input.playerId!);
 
       for (const id of named) {
         if (!onTeamSheet.has(id)) {
@@ -114,10 +131,20 @@ export async function recordFootballEvent(
     }
 
     if (input.kind === 'SUBSTITUTION') {
-      await assertSubstitutionIsLegal(matchId, input.teamId, input.playerId!, input.playerOffId!);
+      await assertSubstitutionIsLegal(
+        matchId,
+        input.teamId,
+        input.playerId!,
+        input.playerOffId!,
+        calledUp,
+      );
     } else if (input.playerOffId) {
       throw unprocessable('SUB_NOT_APPLICABLE', 'Only a substitution names a player coming off');
     }
+
+    // The change is legal, so the sheet can be revised. Everything from here is
+    // the write itself.
+    if (calledUp) await addToTeamSheet(matchId, input.teamId, input.playerId!);
 
     const reading = clockReadingFor(toClockDto(match.clock));
     const seq = await nextSeq(matchId);
@@ -229,6 +256,52 @@ export async function undoFootballEvent(
 }
 
 /**
+ * Is this a player who is in the club squad but not on the match sheet?
+ *
+ * Read-only, and deliberately narrow: they must already belong to *this* team.
+ * Returning false rather than throwing lets the caller's existing team-sheet
+ * check produce the error, so "not one of ours" is worded in one place.
+ */
+async function isSquadCallUp(
+  teamId: string,
+  playerId: string,
+  sheet: { playerId: string }[],
+): Promise<boolean> {
+  if (sheet.some((entry) => entry.playerId === playerId)) return false;
+
+  const player = await prisma.player.findFirst({
+    where: { id: playerId, teamId },
+    select: { id: true },
+  });
+
+  return player !== null;
+}
+
+/**
+ * Writes the revised team sheet.
+ *
+ * Added with no lineup slot, which is exactly what a substitute is — on the
+ * sheet, on the bench, not standing anywhere on the pitch graphic. The reducer
+ * then treats them like any other named substitute, so nothing downstream has
+ * to know they arrived late.
+ *
+ * Runs inside the match lock, so a duplicate can only come from a genuine
+ * retry; P2002 means the row is already there, which is the outcome this
+ * function wanted anyway.
+ */
+async function addToTeamSheet(matchId: string, teamId: string, playerId: string): Promise<void> {
+  try {
+    await prisma.matchPlayer.create({
+      data: { matchId, teamId, playerId, lineupSlot: null },
+    });
+  } catch (err) {
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err;
+  }
+
+  logger.debug({ matchId, teamId, playerId }, 'Called a squad player onto the team sheet');
+}
+
+/**
  * The rules of a change, checked against the state the log actually produces
  * rather than against the team sheet as it was named.
  *
@@ -243,6 +316,8 @@ async function assertSubstitutionIsLegal(
   teamId: string,
   onId: string,
   offId: string,
+  /** True when the incoming player is a squad call-up not yet on the sheet. */
+  isCallUp: boolean,
 ): Promise<void> {
   const match = await loadFootballMatch(matchId);
   const events = await loadFootballEvents(matchId);
@@ -256,11 +331,12 @@ async function assertSubstitutionIsLegal(
 
   const onPitch = new Set(resolveOnPitch(starters, side).values());
 
-  const belongsToSide = match.matchPlayers.some(
-    (entry) => entry.teamId === teamId && (entry.playerId === onId || entry.playerId === offId),
-  );
+  // A call-up has already been confirmed to belong to this team; they are just
+  // not written onto the sheet yet, which is what recording the change fixes.
+  const onSide = (playerId: string) =>
+    match.matchPlayers.some((entry) => entry.teamId === teamId && entry.playerId === playerId);
 
-  if (!belongsToSide) {
+  if (!(isCallUp || onSide(onId)) || !onSide(offId)) {
     throw unprocessable('WRONG_TEAM', 'Both players must be on that side of the team sheet');
   }
 

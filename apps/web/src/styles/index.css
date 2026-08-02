@@ -589,6 +589,226 @@ input {
   animation: clock-colon 1s steps(1, end) infinite;
 }
 
+/*
+ * The dial is the one object in the product built to be looked *at* rather than
+ * read past, so it is allowed depth the rest of the system refuses.
+ *
+ * Three layers, in this order:
+ *
+ *   .dial-well   the recess the instrument sits in — an inset shadow, so the
+ *                face reads as sunk into the panel instead of pasted onto it
+ *   .dial-face   the face itself: a top-lit plate, one hairline, no gradient
+ *                strong enough to notice
+ *   .dial-gloss  a single specular arc across the upper left, at 6% — the
+ *                difference between "a circle" and "a watch"
+ *
+ * Every value is derived from a token, so the whole instrument re-lights in dark
+ * mode without a second definition.
+ */
+.dial-well {
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  box-shadow:
+    inset 0 2px 6px -2px rgb(0 0 0 / 0.28),
+    inset 0 0 0 1px color-mix(in oklab, var(--line) 90%, transparent),
+    0 1px 0 color-mix(in oklab, var(--surface-raised) 80%, #fff 20%);
+}
+
+.dial-face {
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      110% 110% at 50% 4%,
+      color-mix(in oklab, var(--surface-raised) 88%, #fff 12%) 0%,
+      var(--surface-raised) 46%,
+      color-mix(in oklab, var(--surface-raised) 92%, #000 8%) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--line) 70%, transparent),
+    0 10px 30px -18px rgb(0 0 0 / 0.5);
+}
+
+.dial-gloss {
+  border-radius: 50%;
+  background: linear-gradient(
+    152deg,
+    color-mix(in oklab, #fff 12%, transparent) 0%,
+    transparent 42%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/*
+ * The head of the progress arc. A small lit cap that travels the ring is what
+ * makes a gauge read as *moving* rather than as a static fraction — the arc
+ * itself advances a third of a degree a second, which nobody perceives.
+ */
+.dial-head {
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--accent-strong) 70%, transparent));
+}
+
+/* The seconds, when the watch is stopped, sit back rather than going grey. */
+@keyframes dial-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.16;
+  }
+}
+
+.dial-breathe {
+  animation: dial-breathe 2.6s var(--ease-in-out) infinite;
+}
+
+/* ── The push button ─────────────────────────────────────────────────────── */
+
+/*
+ * A button with a side wall.
+ *
+ * Everything else in this system is flat, and that is right for a page you read.
+ * The console is not a page you read — it is an instrument someone operates
+ * one-handed, without looking, while a match happens in front of them. A control
+ * on that surface has to look like it has a top and a side and something
+ * underneath it, because that is what tells a thumb where the target is and what
+ * tells the eye, in peripheral vision, that the tap landed.
+ *
+ * Three stacked layers, all sharing one radius and one tone:
+ *
+ *   .push__shadow  what the button casts onto the panel
+ *   .push__edge    the side wall — the darker extrusion the face rides on
+ *   .push__face    the top, lifted by --push-depth
+ *
+ * Pressing translates only the face, so the wall is *consumed* rather than moved
+ * — which is what a real key does, and the reason this reads as travel instead
+ * of as a card sliding about. Release is slower than press, because a key
+ * returns more slowly than it goes down.
+ */
+.push {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  outline-offset: 6px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  --push-depth: 9px;
+  --push-radius: var(--radius-lg);
+  --push-tone: var(--surface-raised);
+}
+
+.push__shadow,
+.push__edge,
+.push__face {
+  border-radius: var(--push-radius);
+}
+
+.push__shadow {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.2);
+  transform: translateY(3px);
+  filter: blur(6px);
+  transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+}
+
+.push__edge {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--push-tone) 68%, #000) 0%,
+    color-mix(in oklab, var(--push-tone) 46%, #000) 55%,
+    color-mix(in oklab, var(--push-tone) 62%, #000) 100%
+  );
+}
+
+.push__face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--push-tone) 84%, #fff) 0%,
+    var(--push-tone) 52%,
+    color-mix(in oklab, var(--push-tone) 90%, #000) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, #fff 32%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, #000 18%, transparent);
+  transform: translateY(calc(var(--push-depth) * -1));
+  /* Snappy going down, unhurried coming back — the asymmetry is the feel. */
+  transition: transform 220ms cubic-bezier(0.3, 0.7, 0.4, 1.2);
+  will-change: transform;
+}
+
+.push:hover:not(:disabled) .push__face {
+  transform: translateY(calc((var(--push-depth) + 2px) * -1));
+}
+
+.push:hover:not(:disabled) .push__shadow {
+  transform: translateY(5px);
+}
+
+.push:active:not(:disabled) .push__face {
+  transform: translateY(-2px);
+  transition-duration: 34ms;
+}
+
+.push:active:not(:disabled) .push__shadow {
+  transform: translateY(1px);
+  opacity: 0.6;
+  transition-duration: 34ms;
+}
+
+.push:disabled {
+  cursor: default;
+  opacity: 0.34;
+  filter: saturate(0.35);
+}
+
+/*
+ * The ring that leaves the button when it is pressed. One expanding hairline,
+ * once, keyed on the press — not a ripple that fills the surface, which would
+ * cover the label at the exact moment the label is being confirmed.
+ */
+@keyframes push-halo {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.32);
+  }
+}
+
+.push-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: push-halo 620ms var(--ease) forwards;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .push__face,
+  .push:hover:not(:disabled) .push__face {
+    transform: translateY(calc(var(--push-depth) * -1));
+  }
+
+  .push:active:not(:disabled) .push__face {
+    transform: translateY(-2px);
+  }
+}
+
 /* ── Recording an incident ───────────────────────────────────────────────── */
 
 /*
@@ -603,27 +823,142 @@ input {
  * It is deliberately the one piece of theatre in the product, and it is
  * theatre that does a job: it is the receipt.
  */
+/*
+ * The card itself. It arrives *through* the plane rather than sliding along it:
+ * up from below, overshooting a hair, settling. The old version scaled from 0.94
+ * to 1 and faded, which is the default every framework ships and reads as a
+ * toast — something that reports an outcome. This is not reporting an outcome,
+ * it is announcing a goal, and the difference is entirely in the timing curve.
+ */
 @keyframes incident-flash {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.94);
+    transform: translate3d(0, 28px, 0) scale(0.86);
   }
-  14% {
+  38% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1.035);
   }
-  70% {
+  52% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  78% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-10px) scale(0.98);
+    transform: translate3d(0, -18px, 0) scale(0.97);
   }
 }
 
 .incident-flash {
-  animation: incident-flash 1.6s var(--ease) forwards;
+  animation: incident-flash 1.9s cubic-bezier(0.16, 1.1, 0.3, 1) forwards;
+}
+
+/*
+ * The aura behind it — a wash in the incident's own colour, thrown onto the page
+ * for a beat. This is what makes a goal feel different from a substitution
+ * without either of them needing a bigger card: the whole screen takes the
+ * colour for a quarter of a second and then lets it go.
+ */
+@keyframes incident-aura {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+.incident-aura {
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklab, var(--flash-tone) 42%, transparent) 0%,
+    color-mix(in oklab, var(--flash-tone) 10%, transparent) 45%,
+    transparent 70%
+  );
+  animation: incident-aura 1.9s var(--ease) forwards;
+  pointer-events: none;
+}
+
+/*
+ * A single specular sweep across the card, once, at the moment it lands. It is
+ * the cheapest possible piece of stagecraft and it is the reason the surface
+ * reads as a lit panel rather than a rectangle of paint.
+ */
+@keyframes incident-sheen {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  70%,
+  100% {
+    transform: translateX(240%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+.incident-sheen {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, #fff 22%, transparent),
+    transparent
+  );
+  animation: incident-sheen 1.9s var(--ease) forwards;
+  pointer-events: none;
+}
+
+/* The word lands letter-spaced and closes up — it settles into being read. */
+@keyframes incident-word {
+  0% {
+    opacity: 0;
+    letter-spacing: 0.22em;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: -0.015em;
+    transform: translateY(0);
+  }
+}
+
+.incident-word {
+  animation: incident-word 620ms var(--ease) both;
+}
+
+/* The mark turns in as it arrives, on the same beat, 60ms behind the word. */
+@keyframes incident-glyph {
+  0% {
+    opacity: 0;
+    transform: rotate(-24deg) scale(0.5);
+  }
+  60% {
+    transform: rotate(4deg) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.incident-glyph {
+  animation: incident-glyph 680ms cubic-bezier(0.2, 1.2, 0.3, 1) both;
+  animation-delay: 60ms;
 }
 
 /* The tally underneath ticks up as the flash lands, so the eye is drawn to the
@@ -644,23 +979,8 @@ input {
   animation: score-bump 520ms var(--ease);
 }
 
-/* A pressed action slab settles rather than bouncing — the same 1px settle the
-   buttons use, because a console that bounces reads as a toy. */
-@keyframes slab-press {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(0.97);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.slab-press {
-  animation: slab-press 220ms var(--ease);
-}
+/* The console's own press feedback now lives on the control itself — see the
+   push button above, where the travel is real rather than a scale. */
 
 /* ── Substitutions ───────────────────────────────────────────────────────── */
 

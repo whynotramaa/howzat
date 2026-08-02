@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   FOOTBALL_EVENT_LABELS,
   periodName,
   type ClockCommand,
   type FootballEventKind,
+  type LineupPlayer,
   type PlayerRef,
   type TeamLineup,
   type TeamRef,
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
+import { PushButton } from '@/components/ui/PushButton';
 import { SportMark } from '@/components/ui/SportMark';
 import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -25,22 +27,34 @@ import { IncidentFlash, type FlashPayload } from './IncidentFlash';
 import { useMatchClock } from './useMatchClock';
 import {
   useClockCommand,
+  useFootballSquads,
   useFootballState,
   useRecordFootballEvent,
   useUndoFootballEvent,
+  type FootballSquadSide,
 } from './queries';
 
 /**
  * The touchline console.
  *
  * Everything on this screen is sized for one hand, in daylight, while watching
- * something else. That constraint decides the whole layout: the clock is the
- * largest object because it is glanced at constantly, and beneath it there are
- * exactly two primary actions — a goal and a card — because those are the only
- * two things that happen. Anything a scorer has to hunt for is a thing that
- * gets recorded a minute late or not at all.
+ * something else. That constraint decides the whole layout.
  *
- * Both actions open a sheet rather than firing immediately. A mis-tap that puts
+ * It is built as one instrument in two halves:
+ *
+ *   the head   the dial and its transport. Glanced at constantly, so it is the
+ *              largest object on the screen and it sits at the top of the
+ *              thumb's reach rather than under it.
+ *   the deck   a recessed plate carrying the controls, with GOAL as a single
+ *              enormous key at the centre and the three occasional actions —
+ *              save, card, change — as smaller keys beneath it. A goal is what
+ *              this screen exists for; the hierarchy says so in one look.
+ *
+ * The controls are extruded rather than flat, which is the one place the product
+ * departs from its own visual language. See PushButton for why that is a
+ * usability decision rather than a decorative one.
+ *
+ * Every action opens a sheet rather than firing immediately. A mis-tap that puts
  * a goal on the board is worse than one extra tap, and the sheet is where the
  * player is named — which is the part that makes the scorecard worth reading
  * afterwards.
@@ -51,6 +65,10 @@ type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | { kind: 
 export function FootballScoringPage() {
   const { matchId = '' } = useParams();
   const { data, isPending, error } = useFootballState(matchId);
+  // The club squads, for a change made from outside the named eighteen. Not
+  // required to render the console, so a slow or failed load costs the
+  // substitution sheet its call-ups and nothing else.
+  const { data: squads } = useFootballSquads(matchId);
 
   const clockCommand = useClockCommand(matchId);
   const recordEvent = useRecordFootballEvent(matchId);
@@ -65,9 +83,9 @@ export function FootballScoringPage() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-5">
-        <Skeleton className="h-24" />
-        <Skeleton className="h-[28rem]" />
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-[34rem]" />
       </div>
     );
   }
@@ -78,6 +96,7 @@ export function FootballScoringPage() {
   const { snapshot, state } = data;
   const finished = watch.clock?.status === 'FINISHED' || data.status === 'COMPLETED';
   const canRecord = Boolean(watch.clock) && !finished;
+  const busy = recordEvent.isPending;
 
   async function submit(
     kind: FootballEventKind,
@@ -100,33 +119,33 @@ export function FootballScoringPage() {
     const side = teamId === data!.home.team.id ? data!.home : data!.away;
     const named =
       [...data!.home.squad, ...data!.away.squad].find((entry) => entry.id === playerId)?.name ??
-      null;
+      squadRosterName(squads, playerId);
 
     setFlash({
       kind,
       teamShort: side.team.shortName,
       teamColor: side.team.primaryColor,
       playerName: named,
-      minuteLabel: watch.reading.minuteLabel,
+      // Resolved now rather than read off a ticking value: the minute this is
+      // stamped with is the minute the write happened in.
+      minuteLabel: watch.readNow().minuteLabel,
     });
 
     setPending(null);
   }
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <BackLink to={`/matches/${matchId}`}>Back to the match</BackLink>
 
-        <div className="flex items-center gap-2.5">
-          {snapshot ? (
-            <ShareLink
-              slug={snapshot.publicSlug}
-              matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
-              label="Share live"
-            />
-          ) : null}
-        </div>
+        {snapshot ? (
+          <ShareLink
+            slug={snapshot.publicSlug}
+            matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
+            label="Share live"
+          />
+        ) : null}
       </div>
 
       <Scoreline
@@ -137,87 +156,117 @@ export function FootballScoringPage() {
         resultText={snapshot?.resultText ?? null}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr]">
-        <Card>
-          <CardBody className="flex flex-col items-center gap-7 py-8">
-            <MatchTimer clock={watch.clock} reading={watch.reading} size="lg" />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        {/* ── the instrument ─────────────────────────────────────────── */}
+        <Card className="overflow-hidden">
+          <div className="flex flex-col items-center gap-8 px-6 py-10 sm:px-10">
+            <MatchTimer clock={watch.clock} size="lg" />
 
             <ClockControls
               commands={watch.commands}
               periods={watch.clock?.periods ?? 0}
               currentPeriod={watch.clock?.currentPeriod ?? 1}
-              isRunning={watch.reading.isRunning}
+              isRunning={watch.isRunning}
               isPending={watch.isPending}
               onCommand={watch.run}
             />
 
             {clockCommand.error ? <ErrorText error={clockCommand.error} /> : null}
-          </CardBody>
-        </Card>
-
-        <div className="flex flex-col gap-5">
-          {/* The two buttons. Deliberately enormous, deliberately the only
-              two things on this half of the screen with any weight. */}
-          <div className="grid grid-cols-3 gap-3">
-            <ActionSlab
-              tone="goal"
-              label="Goal"
-              hint="Name the scorer"
-              disabled={!canRecord || recordEvent.isPending}
-              onClick={() => setPending({ kind: 'GOAL' })}
-            />
-            <ActionSlab
-              tone="save"
-              label="Save"
-              hint="Keeper kept it out"
-              disabled={!canRecord || recordEvent.isPending}
-              onClick={() => setPending({ kind: 'SAVE' })}
-            />
-            <ActionSlab
-              tone="card"
-              label="Card"
-              hint="Yellow or red"
-              disabled={!canRecord || recordEvent.isPending}
-              onClick={() => setPending({ kind: 'CARD' })}
-            />
           </div>
 
-          {/* Set apart from the three above: a substitution is not an incident
-              in the match so much as a change to who is playing it. */}
-          <Button
-            variant="secondary"
-            size="lg"
-            fullWidth
-            disabled={!canRecord || recordEvent.isPending}
-            onClick={() => setPending({ kind: 'SUB' })}
-          >
-            <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" aria-hidden>
-              <path
-                d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Make a substitution
-          </Button>
+          {/*
+           * The deck. Recessed and hairlined off the dial above it, because the
+           * two halves of this panel are read differently: one is watched, the
+           * other is operated.
+           */}
+          <div className="border-t border-line bg-sunken px-6 py-8 sm:px-10">
+            {watch.clock ? (
+              <>
+                <GoalKey disabled={!canRecord || busy} onPress={() => setPending({ kind: 'GOAL' })} />
 
-          {!watch.clock ? (
-            <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
-              This match has not kicked off yet.{' '}
-              <Link to={`/matches/${matchId}`} className="text-accent">
-                Name the team sheets first
-              </Link>
-              .
-            </p>
-          ) : null}
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <MinorKey
+                    label="Save"
+                    tone="var(--success)"
+                    disabled={!canRecord || busy}
+                    onPress={() => setPending({ kind: 'SAVE' })}
+                    glyph={
+                      <span
+                        className="grid size-6 place-items-center rounded-full border-2"
+                        style={{ borderColor: 'var(--success)' }}
+                      >
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ background: 'var(--success)' }}
+                        />
+                      </span>
+                    }
+                  />
 
+                  <MinorKey
+                    label="Card"
+                    tone="#e0b23c"
+                    disabled={!canRecord || busy}
+                    onPress={() => setPending({ kind: 'CARD' })}
+                    glyph={
+                      <span className="flex h-6 items-center gap-[3px]">
+                        <span className="h-6 w-[15px] -rotate-6 rounded-[2px] bg-[#e0b23c] ring-1 ring-black/20" />
+                        <span className="h-6 w-[15px] rotate-6 rounded-[2px] bg-[#c8332a] ring-1 ring-black/20" />
+                      </span>
+                    }
+                  />
+
+                  <MinorKey
+                    label="Change"
+                    tone="var(--accent-strong)"
+                    disabled={!canRecord || busy}
+                    onPress={() => setPending({ kind: 'SUB' })}
+                    glyph={
+                      <svg
+                        viewBox="0 0 16 16"
+                        className="size-6"
+                        fill="none"
+                        stroke="currentColor"
+                        aria-hidden
+                      >
+                        <path
+                          d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    }
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-5 text-center text-[0.8125rem] text-secondary">
+                This match has not kicked off yet.{' '}
+                <Link to={`/matches/${matchId}`} className="text-accent">
+                  Name the team sheets first
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* ── the log ────────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-col gap-4">
           {recordEvent.error ? <ErrorText error={recordEvent.error} /> : null}
           {undoEvent.error ? <ErrorText error={undoEvent.error} /> : null}
 
-          <Card className="min-h-0 flex-1">
+          <Card className="flex min-h-0 flex-1 flex-col">
             <CardHeader className="flex items-center justify-between gap-3">
-              <p className="eyebrow">Match log</p>
+              <div>
+                <p className="eyebrow">Match log</p>
+                <p className="mt-1.5 text-[0.8125rem] text-muted">
+                  {state.incidents.length === 0
+                    ? 'Nothing recorded yet'
+                    : `${state.incidents.length} incident${state.incidents.length === 1 ? '' : 's'}`}
+                </p>
+              </div>
 
               <Button
                 size="sm"
@@ -230,7 +279,7 @@ export function FootballScoringPage() {
               </Button>
             </CardHeader>
 
-            <CardBody>
+            <CardBody className="min-h-0 flex-1 overflow-y-auto">
               <IncidentTimeline
                 incidents={[...state.incidents].reverse()}
                 homeTeamId={data.home.team.id}
@@ -246,7 +295,7 @@ export function FootballScoringPage() {
         open={pending?.kind === 'GOAL'}
         home={data.home}
         away={data.away}
-        isPending={recordEvent.isPending}
+        isPending={busy}
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
@@ -255,7 +304,7 @@ export function FootballScoringPage() {
         open={pending?.kind === 'CARD'}
         home={data.home}
         away={data.away}
-        isPending={recordEvent.isPending}
+        isPending={busy}
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
@@ -264,7 +313,7 @@ export function FootballScoringPage() {
         open={pending?.kind === 'SAVE'}
         home={data.home}
         away={data.away}
-        isPending={recordEvent.isPending}
+        isPending={busy}
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
@@ -274,7 +323,8 @@ export function FootballScoringPage() {
         home={data.home}
         away={data.away}
         lineups={snapshot?.lineups ?? { home: null, away: null }}
-        isPending={recordEvent.isPending}
+        rosters={{ home: squads?.home ?? null, away: squads?.away ?? null }}
+        isPending={busy}
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
@@ -284,8 +334,30 @@ export function FootballScoringPage() {
   );
 }
 
+/** A called-up player is not on the match squad, so their name lives in the roster. */
+function squadRosterName(
+  squads: { home: FootballSquadSide; away: FootballSquadSide } | undefined,
+  playerId: string | null,
+): string | null {
+  if (!squads || !playerId) return null;
+
+  return (
+    [...squads.home.players, ...squads.away.players].find((player) => player.id === playerId)
+      ?.name ?? null
+  );
+}
+
 // ────────────────────────────────────────────────────────  scoreline ──
 
+/**
+ * The scoreline.
+ *
+ * Two kit colours meet in a 3px seam across the top of the panel — flat, split
+ * down the middle rather than blended, because a gradient between two arbitrary
+ * kit colours produces a muddy third colour belonging to neither side. The
+ * figures are the largest type in the product apart from the clock, and they
+ * bump when they change so that a goal is visible from the corner of an eye.
+ */
 function Scoreline({
   home,
   away,
@@ -300,33 +372,44 @@ function Scoreline({
   resultText: string | null;
 }) {
   return (
-    <Card>
-      <CardBody className="flex items-center justify-between gap-4 py-6">
-        <TeamScore team={home} goals={homeGoals} align="left" />
+    <Card className="overflow-hidden">
+      <div
+        aria-hidden
+        className="h-[3px]"
+        style={{
+          background: `linear-gradient(90deg, ${home.primaryColor} 0 50%, ${away.primaryColor} 50% 100%)`,
+        }}
+      />
 
-        <div className="flex flex-col items-center gap-1.5">
-          <span className="score-figure text-[2.5rem] text-primary sm:text-[3.25rem]">
-            {homeGoals}–{awayGoals}
+      <CardBody className="flex items-center justify-between gap-4 py-7">
+        <TeamScore team={home} align="left" />
+
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <span
+            // Keyed on the scoreline so the figure re-mounts, and the bump runs,
+            // on the goal that changed it and on nothing else.
+            key={`${homeGoals}-${awayGoals}`}
+            className="score-bump score-figure flex items-center gap-3 text-[2.75rem] text-primary sm:text-[3.5rem]"
+          >
+            {homeGoals}
+            <span className="text-[0.5em] text-line-strong">—</span>
+            {awayGoals}
           </span>
+
           {resultText ? (
-            <span className="text-center text-[0.75rem] text-success">{resultText}</span>
+            <span className="text-center text-[0.75rem] font-medium text-success">
+              {resultText}
+            </span>
           ) : null}
         </div>
 
-        <TeamScore team={away} goals={awayGoals} align="right" />
+        <TeamScore team={away} align="right" />
       </CardBody>
     </Card>
   );
 }
 
-function TeamScore({
-  team,
-  align,
-}: {
-  team: TeamRef;
-  goals: number;
-  align: 'left' | 'right';
-}) {
+function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) {
   return (
     <div
       className={cn(
@@ -335,15 +418,82 @@ function TeamScore({
       )}
     >
       <TeamMark shortName={team.shortName} color={team.primaryColor} />
-      <p
-        className={cn(
-          'min-w-0 truncate text-sm font-medium text-primary sm:text-base',
-          align === 'right' && 'text-right',
-        )}
-      >
-        {team.name}
-      </p>
+
+      <div className={cn('min-w-0', align === 'right' && 'text-right')}>
+        <p className="truncate text-sm font-medium text-primary sm:text-base">{team.name}</p>
+        <p className="mono mt-0.5 text-[0.6875rem] text-muted">{team.shortName}</p>
+      </div>
     </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────  the deck ──
+
+/**
+ * The key this whole screen exists for.
+ *
+ * Deliberately out of proportion with everything around it. A goal is the only
+ * thing that changes a football result, it has to be recorded in the seconds
+ * while everyone is celebrating, and the person recording it is not looking
+ * down. Size *is* the affordance here — this is the one target that can be hit
+ * by feel.
+ */
+function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
+  return (
+    <PushButton
+      tone="var(--accent-strong)"
+      depth={13}
+      radius="var(--radius-xl)"
+      disabled={disabled}
+      onClick={onPress}
+      className="w-full"
+      faceClassName="h-[8.5rem] gap-2 text-white"
+      ariaLabel="Record a goal"
+    >
+      <SportMark sport="FOOTBALL" className="size-9 opacity-95" />
+      <span className="text-[1.75rem] leading-none font-semibold tracking-[0.02em]">GOAL</span>
+      <span className="text-[0.75rem] text-white/70">Name the scorer</span>
+    </PushButton>
+  );
+}
+
+/**
+ * The occasional actions.
+ *
+ * Same construction as the goal key, a third of the travel and a neutral face:
+ * these are things that happen a handful of times a match, and a deck of four
+ * equally loud keys is a deck with no hierarchy at all. The colour lives in the
+ * mark rather than the surface, which is the rule everywhere else in the
+ * product.
+ */
+function MinorKey({
+  label,
+  tone,
+  glyph,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  tone: string;
+  glyph: ReactNode;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <PushButton
+      tone="var(--surface-raised)"
+      depth={6}
+      radius="var(--radius-md)"
+      disabled={disabled}
+      onClick={onPress}
+      className="w-full"
+      faceClassName="h-[5.25rem] gap-2 text-primary"
+    >
+      <span aria-hidden style={{ color: tone }} className="flex items-center">
+        {glyph}
+      </span>
+      <span className="text-[0.8125rem] font-medium">{label}</span>
+    </PushButton>
   );
 }
 
@@ -389,34 +539,34 @@ function ClockControls({
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      {/* A transport control, not a text button. The single most-pressed thing
+      {/* A transport control, not a text button. The second most-pressed thing
           on this screen deserves a target you can hit without looking, and a
           play/pause glyph is read faster than a word. */}
-      <button
-        type="button"
-        aria-label={COMMAND_LABELS[primary]}
+      <PushButton
+        tone={isRunning ? 'var(--surface-raised)' : 'var(--accent-strong)'}
+        depth={7}
+        radius="var(--radius-full)"
         disabled={isPending}
         onClick={() => onCommand(primary)}
-        className={cn(
-          'grid size-16 place-items-center rounded-full border-2 transition-all',
-          'duration-[var(--dur-fast)] ease-[var(--ease)] active:scale-95',
-          'disabled:pointer-events-none disabled:opacity-50',
-          isRunning
-            ? 'border-line-strong bg-raised text-primary hover:border-[var(--accent-strong)]'
-            : 'border-[var(--accent-strong)] bg-[var(--accent-strong)] text-white hover:brightness-110',
-        )}
+        ariaLabel={COMMAND_LABELS[primary]}
+        faceClassName={cn('size-[4.5rem]', isRunning ? 'text-primary' : 'text-white')}
       >
         {isRunning ? (
-          <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
-            <rect x="7" y="5" width="4" height="14" rx="1" />
-            <rect x="13" y="5" width="4" height="14" rx="1" />
+          <svg viewBox="0 0 24 24" className="size-7" fill="currentColor" aria-hidden>
+            <rect x="7" y="5" width="4" height="14" rx="1.2" />
+            <rect x="13" y="5" width="4" height="14" rx="1.2" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" className="size-6 translate-x-[1px]" fill="currentColor" aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            className="size-7 translate-x-[2px]"
+            fill="currentColor"
+            aria-hidden
+          >
             <path d="M8 5.5v13l11-6.5z" />
           </svg>
         )}
-      </button>
+      </PushButton>
 
       <p className="text-[0.8125rem] font-medium text-primary">{COMMAND_LABELS[primary]}</p>
 
@@ -441,29 +591,45 @@ function ClockControls({
   );
 }
 
-/**
- * A save.
- *
- * The team picked here is the side that *kept the ball out*, not the side that
- * shot — the same inversion an own goal has, in the other direction. The player
- * list is filtered to the goalkeeper first because that is who made it nine
- * times in ten, but it is not restricted to them: outfield players clear shots
- * off the line, and a console that refused to record that would be wrong.
- */
+// ──────────────────────────────────────────────────────────  sheets ──
+
+interface SideData {
+  team: TeamRef;
+  squad: PlayerRef[];
+}
+
+/** A player as offered in a sheet, with whatever needs saying beside the name. */
+interface Choice {
+  id: string;
+  name: string;
+  note?: string | null;
+}
+
 /**
  * A change.
  *
- * Both lists are drawn from the *current* pitch rather than from the team sheet
- * as it was named — off can only be somebody playing, on can only be somebody
- * who is not and has not already been hooked. Doing that filtering here means
- * the illegal combinations are not merely refused, they are unofferable, and
- * the server's rules only ever have to catch a stale tab.
+ * Who can come *off* is decided by the pitch: only somebody playing, and not
+ * somebody already sent off — you cannot replace a red card.
+ *
+ * Who can come *on* is decided by the club squad, not by the team sheet. This
+ * used to offer only the named bench, and that was wrong for the football this
+ * product is actually used for: a Sunday side names eleven because eleven have
+ * turned up, and the twelfth arrives during the first half. Refusing to record a
+ * change that visibly happened is worse than an unnamed player appearing in the
+ * log, so anyone in the squad who is not already on the pitch and has not
+ * already been used can be brought on. Bringing a player on adds them to the
+ * team sheet server-side, which is exactly what handing the referee a revised
+ * sheet does.
+ *
+ * The filtering here is not the rule — the server holds that — it is what makes
+ * the illegal combinations unofferable rather than merely refused.
  */
 function SubstitutionSheet({
   open,
   home,
   away,
   lineups,
+  rosters,
   isPending,
   onClose,
   onSubmit,
@@ -472,6 +638,7 @@ function SubstitutionSheet({
   home: SideData;
   away: SideData;
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
+  rosters: { home: FootballSquadSide | null; away: FootballSquadSide | null };
   isPending: boolean;
   onClose: () => void;
   onSubmit: (
@@ -494,13 +661,18 @@ function SubstitutionSheet({
 
   const isHome = teamId === home.team.id;
   const lineup = teamId === null ? null : isHome ? lineups.home : lineups.away;
+  const roster = teamId === null ? null : isHome ? rosters.home : rosters.away;
 
-  // On the pitch, minus anyone sent off — you cannot replace a red card.
-  const canComeOff = (lineup?.players ?? []).filter((player) => !player.isSentOff);
-  // On the bench and not already used. Football has no re-entry.
-  const canComeOn = (lineup?.substitutes ?? []).filter(
-    (player) => !player.wentOffAt && !player.isSentOff,
-  );
+  // On the pitch, minus anyone sent off.
+  const canComeOff: Choice[] = (lineup?.players ?? [])
+    .filter((player) => !player.isSentOff)
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      note: player.shirtNumber === null ? null : `#${player.shirtNumber}`,
+    }));
+
+  const canComeOn = availableToComeOn(lineup, roster, home, away, teamId);
 
   const ready = Boolean(teamId && offId && onId);
 
@@ -552,7 +724,7 @@ function SubstitutionSheet({
         {teamId ? (
           canComeOn.length === 0 ? (
             <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
-              No substitutes left on the bench for this side.
+              Everybody in this squad has either played or been used.
             </p>
           ) : (
             <>
@@ -567,6 +739,7 @@ function SubstitutionSheet({
                 players={canComeOn}
                 value={onId}
                 onChange={setOnId}
+                caption="Anyone in the squad. A player who was not named is added to the team sheet when the change is recorded."
               />
             </>
           )
@@ -576,6 +749,73 @@ function SubstitutionSheet({
   );
 }
 
+/**
+ * Everybody who could legally take the field for this side right now.
+ *
+ * The named bench first, in team-sheet order, then the rest of the squad — a
+ * substitute the manager already planned for should not be buried among thirty
+ * registered players. Anyone already on the pitch, already withdrawn, or sent
+ * off is gone from the list entirely; football has no re-entry.
+ */
+function availableToComeOn(
+  lineup: TeamLineup | null,
+  roster: FootballSquadSide | null,
+  home: SideData,
+  away: SideData,
+  teamId: string | null,
+): Choice[] {
+  if (!teamId) return [];
+
+  const onPitch = new Set((lineup?.players ?? []).map((player) => player.id));
+  const named = new Map<string, LineupPlayer>();
+  for (const player of [...(lineup?.players ?? []), ...(lineup?.substitutes ?? [])]) {
+    named.set(player.id, player);
+  }
+
+  const usable = (id: string) => {
+    if (onPitch.has(id)) return false;
+    const entry = named.get(id);
+    // Not on the team sheet at all: a call-up, and nothing has happened to them.
+    if (!entry) return true;
+    return !entry.wentOffAt && !entry.isSentOff;
+  };
+
+  const bench: Choice[] = (lineup?.substitutes ?? [])
+    .filter((player) => usable(player.id))
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      note: player.shirtNumber === null ? 'Bench' : `#${player.shirtNumber}`,
+    }));
+
+  // The squad endpoint is the full club roster; the match state is only the
+  // eighteen. Falling back to the match squad means a failed roster fetch
+  // degrades to the old behaviour instead of an empty list.
+  const all =
+    roster?.players.map((player) => ({ id: player.id, name: player.name })) ??
+    (teamId === home.team.id ? home.squad : away.squad);
+
+  const seen = new Set(bench.map((player) => player.id));
+
+  const rest: Choice[] = all
+    .filter((player) => !seen.has(player.id) && usable(player.id))
+    .map((player) => ({
+      id: player.id,
+      name: player.name,
+      note: named.has(player.id) ? null : 'Call-up',
+    }));
+
+  return [...bench, ...rest];
+}
+
+/**
+ * A save.
+ *
+ * The team picked here is the side that *kept the ball out*, not the side that
+ * shot — the same inversion an own goal has, in the other direction. The player
+ * list is not restricted to the goalkeeper: outfield players clear shots off the
+ * line, and a console that refused to record that would be wrong.
+ */
 function SaveSheet({
   open,
   home,
@@ -662,88 +902,6 @@ function SaveSheet({
   );
 }
 
-/**
- * A goal or a card button.
- *
- * These are the one place in the product where a saturated fill is allowed.
- * The system's rule is that colour means state rather than decoration — and
- * here it does: the whole point of the console is that a scorer's thumb finds
- * the right slab without their eyes leaving the pitch, and shape alone does not
- * carry that at arm's length.
- */
-function ActionSlab({
-  tone,
-  label,
-  hint,
-  disabled,
-  onClick,
-}: {
-  tone: 'goal' | 'card' | 'save';
-  label: string;
-  hint: string;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  // Bumped on each press so the node re-animates; a scorer tapping twice in
-  // quick succession must feel two presses, not one.
-  const [presses, setPresses] = useState(0);
-
-  return (
-    <button
-      key={presses}
-      type="button"
-      disabled={disabled}
-      onClick={() => {
-        setPresses((count) => count + 1);
-        onClick();
-      }}
-      className={cn(
-        'group flex min-h-[7.5rem] flex-col items-center justify-center gap-2 rounded-[var(--radius-lg)]',
-        'border transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
-        presses > 0 && 'slab-press',
-        'active:translate-y-px disabled:pointer-events-none disabled:opacity-35',
-        tone === 'goal'
-          ? 'border-[var(--accent-strong)] bg-[var(--accent-strong)] text-white hover:brightness-110'
-          : tone === 'save'
-            ? 'border-line-strong bg-raised text-primary hover:border-[var(--success)] hover:bg-success-soft'
-            : 'border-line-strong bg-raised text-primary hover:border-[var(--warning)] hover:bg-warning-soft',
-      )}
-    >
-      {/* Drawn, not an emoji: these are the two largest marks on the console
-          and an emoji arrives at a different weight on every platform, ignores
-          the label colour underneath it, and reads as decoration stuck on. */}
-      {tone === 'goal' ? (
-        <SportMark sport="FOOTBALL" className="size-7" />
-      ) : tone === 'save' ? (
-        <span
-          aria-hidden
-          className="grid size-7 place-items-center rounded-full border-2 border-[var(--success)]"
-        >
-          <span className="size-2 rounded-full bg-[var(--success)]" />
-        </span>
-      ) : (
-        <span aria-hidden className="h-7 w-5 rounded-[2px] bg-[#e0b23c] ring-1 ring-black/25" />
-      )}
-      <span className="text-base font-semibold tracking-[0.01em] sm:text-lg">{label}</span>
-      <span
-        className={cn(
-          'px-1 text-center text-[0.6875rem] leading-tight',
-          tone === 'goal' ? 'text-white/75' : 'text-muted',
-        )}
-      >
-        {hint}
-      </span>
-    </button>
-  );
-}
-
-// ──────────────────────────────────────────────────────────  sheets ──
-
-interface SideData {
-  team: TeamRef;
-  squad: PlayerRef[];
-}
-
 function GoalSheet({
   open,
   home,
@@ -779,11 +937,7 @@ function GoalSheet({
   const scoringSide = teamId === home.team.id ? home : teamId === away.team.id ? away : null;
   // An own goal is credited to one side and scored by a player from the other,
   // so the player list has to come from the opposite team sheet.
-  const playerSide = isOwnGoal
-    ? scoringSide === home
-      ? away
-      : home
-    : scoringSide;
+  const playerSide = isOwnGoal ? (scoringSide === home ? away : home) : scoringSide;
 
   return (
     <Sheet
@@ -850,9 +1004,7 @@ function GoalSheet({
               />
               <span className="text-sm text-primary">
                 Own goal
-                <span className="ml-2 text-[0.8125rem] text-muted">
-                  put in by the other side
-                </span>
+                <span className="ml-2 text-[0.8125rem] text-muted">put in by the other side</span>
               </span>
             </label>
 
@@ -978,7 +1130,7 @@ function CardSheet({
                 <span
                   aria-hidden
                   className={cn(
-                    'h-4 w-3 rounded-[1px] ring-1 ring-black/25',
+                    'h-5 w-3.5 rounded-[1px] ring-1 ring-black/25',
                     option === 'RED_CARD' ? 'bg-[#c8332a]' : 'bg-[#e0b23c]',
                   )}
                 />
@@ -1051,6 +1203,7 @@ function TeamChoice({
  */
 function PlayerChoice({
   label,
+  caption,
   players,
   value,
   onChange,
@@ -1058,7 +1211,8 @@ function PlayerChoice({
   unknownLabel = 'Not sure',
 }: {
   label: string;
-  players: PlayerRef[];
+  caption?: string;
+  players: Choice[];
   value: string | null;
   onChange: (playerId: string | null) => void;
   allowUnknown?: boolean;
@@ -1067,6 +1221,7 @@ function PlayerChoice({
   return (
     <div className="flex flex-col gap-2">
       <p className="eyebrow">{label}</p>
+      {caption ? <p className="-mt-0.5 mb-1 text-[0.75rem] text-muted">{caption}</p> : null}
 
       <div className="flex flex-wrap gap-1.5">
         {players.map((player) => (
@@ -1085,6 +1240,9 @@ function PlayerChoice({
           >
             <FootballAvatar seed={player.id} name={player.name} size="xs" />
             {player.name}
+            {player.note ? (
+              <span className="mono text-[0.6875rem] text-muted">{player.note}</span>
+            ) : null}
           </button>
         ))}
 
