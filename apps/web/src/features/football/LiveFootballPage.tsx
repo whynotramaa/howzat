@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Feedback';
 import { Pill, TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { Tabs } from '@/components/ui/Tabs';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
@@ -95,7 +96,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
           />
         ) : snapshot ? (
           <div className="flex flex-col gap-6 sm:gap-8">
-            <Scoreboard snapshot={snapshot} />
+            <Scoreboard snapshot={snapshot} slug={slug} />
 
             <Tabs
               items={[
@@ -145,7 +146,9 @@ export function LiveFootballPage({ slug }: { slug: string }) {
   );
 }
 
-function Scoreboard({ snapshot }: { snapshot: FootballSnapshot }) {
+function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: string }) {
+  const finished = snapshot.status === 'COMPLETED' || snapshot.status === 'ABANDONED';
+
   return (
     <section className="rounded-[var(--radius-lg)] border border-line bg-raised px-5 py-7 sm:px-9 sm:py-9">
       <div className="flex items-center justify-between gap-3">
@@ -188,10 +191,21 @@ function Scoreboard({ snapshot }: { snapshot: FootballSnapshot }) {
         <TeamBlock side={snapshot.away} align="right" />
       </div>
 
-      {snapshot.resultText ? (
-        <p className="mt-7 border-t border-line pt-5 text-center text-sm text-success">
-          {snapshot.resultText}
-        </p>
+      {snapshot.resultText || finished ? (
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-4 border-t border-line pt-5">
+          {snapshot.resultText ? (
+            <p className="text-sm text-success">{snapshot.resultText}</p>
+          ) : null}
+
+          {/* Offered at full time and not before: a report of a match still
+              being played is a report of half a match. */}
+          {finished ? (
+            <PdfButton
+              variant="secondary"
+              build={() => import('@/lib/pdf').then((pdf) => pdf.buildFootballMatchPdf(slug))}
+            />
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

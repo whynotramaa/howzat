@@ -7,6 +7,7 @@ import { notFound } from '../../lib/errors';
 import { getSnapshot, loadEvents, loadInningsContext } from '../snapshot';
 import { getFootballSnapshot } from '../football/snapshot';
 import { getStandings } from '../standings/service';
+import { loadTournamentMatches } from '../tournaments/report';
 
 /**
  * The public surface behind a share link. No auth, no cookies, no organizer
@@ -155,7 +156,16 @@ publicRouter.get(
   }),
 );
 
-/** The points table, shareable without a login like everything else here. */
+/**
+ * The whole tournament, shareable without a login like everything else here:
+ * the full points table and *every* fixture, each carrying whatever it has
+ * produced — a scoreline and a result once it is over, a kick-off time while
+ * it is still to come.
+ *
+ * It used to answer with five fixtures and no scores, which made the public
+ * board a teaser for a page that did not exist. A tournament is a season, and
+ * the thing people want from a link to one is the season.
+ */
 publicRouter.get(
   '/tournaments/:tournamentId/standings',
   asyncHandler(async (req, res) => {
@@ -163,45 +173,47 @@ publicRouter.get(
 
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
-      select: { id: true, name: true, sport: true, format: true, status: true },
+      select: {
+        id: true,
+        name: true,
+        sport: true,
+        format: true,
+        status: true,
+        teamsCount: true,
+        playersPerTeam: true,
+        oversPerInnings: true,
+        periods: true,
+        periodMinutes: true,
+      },
     });
 
     if (!tournament) throw notFound('Tournament');
 
-    const matches = await prisma.match.findMany({
-      where: { tournamentId, team1Id: { not: null }, team2Id: { not: null } },
-      orderBy: [{ status: 'asc' }, { scheduledAt: 'asc' }, { round: 'asc' }],
-      take: 12,
-      include: {
-        team1: { select: { id: true, name: true, shortName: true, primaryColor: true } },
-        team2: { select: { id: true, name: true, shortName: true, primaryColor: true } },
-      },
-    });
+    const [items, matches] = await Promise.all([
+      getStandings(tournamentId),
+      loadTournamentMatches(tournamentId, tournament.sport),
+    ]);
 
-    const statusPriority: Record<string, number> = {
-      LIVE: 0,
-      INNINGS_BREAK: 1,
-      SCHEDULED: 2,
-      COMPLETED: 3,
-      ABANDONED: 4,
-    };
-    const featuredMatches = matches
-      .sort((a, b) => (statusPriority[a.status] ?? 9) - (statusPriority[b.status] ?? 9))
-      .slice(0, 5)
-      .map((match) => ({
-        id: match.id,
-        publicSlug: match.publicSlug,
-        round: match.round,
-        stage: match.stage,
-        status: match.status,
-        scheduledAt: match.scheduledAt?.toISOString() ?? null,
-        resultText: match.resultText,
-        team1: match.team1,
-        team2: match.team2,
-      }));
+    const live = matches.filter((match) =>
+      ['LIVE', 'INNINGS_BREAK'].includes(match.status),
+    ).length;
+    const completed = matches.filter((match) =>
+      ['COMPLETED', 'ABANDONED'].includes(match.status),
+    ).length;
 
     res.setHeader('Cache-Control', 'public, max-age=30');
-    res.json({ tournament, items: await getStandings(tournamentId), matches: featuredMatches });
+    res.json({
+      tournament,
+      items,
+      matches,
+      totals: {
+        total: matches.length,
+        completed,
+        live,
+        upcoming: matches.length - completed - live,
+      },
+      generatedAt: new Date().toISOString(),
+    });
   }),
 );
 

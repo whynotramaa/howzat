@@ -181,6 +181,59 @@ export interface StandingsRowDto {
   goalDifferenceText: string;
 }
 
+/**
+ * One fixture as it appears on a tournament report — the board, the results,
+ * and the shareable PDF, which are three renderings of the same list.
+ *
+ * `score` is the thing the old public payload was missing. A result line reads
+ * "Riverside won by 24 runs", which says who won but not what they made, and a
+ * report of a tournament nobody attended has to answer both.
+ */
+export interface TournamentMatchDto {
+  id: string;
+  publicSlug: string;
+  round: number;
+  stage: MatchStage;
+  status: MatchStatus;
+  scheduledAt: string | null;
+  venue: string | null;
+  resultText: string | null;
+  winnerTeamId: string | null;
+  team1: MatchTeamRef | null;
+  team2: MatchTeamRef | null;
+  /**
+   * Each side's figure, already formatted for the code being played —
+   * "165/6 (20.0)" in cricket, "2" in football. Null on a fixture that has not
+   * produced one, which is the honest answer for anything not yet played.
+   */
+  score: { team1: string | null; team2: string | null } | null;
+}
+
+/**
+ * A whole tournament in one payload: the table, and every fixture with whatever
+ * it has produced so far. Serves the public board and the PDF alike, so the two
+ * can never drift apart.
+ */
+export interface TournamentReportDto {
+  tournament: {
+    id: string;
+    name: string;
+    sport: Sport;
+    format: TournamentFormat;
+    status: TournamentStatus;
+    teamsCount: number;
+    playersPerTeam: number;
+    oversPerInnings: number;
+    periods: number;
+    periodMinutes: number;
+  };
+  items: StandingsRowDto[];
+  matches: TournamentMatchDto[];
+  /** Counted server-side so every consumer agrees on what "played" means. */
+  totals: { total: number; completed: number; live: number; upcoming: number };
+  generatedAt: string;
+}
+
 /** What fixture generation will produce, shown before anything is written. */
 export interface FixturePreviewDto {
   rounds: Array<{

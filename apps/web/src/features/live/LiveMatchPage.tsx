@@ -9,6 +9,7 @@ import { Pill, TeamMark } from '@/components/ui/Pill';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { BallChip } from '@/components/ui/Score';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { Tabs } from '@/components/ui/Tabs';
 import { Wordmark } from '@/components/Wordmark';
@@ -114,7 +115,7 @@ export function LiveMatchPage() {
           />
         ) : snapshot ? (
           <div className="flex flex-col gap-6 sm:gap-8">
-            <Scoreboard snapshot={snapshot} />
+            <Scoreboard snapshot={snapshot} slug={slug} />
 
             <Tabs
               items={[
@@ -161,7 +162,7 @@ export function LiveMatchPage() {
  * layout — which put the batting side alone above a large figure — made the
  * second team something you had to go looking for.
  */
-function Scoreboard({ snapshot }: { snapshot: MatchSnapshot }) {
+function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
   const { batting, bowling, required, target } = snapshot;
   const quota = batting.oversQuota;
   const finished = Boolean(snapshot.resultText);
@@ -248,10 +249,20 @@ function Scoreboard({ snapshot }: { snapshot: MatchSnapshot }) {
         ) : null}
 
         {snapshot.resultText ? (
-          <div className="mt-8 border-t border-line pt-6">
-            <p className="serif text-[1.75rem] leading-tight text-primary sm:text-[2.25rem]">
+          <div className="mt-8 flex flex-wrap items-end justify-between gap-x-8 gap-y-5 border-t border-line pt-6">
+            <p className="serif min-w-0 text-[1.75rem] leading-tight text-primary sm:text-[2.25rem]">
               {snapshot.resultText}
             </p>
+
+            {/* The card is offered here rather than in the bar, because this is
+                the moment it becomes worth having: the match is over, and what
+                was a live score is now a record. A card printed at 12.3 overs
+                would be a record of nothing. */}
+            <PdfButton
+              size="md"
+              variant="secondary"
+              build={() => import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(slug))}
+            />
           </div>
         ) : null}
       </div>

@@ -12,6 +12,7 @@ import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { cn } from '@/lib/cn';
 import { MatchScorersCard } from '@/features/matches/MatchScorersCard';
 import { Bench, Pitch } from './Pitch';
@@ -84,6 +85,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   const bothComplete = homeComplete && awayComplete;
 
   const started = match.status !== 'SCHEDULED' && match.status !== 'TOSS';
+  const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
 
   const lineups = useMemo(() => {
     if (!data || !homeSelection || !awaySelection) return { home: null, away: null };
@@ -137,6 +139,15 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
               slug={match.publicSlug}
               matchLabel={`${data.home.shortName} v ${data.away.shortName}`}
             />
+            {/* Only at full time — until then the report would be of a match
+                that is still happening. */}
+            {finished ? (
+              <PdfButton
+                build={() =>
+                  import('@/lib/pdf').then((pdf) => pdf.buildFootballMatchPdf(match.publicSlug))
+                }
+              />
+            ) : null}
           </>
         }
       />

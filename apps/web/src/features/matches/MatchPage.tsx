@@ -9,6 +9,7 @@ import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { useTournament } from '@/features/organizer/queries';
 import { cn } from '@/lib/cn';
 import {
@@ -186,6 +187,11 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
                   View scorecard
                 </Button>
               </a>
+              <PdfButton
+                build={() =>
+                  import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(match.publicSlug))
+                }
+              />
             </div>
           ) : null}
         </div>

@@ -10,6 +10,7 @@ import { TeamMark } from '@/components/ui/Pill';
 import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { useFixtures } from '@/features/matches/queries';
 import { cn } from '@/lib/cn';
 import { StandingsTable } from './StandingsTable';
@@ -229,6 +230,16 @@ export function TournamentDetailPage() {
             description="Recomputed from the innings records every time a result lands, so it never drifts."
           />
           <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
+
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-[0.9375rem] text-secondary">
+              The table, every result and the fixtures still to come, as one document.
+            </p>
+            <PdfButton
+              variant="secondary"
+              build={() => import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))}
+            />
+          </div>
         </section>
       ) : null}
 
