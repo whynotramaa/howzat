@@ -2,14 +2,6 @@ import type { ReactNode } from 'react';
 import type { MatchStatus } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
-/*
- * Status marks.
- *
- * Every pill in the system is a hairline outline with a soft wash — never a
- * saturated filled badge. The one exception is LIVE, which is allowed to be a
- * solid because it is the single most important state in the product.
- */
-
 type Tone = 'neutral' | 'accent' | 'success' | 'live' | 'warning';
 
 const tones: Record<Tone, string> = {
@@ -65,11 +57,6 @@ export function StatusPill({ status }: { status: MatchStatus }) {
   );
 }
 
-/**
- * A team's abbreviation on its own colour. The team colour is organizer-chosen
- * and could be anything, so the text is forced white with a hairline of the
- * same colour underneath — which keeps a pale kit from vanishing on a pale ground.
- */
 export function TeamMark({
   shortName,
   color,
@@ -91,7 +78,6 @@ export function TeamMark({
       className={cn(
         'grid shrink-0 place-items-center rounded-[var(--radius-sm)]',
         'font-semibold tracking-[0.06em] text-white',
-        // A dark inner ring keeps light kit colours legible against paper.
         'ring-1 ring-black/15 ring-inset',
         sizes[size],
       )}

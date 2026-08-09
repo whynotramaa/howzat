@@ -7,11 +7,6 @@ import { unauthorized } from '../../lib/errors';
 
 export const REFRESH_COOKIE = 'howzat_rt';
 
-/**
- * Identity only. Nothing here says what the holder may do — permissions are
- * read from the database per request, so revoking an assignment takes effect
- * without waiting for a token to expire.
- */
 export interface AccessTokenPayload {
   sub: string;
   email: string;
@@ -34,11 +29,6 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   }
 }
 
-/**
- * Refresh tokens are opaque random strings, not JWTs: they must be revocable,
- * and a stateless token cannot be revoked. Only the SHA-256 hash is stored, so
- * a database leak yields nothing replayable.
- */
 function generateRefreshToken(): { token: string; tokenHash: string } {
   const token = crypto.randomBytes(48).toString('base64url');
   return { token, tokenHash: hashToken(token) };
@@ -62,11 +52,6 @@ export async function issueRefreshToken(userId: string): Promise<string> {
   return token;
 }
 
-/**
- * Rotation: the presented token is revoked and a fresh one issued in the same
- * transaction. Presenting an already-revoked token is treated as theft and
- * burns every session for that user.
- */
 export async function rotateRefreshToken(
   presented: string,
 ): Promise<{ userId: string; token: string }> {
@@ -117,14 +102,7 @@ export function setRefreshCookie(res: Response, token: string): void {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: isProduction,
-    // 'lax' keeps the cookie on same-site XHR in dev (localhost:5173 →
-    // localhost:4000 counts as same-site); production behind one domain is fine.
     sameSite: isProduction ? 'strict' : 'lax',
-    // Site-wide, not '/auth'. A cookie path is matched against the URL the
-    // *browser* requests, and the browser never asks for /auth: in dev it is
-    // /api/auth/refresh through the Vite proxy, and in production the platform
-    // mounts the function under /api. Scoping it to /auth meant the cookie was
-    // set and then never sent again, so every reload came back signed out.
     path: '/',
     maxAge: parseDuration(env.JWT_REFRESH_TTL),
   });
@@ -134,7 +112,6 @@ export function clearRefreshCookie(res: Response): void {
   res.clearCookie(REFRESH_COOKIE, { path: '/' });
 }
 
-/** "15m" | "30d" | "3600" → milliseconds. */
 function parseDuration(input: string): number {
   const match = /^(\d+)\s*([smhd])?$/.exec(input.trim());
   if (!match) throw new Error(`Unparseable duration: ${input}`);

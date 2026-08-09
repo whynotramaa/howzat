@@ -1,15 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * The scoreboard vocabulary: figures that change, and the over strip.
- *
- * These are the pieces that have to look like a scorecard rather than a
- * dashboard. Everything is tabular, so nothing shifts width as the score moves,
- * and a changed figure lifts into place once — keyed on the value, so it fires
- * on the ball that changed it and on nothing else.
- */
-
 export function ScoreFigure({
   runs,
   wickets,
@@ -35,7 +26,6 @@ export function ScoreFigure({
         tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
       )}
     >
-      {/* Keyed on the value: React remounts it, the animation runs once. */}
       <span key={runs} className="figure-in">
         {runs}
       </span>
@@ -55,7 +45,6 @@ export function ScoreFigure({
   );
 }
 
-/** Overs, in mono, with the quota after it when there is one. */
 export function OversFigure({
   overs,
   quota,
@@ -90,10 +79,6 @@ export function OversFigure({
   );
 }
 
-/**
- * One delivery. A dot is a dot — the mark a scorer actually writes — not a zero,
- * and a wicket is the only chip allowed a solid fill.
- */
 export function BallChip({ display, isWicket }: { display: string; isWicket?: boolean }) {
   const wicket = isWicket || display.includes('W');
   const boundary = display === '4' || display === '6';
@@ -117,7 +102,6 @@ export function BallChip({ display, isWicket }: { display: string; isWicket?: bo
   );
 }
 
-/** The current over, laid out left to right the way it is written in a book. */
 export function OverStrip({
   balls,
   emptyLabel = 'No balls bowled yet this over',
@@ -135,7 +119,6 @@ export function OverStrip({
         <span
           key={ball.key}
           className="reveal"
-          // The over builds left to right on load, one ball after another.
           style={{ '--delay': `${index * 40}ms` } as React.CSSProperties}
         >
           <BallChip display={ball.display} isWicket={ball.isWicket} />
@@ -145,11 +128,6 @@ export function OverStrip({
   );
 }
 
-/**
- * A label and value on one line, separated by a leader rule — the layout a
- * printed scorecard uses, and the reason these read as records rather than rows
- * of a table.
- */
 export function LeaderRow({
   label,
   value,

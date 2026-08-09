@@ -6,23 +6,6 @@ import { TeamMark } from '@/components/ui/Pill';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 
-/**
- * The points table, for either code.
- *
- * Set as a ruled ledger rather than a striped grid: hairlines between rows, no
- * fills, figures in mono so the columns line up down the page. The tie-breaker
- * keeps its sign — net run rate in cricket, goal difference in football —
- * because a −0.42 and a 0.42, or a −3 and a +3, are the difference between
- * qualifying and going home.
- *
- * The inputs behind that number are shown on the wide layout on purpose. Every
- * disputed table in club sport is a disputed tie-breaker, and the argument ends
- * the moment the runs and overs, or the goals for and against, are on the same
- * screen as the number they produced.
- *
- * One table rather than two: eight of the eleven columns are identical in both
- * codes, and the three that are not are the last three.
- */
 export function StandingsTable({
   tournamentId,
   sport = 'CRICKET',
@@ -67,7 +50,6 @@ export function StandingsTable({
 
         <tbody>
           {data.items.map((row) => {
-            // The signed figure that decides the order, whichever code it is.
             const margin = isFootball ? row.goalDifference : row.nrr;
 
             return (
@@ -92,9 +74,6 @@ export function StandingsTable({
 
                 <Td>{row.played}</Td>
                 <Td>{row.won}</Td>
-                {/* Football reads W-D-L; cricket reads W-L-T-NR. Same two
-                    columns, swapped, because that is the order each sport's
-                    readers expect to find them in. */}
                 <Td>{isFootball ? row.tied : row.lost}</Td>
                 <Td>{isFootball ? row.lost : row.tied}</Td>
                 {isFootball ? null : <Td>{row.noResult}</Td>}

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildFootballState,
   footballResultText,
+  lastChangeFor,
   materializeFootballEvents,
   resolveOnPitch,
+  substitutionsRemaining,
 } from './reducer';
 import type { FootballContext } from './reducer';
 import type { FootballEvent } from '../types/football';
@@ -137,18 +139,12 @@ describe('materializeFootballEvents', () => {
 
 describe('footballResultText', () => {
   it('names a winner and the score', () => {
-    const result = footballResultText(
-      { name: 'Rovers', goals: 3 },
-      { name: 'United', goals: 1 },
-    );
+    const result = footballResultText({ name: 'Rovers', goals: 3 }, { name: 'United', goals: 1 });
     expect(result).toEqual({ text: 'Rovers won 3–1', winner: 'HOME' });
   });
 
   it('names no winner for a draw', () => {
-    const result = footballResultText(
-      { name: 'Rovers', goals: 2 },
-      { name: 'United', goals: 2 },
-    );
+    const result = footballResultText({ name: 'Rovers', goals: 2 }, { name: 'United', goals: 2 });
     expect(result).toEqual({ text: 'Match drawn 2–2', winner: null });
   });
 });
@@ -181,7 +177,6 @@ describe('substitutions', () => {
   });
 
   it('resolves a second change through the same position', () => {
-    // p2 off for p3, then p3 off for p4 — the shirt must end on p4, not p3.
     const state = buildFootballState(context, [sub('p3', 'p2'), sub('p4', 'p3')]);
     const onPitch = resolveOnPitch(starters, state.home);
 
@@ -197,8 +192,6 @@ describe('substitutions', () => {
   });
 
   it('drops a change naming somebody who is not on the pitch', () => {
-    // Rather than inventing a position for them. The server refuses these;
-    // this is the belt to that brace.
     const state = buildFootballState(context, [sub('p4', 'nobody')]);
     const onPitch = resolveOnPitch(starters, state.home);
 
@@ -224,5 +217,37 @@ describe('substitutions', () => {
 
     expect(state.incidents[0]?.playerName).toBe('Imran');
     expect(state.incidents[0]?.playerOffName).toBe('Sunil');
+  });
+
+  it('puts a player who has already come off back on the pitch', () => {
+    const state = buildFootballState(context, [sub('p3', 'p2'), sub('p2', 'p3')]);
+    const onPitch = resolveOnPitch(starters, state.home);
+
+    expect(onPitch.get(1)).toBe('p2');
+    expect(state.home.substitutions).toHaveLength(2);
+  });
+
+  it('counts every change, however often a player comes and goes', () => {
+    const state = buildFootballState(context, [
+      sub('p3', 'p2'),
+      sub('p2', 'p3'),
+      sub('p3', 'p2'),
+      sub('p4', 'p1'),
+    ]);
+
+    expect(state.home.substitutions).toHaveLength(4);
+    expect(substitutionsRemaining(state.home, null)).toBeNull();
+    expect(substitutionsRemaining(state.home, 5)).toBe(1);
+    expect(substitutionsRemaining(state.home, 3)).toBe(0);
+  });
+
+  it('reports the latest time a rolling substitute came on and went off', () => {
+    const state = buildFootballState(context, [sub('p3', 'p2'), sub('p2', 'p3'), sub('p3', 'p2')]);
+
+    const labels = state.home.substitutions.map((change) => change.minuteLabel);
+
+    expect(lastChangeFor(state.home, 'p3')).toEqual({ on: labels[2], off: labels[1] });
+    expect(lastChangeFor(state.home, 'p2')).toEqual({ on: labels[1], off: labels[2] });
+    expect(lastChangeFor(state.home, 'p1')).toEqual({ on: null, off: null });
   });
 });

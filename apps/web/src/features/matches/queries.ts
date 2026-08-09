@@ -14,14 +14,6 @@ import type {
 import { api } from '@/lib/api';
 import { keys as organizerKeys } from '@/features/organizer/queries';
 
-/**
- * Fixtures, match setup and the scoring write path.
- *
- * Split from the organizer queries because these keys are invalidated on a
- * different rhythm: a squad edit touches three screens once an hour, a ball
- * touches the console six times an over.
- */
-
 export const matchKeys = {
   fixtures: (tournamentId: string) => ['tournaments', tournamentId, 'matches'] as const,
   match: (matchId: string) => ['matches', matchId] as const,
@@ -64,8 +56,6 @@ interface BallResponse {
   matchCompleted?: boolean;
 }
 
-// ──────────────────────────────────────────────────────────  fixtures ──
-
 export function useFixtures(tournamentId: string) {
   return useQuery({
     queryKey: matchKeys.fixtures(tournamentId),
@@ -74,11 +64,6 @@ export function useFixtures(tournamentId: string) {
   });
 }
 
-/**
- * The dry run. A mutation rather than a query because it is an explicit act —
- * an organizer asks to see the schedule, they do not stumble into it — and
- * because the API answers 422 with the reason when the tournament is not ready.
- */
 export function usePreviewFixtures(tournamentId: string) {
   return useMutation({
     mutationFn: () => api.post<FixturePreviewDto>(`/tournaments/${tournamentId}/fixtures/preview`),
@@ -96,14 +81,11 @@ export function useGenerateFixtures(tournamentId: string) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: matchKeys.fixtures(tournamentId) });
-      // Generation flips the tournament to FIXTURES_GENERATED.
       void queryClient.invalidateQueries({ queryKey: organizerKeys.tournament(tournamentId) });
       void queryClient.invalidateQueries({ queryKey: organizerKeys.tournaments });
     },
   });
 }
-
-// ─────────────────────────────────────────────────────  match setup ──
 
 export function useMatch(matchId: string) {
   return useQuery({
@@ -140,7 +122,6 @@ export function useSetPlayingXi(matchId: string) {
   });
 }
 
-/** Opens innings one and takes the match live. */
 export function useStartMatch(matchId: string) {
   const queryClient = useQueryClient();
 
@@ -150,7 +131,6 @@ export function useStartMatch(matchId: string) {
   });
 }
 
-/** Resumes after the innings break — the second innings row already exists. */
 export function useResumeInnings(matchId: string) {
   const queryClient = useQueryClient();
 
@@ -170,8 +150,6 @@ export function useAbandonMatch(matchId: string) {
     onSuccess: () => invalidateMatch(queryClient, matchId),
   });
 }
-
-// ───────────────────────────────────────────────────────────  scorers ──
 
 export function useAssignScorer(tournamentId: string, matchId: string) {
   const queryClient = useQueryClient();
@@ -202,15 +180,11 @@ export function useRemoveScorer(tournamentId: string, matchId: string) {
   });
 }
 
-// ───────────────────────────────────────────────────────────  scoring ──
-
 export function useScorerState(matchId: string) {
   return useQuery({
     queryKey: matchKeys.state(matchId),
     queryFn: () => api.get<ScorerStateDto>(`/matches/${matchId}/state`),
     enabled: Boolean(matchId),
-    // The console is the writer, so it already knows when this changed; a
-    // background refetch would only fight the refetch each ball triggers.
     staleTime: 0,
   });
 }
@@ -237,17 +211,10 @@ export function useUndoBall(matchId: string) {
   });
 }
 
-/**
- * Any write to a match moves both the header (status, toss, result) and the
- * innings state, and the two are rendered on different screens — so they are
- * always invalidated together rather than case by case.
- */
 function invalidateMatch(queryClient: ReturnType<typeof useQueryClient>, matchId: string): void {
   void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
   void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
   void queryClient.invalidateQueries({ queryKey: matchKeys.squads(matchId) });
-  // The fixture list shows each match's status; it is keyed by tournament, so
-  // match the prefix rather than plumbing the tournament id through every call.
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'tournaments' && query.queryKey[2] === 'matches',
   });

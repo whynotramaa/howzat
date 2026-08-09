@@ -16,16 +16,6 @@ import {
   type PublicMatchHeader,
 } from './sources';
 
-/**
- * A football match as a printed match report.
- *
- * Football's record is not a table of figures the way cricket's is — it is a
- * sequence. So the document is built around the timeline: the score, then what
- * happened and when, then the two team sheets with each player's own tally
- * beside their name. That ordering is what makes the report readable by
- * somebody who was not there, which is the only reason it exists.
- */
-
 export async function buildFootballMatchPdf(slug: string): Promise<BuiltPdf> {
   const [header, snapshot] = await Promise.all([
     fetchMatchHeader(slug),
@@ -108,13 +98,7 @@ export function renderFootballMatchPdf(
   };
 }
 
-// ──────────────────────────────────────────────────────────  the result ──
-
-function renderResult(
-  doc: ReportDoc,
-  header: PublicMatchHeader,
-  snapshot: FootballSnapshot,
-): void {
+function renderResult(doc: ReportDoc, header: PublicMatchHeader, snapshot: FootballSnapshot): void {
   doc.heading('The result', header.resultText ? 'Full time' : 'Score');
 
   const decided = snapshot.home.goals !== snapshot.away.goals;
@@ -126,7 +110,8 @@ function renderResult(
     doc.scoreLine({
       color: hexToRgb(side.color),
       name: side.name,
-      detail: scorers ?? `${side.saves} saves  ·  ${side.yellowCards} yellow  ·  ${side.redCards} red`,
+      detail:
+        scorers ?? `${side.saves} saves  ·  ${side.yellowCards} yellow  ·  ${side.redCards} red`,
       figure: String(side.goals),
       won: decided ? side.goals > other.goals : undefined,
     });
@@ -146,10 +131,10 @@ function renderResult(
   }
 }
 
-/** "Okafor 12', 61'  ·  Silva 78'" — the line under a scoreline on a card. */
 function scorerLine(snapshot: FootballSnapshot, teamId: string): string | null {
   const goals = snapshot.incidents.filter(
-    (incident) => incident.teamId === teamId && (incident.kind === 'GOAL' || incident.kind === 'OWN_GOAL'),
+    (incident) =>
+      incident.teamId === teamId && (incident.kind === 'GOAL' || incident.kind === 'OWN_GOAL'),
   );
 
   if (goals.length === 0) return null;
@@ -157,25 +142,15 @@ function scorerLine(snapshot: FootballSnapshot, teamId: string): string | null {
   const byPlayer = new Map<string, string[]>();
 
   for (const goal of goals) {
-    const name =
-      (goal.playerName ?? 'Unknown') + (goal.kind === 'OWN_GOAL' ? ' (og)' : '');
+    const name = (goal.playerName ?? 'Unknown') + (goal.kind === 'OWN_GOAL' ? ' (og)' : '');
     const minutes = byPlayer.get(name) ?? [];
     minutes.push(goal.minuteLabel);
     byPlayer.set(name, minutes);
   }
 
-  return [...byPlayer]
-    .map(([name, minutes]) => `${name} ${minutes.join(', ')}`)
-    .join('   ·   ');
+  return [...byPlayer].map(([name, minutes]) => `${name} ${minutes.join(', ')}`).join('   ·   ');
 }
 
-// ─────────────────────────────────────────────────────────────  summary ──
-
-/**
- * The two sides' tallies against each other, home in the left column and away
- * in the right, with the label between them. It is the only layout that lets a
- * reader compare two numbers without moving their eye across a whole row.
- */
 function renderSummary(doc: ReportDoc, snapshot: FootballSnapshot): void {
   doc.heading('Match summary', 'How it was played');
 
@@ -214,8 +189,6 @@ function countKind(snapshot: FootballSnapshot, teamId: string, kind: string): nu
   ).length;
 }
 
-// ────────────────────────────────────────────────────────────  timeline ──
-
 function renderTimeline(doc: ReportDoc, snapshot: FootballSnapshot): void {
   doc.heading('The timeline', 'Minute by minute', `${snapshot.incidents.length} incidents`);
 
@@ -224,8 +197,6 @@ function renderTimeline(doc: ReportDoc, snapshot: FootballSnapshot): void {
     return;
   }
 
-  // Oldest first. On screen the newest matters most because the match is still
-  // going; on paper it is over, and a story reads forwards.
   const ordered = [...snapshot.incidents].sort((a, b) => a.seq - b.seq);
 
   doc.table({
@@ -271,8 +242,6 @@ function detailOf(incident: FootballIncident): string {
 
   return '';
 }
-
-// ─────────────────────────────────────────────────────────────  lineups ──
 
 function renderLineups(doc: ReportDoc, snapshot: FootballSnapshot): void {
   for (const [lineup, side] of [

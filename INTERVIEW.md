@@ -44,7 +44,7 @@ The first ten minutes. They're deciding whether you understand the *problem* or 
 
 *Testing: can you describe a system at the right altitude, and do you know who the user is.*
 
-A live cricket scoring platform for club and street cricket. Three users. The **organizer** creates a tournament, registers squads, generates fixtures and assigns scorers. The **scorer** runs a console for one match — one tap per ball. The **spectator** gets a URL, with no account and no app install, and sees the score update live.
+I’d describe Howzat as a live scoring app for club and street cricket. There are really three users: an organizer who sets up the tournament and assigns scorers, a scorer who records one match ball by ball, and a spectator who just opens a link and follows the score. The scorer gets the full console, but the spectator should not need an account or an app install.
 
 That third one drives most of the architecture. The people who actually want the score are a parent at work or a teammate on a bus, and any friction between them and the number loses them. So the public surface is a random unguessable slug, its own no-auth router with a hand-picked response shape, and a WebSocket that carries the score without ever asking who's watching.
 
@@ -59,7 +59,7 @@ Because it removes the one thing I could have leaned on for security — identit
 
 *Testing: do you actually know your own request path, end to end, across both processes.*
 
-Client side: it validates locally with the same `validateBall` the server runs, generates a `clientEventId` (a UUID), writes the ball to IndexedDB, and — if online — POSTs `/matches/:id/balls`. The console re-renders immediately from an optimistic fold, so the tap feels instant regardless of the network.
+On the client, the tap is checked immediately with the same `validateBall` logic used by the server. I create a UUID as `clientEventId`, save the ball to IndexedDB first, and then POST it if the device is online. The screen updates optimistically, so the scorer gets instant feedback even if the connection at the ground is slow.
 
 Server side, in order: `requireAuth` verifies the bearer JWT → `requireScorerForMatch` checks match-level authorization from a 60-second Redis cache → the ball-write rate limiter increments a Redis counter → acquire `lock:match:{id}` → look up the `clientEventId`, and if it exists, short-circuit and return the current snapshot with a 200 → load the innings' event log and fold it with `buildState` → `validateBall` against that folded state → insert the `BallEvent` at `seq + 1` → fold again including the new event → project a snapshot → write it to Redis, guarded by `lastEventSeq` → publish `ball` on the event bus → release the lock → respond 201 with the snapshot.
 
@@ -74,7 +74,7 @@ Everything after the Postgres insert. The snapshot write is wrapped in a try/cat
 
 *Testing: whether you can identify difficulty, as opposed to volume.*
 
-Not the cricket — the fact that the same score has to be correct in five places at once: Postgres, the Redis snapshot, the scorer's optimistic screen, every viewer's socket-fed screen, and the points table. Five things that can disagree is not five bugs, it's ten pairwise disagreements, and each one looks like "the number is wrong" with no way to tell which side lied.
+The hardest part was keeping one score consistent across several places: Postgres, the Redis snapshot, the scorer’s optimistic screen, all the viewer screens, and the points table. When those disagree, the first problem is not fixing the number; it is figuring out which version is trustworthy.
 
 The insight was to make exactly one of them the truth and every other one a *pure function* of it. `BallEvent` is append-only and authoritative; `buildState` is a pure fold with no I/O, no `Date.now()` and no randomness. Once that was true, the four other views weren't four implementations that had to be kept in agreement — they were four callers of one function, agreeing by construction. And it made the cache genuinely disposable, because "rebuild it" and "compute it" are the same code path.
 
@@ -87,7 +87,7 @@ Three things I use daily. The client can render an optimistic score by folding q
 
 *Testing: scope judgment. Juniors build everything; seniors defend a boundary.*
 
-The rule I applied: cut anything that needs data the club game doesn't have, or that doubles the domain surface without changing whether the app works at a ground.
+I tried to keep the first version focused on what a club scorer actually needs at the ground. If a feature needed data we did not have, or introduced a large new rules system without improving the basic scoring flow, I left it out.
 
 Out of scope by that test: venue-clash detection and calendar scheduling — fixture generation never depends on dates, which is why `scheduledAt` is nullable and the round-robin generator is a pure function of team ids. DLS, super overs, powerplays and bowler over-quotas: all enforceable additions to `validateBall`, none of which change the storage model, which is itself the argument that the model is right. Live commentary and video. And real-time collaborative scoring with two scorers on one match, which I'll come back to as a genuine gap rather than a clean cut.
 
@@ -100,7 +100,7 @@ The ones where breaking them produces a scorecard nobody can reconcile afterward
 
 *Testing: can you reason about scale without hand-waving "add more servers".*
 
-Not the writes. A ball is a few hundred bytes, and even at thousands of concurrent matches you're in the low hundreds of writes per second, which one Postgres handles without noticing.
+I would expect fan-out to become the first problem, rather than the ball writes. A ball is small, and even a lot of simultaneous matches is still a fairly manageable write rate for Postgres.
 
 What breaks first is **fan-out**. Every ball broadcasts a full snapshot — 2–3KB — to every viewer of that match, and the Redis adapter publishes each emit to *every* instance regardless of whether that instance has a subscriber. So the cost is snapshot × viewers × instances, in both egress and pub/sub bandwidth. That's the number that makes deltas necessary, and it's the specific threshold where "self-healing is worth the bytes" stops being true.
 
@@ -119,7 +119,7 @@ First, deltas with a periodic keyframe — that's an order of magnitude off the 
 
 *Testing: whether the monorepo is a habit or a decision.*
 
-Because the scoring reducer has to run identically on the client and the server. In separate repos that's a published package and a version bump every time a cricket rule changes, plus a window where the two are on different versions and silently disagree about the score. In one workspace it's an import.
+The main reason is that the scoring reducer has to behave exactly the same on the client and the server. If those lived in separate repositories, every rule change would require publishing and updating a package, and there would be a risk that the two sides briefly used different versions. In the monorepo it is just one shared import.
 
 `shared` holds the domain with no I/O: the reducer and validator, over and rate formatting, the round-robin generator, NRR and standings aggregation, the qualification engine, every zod request schema, and the typed socket event map. It has no dependency on Prisma, Express or React — which is what makes it testable in milliseconds and reusable in a browser.
 
@@ -134,7 +134,7 @@ No build step means no stale `dist` and no watch-mode desync during development.
 
 *Testing: coupling between application and deployment.*
 
-Because the moment `listen` is inside your app factory, you've welded your application to one deployment model. `createApp` returns an Express app and nothing else, so it's host-agnostic: `index.ts` wraps it in an `http.Server` and listens, `vercel.ts` mounts it under `/api` and exports the server without listening, and a test can hand it to supertest with no port at all.
+I kept `listen()` out of `createApp()` so the application is not tied to one hosting model. The factory only builds the Express app. The normal entrypoint creates a server and listens, the Vercel entrypoint exports it, and tests can pass the app straight to supertest without opening a port.
 
 The two entrypoints differ in exactly three ways that can't be expressed as conditionals. The serverless one exports rather than listens, because the platform owns the socket and hands us the upgrade. It mounts the app under `/api` on an outer Express instance, because the platform's rewrite preserves the original path — `/api/health` arrives as `/api/health`, not `/health` — so Express strips the prefix and every route stays mounted where it already expects to be. And it registers no signal handlers, because the platform freezes or discards instances rather than sending SIGTERM.
 
@@ -149,7 +149,7 @@ So a cold start has its subscribers in place before the request that woke it up 
 
 *Testing: can you justify an abstraction with something it actually paid for.*
 
-It's about fifty lines, and it earned them twice.
+It is a small abstraction, but it solves two practical problems for me. The write code does not need to know anything about socket.io, and the same event can also be consumed by subscribers such as the standings rebuild.
 
 The write path calls `publishMatchEvent('ball', payload)` and does not import socket.io. The bus does two distinct things with that: it hands the envelope to a pluggable *transport publisher* (attached by `attachRealtime`, and a no-op that logs and drops if nothing is attached), and it awaits any registered *in-process subscribers*. Those are genuinely different concerns — pushing to browsers versus recomputing the points table — and a naive `io.emit` inside the service would have fused them permanently.
 
@@ -164,7 +164,7 @@ An afternoon. Delete `realtime/io.ts`, drop `attachRealtime` from both entrypoin
 
 *Testing: whether Redis is there because it's fashionable.*
 
-Four things, and I applied one test to each: can I delete it with no loss of correctness?
+Redis has four jobs here: caching snapshots, coordinating the per-match lock, carrying events between API instances, and holding short-lived counters and lookups. My test for each use was simple: if Redis disappeared, would I lose correctness or would the system just become slower?
 
 **Snapshot cache** — so a viewer's read doesn't re-fold an event log. **Distributed lock** for the per-match write path. **Pub/sub for cross-instance socket fan-out**, which is the one with no real Postgres alternative: `LISTEN/NOTIFY` doesn't survive a transaction-mode pooler, which is exactly what Neon puts in front of the database. And **ephemeral counters** — rate limits, viewer sets, the authz cache, slug resolution — which are write-heavy, disposable, and a terrible use of durable storage.
 
@@ -179,7 +179,7 @@ Reads survive: `readCachedSnapshot` catches and returns null, so every read rebu
 
 *Testing: technology choice as trade-off rather than preference.*
 
-Express because it's the boring choice, and for a project whose value is in the domain and the realtime layer, boring middleware is correct. Fastify is faster at the router level, which is irrelevant when a ball write is dominated by two Redis round-trips and a Postgres insert. NestJS would have added a DI framework and decorators to an app with about twenty routes. tRPC was genuinely tempting for the end-to-end types — but the API also serves an unauthenticated public surface addressed by slug, and REST resources map cleanly onto a domain that is literally nested resources.
+I chose Express mainly because it is familiar and unobtrusive. The interesting work in this project is the scoring domain and realtime behaviour, not squeezing a little more speed out of the router. Fastify would be a reasonable choice, and tRPC was tempting for the types, but REST fits the public slug-based API and Express kept the application straightforward.
 
 Prisma because the schema *is* the model, migrations are generated and reviewable as SQL, and the generated types flow into the shared DTOs. Its real weakness is that relation loads become N+1 if you're careless, and I have exactly one instance of that, which I know about. If the read side got heavier I'd drop to raw SQL for those specific aggregates rather than switch ORM — the ORM isn't the problem, one loop is.
 
@@ -196,7 +196,7 @@ Prisma because the schema *is* the model, migrations are generated and reviewabl
 
 *Testing: whether you have a mental model or just a list of tables.*
 
-Four clusters. **Identity**: `User`, `RefreshToken`, `OtpCode`, `Notification`. **Setup**: `Tournament` → `Team` → `Player`, plus `ScorerAssignment`. **Match**: `Match` → `Innings` → `BallEvent`, with `MatchPlayer` freezing the XI at toss. **Projections**: `PointsTable` and `PlayerMatchStats`.
+I think of the schema in four groups. There is identity and notifications, tournament setup, the match and its innings, and then the read-side projections. The important distinction is that `BallEvent` and the setup data are authoritative; the Redis snapshot, points table, and player statistics can all be rebuilt.
 
 The line that matters is between the third cluster and the fourth. Truth is `BallEvent` plus the setup tables. Derived is `PointsTable`, `PlayerMatchStats`, the Redis snapshot, and the standings and stats caches.
 
@@ -211,7 +211,7 @@ Because incrementing isn't idempotent. Replay the event and a team gets four poi
 
 *Testing: modelling instinct — do you model people or relationships.*
 
-Because role isn't a property of a person, it's a property of a relationship. Whoever creates a tournament is its organizer. Whoever holds a `ScorerAssignment` for a match is that match's scorer. The same account routinely organises their own league on Sunday and scores someone else's final on Tuesday — a role column would have meant asking at signup and then working around the answer forever.
+I did not want to make role a permanent property of the user. In this product, someone can organize their own tournament and still be a scorer in somebody else’s match. So the role comes from the relationship: tournament ownership makes someone an organizer, and a `ScorerAssignment` makes them a scorer for that particular match.
 
 The consequence runs all the way through the authorization layer: there is no `requireRole` middleware anywhere in this codebase. Every authorization question is about a specific object — do you own this tournament, do you own this match's tournament or hold an assignment for it. A coarse "is an organizer" gate would be either redundant with the object-level check or actively wrong.
 
@@ -224,7 +224,7 @@ For the match check, it would, which is why `requireScorerForMatch` caches a def
 
 *Testing: can you defend normalisation against a "why not just one table" challenge.*
 
-`User` is an account. `Player` is a **squad slot** — one row per person per team per tournament, which is why it carries `teamId` and a *nullable* `userId`. `MatchPlayer` is the **playing XI for one match**.
+I separate those concepts because they represent different things. `User` is the login account. `Player` is a person in a tournament squad, and it can exist without an account. `MatchPlayer` is the actual XI selected for one match.
 
 Collapsing any two loses something real. Without `Player`, you can't have a squad member who doesn't have an account — and that's the common case in club cricket, someone who just turned up to play. Those get a generated `guest_…` username so the UI has something stable and the scorer has something unambiguous to tap. Without `MatchPlayer`, you can't have a squad larger than eleven or a different eleven next week, which is every real team.
 
@@ -237,7 +237,7 @@ Because a career profile is defined as the sum of `PlayerMatchStats` across ever
 
 *Testing: whether event sourcing is a buzzword or a decision with consequences.*
 
-Three payoffs, and one real cost.
+The append-only design gives me three useful things, although it also makes bad input harder to repair.
 
 **Auditability**: a disputed six is answerable, because the ball, its author and its timestamp are all still there. **Idempotency**: a retry is a duplicate key, not a double-count — which is what makes an offline queue safe to replay at all. **Rebuildability**: every derived number is a fold of the log, which is what let me put the snapshot in Redis behind a TTL and stop worrying about cache coherence.
 
@@ -252,7 +252,7 @@ Two event types, both appends. A `CORRECTION` carries replacement data and names
 
 *Testing: this is the subtle one. Do you understand your own materialisation step.*
 
-Because a correction is an **instruction, not a delivery**. `materializeEvents` runs before every fold: it walks the log in `seq` order, collects every `CORRECTION` keyed by the ball it supersedes and every `UNDO` as a removal, then emits only `BALL` rows — skipping removed ones and *substituting* the replacement into the position of the ball it replaces.
+The key is that a correction is treated as an instruction, not as a new delivery. Before folding, `materializeEvents` walks the log in sequence order, finds corrections and undos, and produces the effective list of balls. The replacement is put back in the original ball’s position, so the ticker still follows the order in which the deliveries happened.
 
 So the correction is stored at a later `seq` for auditing, but it is never folded in its own position. And the substituted event explicitly keeps the **original's** `overNumber` and `ballNumber`, because those describe where in the innings the delivery happened — that's a fact about the past, and a correction isn't allowed to move it. Everything else comes from the correction.
 
@@ -267,7 +267,7 @@ It lives in three places — the reducer, the standings' `fillInningsTotals`, an
 
 *Testing: sequencing and uniqueness, which is where the concurrency answer starts.*
 
-Monotonic and gap-free per innings, assigned server-side as `lastEventSeq + 1` inside the match lock. Per-innings rather than per-match because an innings is the unit the reducer folds.
+`seq` is the server-assigned position of an event within an innings. Under the match lock, the next event gets `lastEventSeq + 1`, so it should be monotonic and gap-free. I keep it per innings because that is the unit the reducer processes.
 
 It carries three jobs. `@@unique([inningsId, seq])` is a **correctness constraint** — two balls physically cannot claim the same position, which is the backstop if the lock ever fails. Client-side, `isNewerSnapshot` compares it to discard an out-of-order broadcast, so a delayed message can't visibly rewind a viewer's score. And `hasSequenceGap` detects that more than one event was missed and triggers a refetch.
 
@@ -282,7 +282,7 @@ The consequence worth knowing: a new innings restarts the sequence at 1. That's 
 
 *Testing: whether you can break a rule deliberately and say why.*
 
-Three, each for a different reason.
+There are a few places where I deliberately repeated data because it makes the hot path safer or simpler.
 
 **Player ids on every ball.** Each `BallEvent` carries `strikerId`, `nonStrikerId` and `bowlerId`. That's what makes the reducer simple: because the event names its own participants, the reducer never has to *infer* who came in after a wicket or who's bowling this over — the scorer already declared it, and the log is self-describing in isolation. If I inferred it, a correction mid-innings would silently change who was on strike for every subsequent ball. Three cuids per row is cheap for that.
 
@@ -299,7 +299,7 @@ Because decimal overs are a lie. 98 balls is 16.333… overs for arithmetic and 
 
 *Testing: events versus state — a genuine modelling distinction.*
 
-Because "you were added to a squad" is an *event*, and by the time someone reads it the squad may have changed again. A query over current state can only tell you what's true now, not what a person was told — so if they were added and then removed, the notice has to survive.
+I treat a notification as a record of something that happened, not just a view of what is true now. If someone was added to a squad and later removed, a query over the current squad would lose the fact that they were notified. Storing the row also lets me preserve the exact message that was sent.
 
 The copy is frozen at write time for the same reason: a notification that re-renders itself from live data is a notification that can quietly start saying something the recipient was never sent. And the context columns — `tournamentId`, `teamId`, `matchId` — are nullable and deliberately *not* foreign-key constrained, because a deleted tournament must not delete the notice that you were once added to it.
 
@@ -412,7 +412,7 @@ This is the round that separates people who wired an API from people who thought
 
 *Testing: can you name a concrete race, not just say "concurrency".*
 
-Two requests both read `lastEventSeq = 41`, both fold the same state, both validate against it, and both try to insert `seq = 42`.
+The simplest race is two requests arriving together when the last sequence is 41. Both read 41, both validate against the same old state, and both try to insert sequence 42.
 
 The obvious harm is the collision. The subtler harm is worse: before either insert lands, both have *validated against a state that doesn't include the other's ball*. So a ball that should have been rejected as the seventh delivery of an over gets accepted, because the over looked incomplete to both of them.
 
@@ -427,7 +427,7 @@ And the realistic trigger isn't two scorers — it's one scorer's phone retrying
 
 *Testing: the hostile follow-up. Do you know the limits of your own tool.*
 
-You're right that it isn't a correctness guarantee, and I wouldn't claim it is. Single-node Redis gives no formal mutual exclusion, and Redlock exists to raise that bar — though Redlock is itself contested, because Kleppmann's point stands: without fencing tokens, no lease protects a resource against a paused holder.
+That criticism is fair: a single-node Redis lease is not a formal correctness guarantee. I would not pretend that it is. The lock is there to coordinate normal writers; the database constraints are what stop an invalid event from being persisted.
 
 So I deliberately made the lock a **contention optimiser**, not the guarantee, and put correctness in the database. `@@unique([inningsId, seq])` makes two balls at the same position physically impossible to persist. `clientEventId` being unique makes a duplicate submission a constraint violation I explicitly catch and convert into an idempotent success.
 
@@ -442,7 +442,7 @@ It isn't, and that comment overstates it — it should say "under the lock". The
 
 *Testing: whether you understand that idempotency is a client-server contract, not a server trick.*
 
-The **client** generates `clientEventId` — a UUID — before the first attempt, and reuses that exact value for every retry of that ball. That's the crucial part and it's why a server-generated id can't work: the server needs the client to say "this is the same ball I sent before," and only the client knows.
+The client creates a UUID called `clientEventId` before the first attempt and keeps it for every retry. That is important because only the client knows that several requests represent the same tap.
 
 Server side there are two nets. The common path is a lookup on `clientEventId`; if it exists, short-circuit and return the current snapshot. The second net is catching `P2002` on the insert, because two requests for the same id can both pass the lookup before either commits — the check alone is a 500 under concurrency, and the catch alone would make every ordinary duplicate an exception.
 
@@ -457,7 +457,7 @@ Correct — by spec, GET, PUT, DELETE and HEAD are idempotent and POST is not. M
 
 *Testing: dual-write awareness. The wrong answer is claiming they are.*
 
-They aren't, there's no distributed transaction between them, and pretending otherwise would be dishonest. The design makes it not matter.
+They are not atomic, and there is no distributed transaction between them. I designed the system so that this does not affect correctness: Postgres is the source of truth and Redis is only a rebuildable projection.
 
 Postgres holds the truth. Redis holds a projection that is derivable from it. Every read goes through `getSnapshot`, which falls back to a rebuild on a miss. So a crash between the two writes costs a stale or missing snapshot, which self-heals on the next read. The ordering is load-bearing: Postgres first, always — the opposite order would let the cache advertise a ball that isn't durable.
 
@@ -472,7 +472,7 @@ No, it isn't, and there's a residual window. The lock makes it narrow — both w
 
 *Testing: will you admit a gap and describe the fix, or bluff.*
 
-The system stays *consistent* and produces *wrong* content, and those are different things.
+The data stays structurally consistent, but the product can still record the wrong content. Those are different problems.
 
 The lock serialises them, so the log stays valid — monotonic sequence numbers, no collisions, every ball validated against the state before it. But they're both entering their own view of the same over, so you get double-scored balls. And `clientEventId` doesn't help at all, because two people scoring the same six generate two different UUIDs — idempotency deduplicates *retries*, not *observations*.
 
@@ -487,7 +487,7 @@ A single-writer claim: a Redis key holding the current scorer for a live match w
 
 *Testing: whether cache invalidation is a strategy or a scattering of TTLs.*
 
-Two patterns, chosen per cache by whether a write path exists.
+I use two broad caching patterns, depending on whether there is a clear write path that can refresh or invalidate a value.
 
 **Write-through with explicit invalidation**, where something changes it: the match snapshot is overwritten on every ball (seq-guarded, 6-hour TTL that's really just garbage collection, since the write path always refreshes it). Standings are deleted at the end of every recompute, with a 5-minute TTL as a safety net. Tournament stats are deleted after a player-stats rebuild, with 60 seconds — short because an organizer refreshes the leaderboard repeatedly while a tournament runs, and I'd rather they see a slightly stale Orange Cap than hammer a heavy aggregate. Match authorization is invalidated by `invalidateMatchAuthz` when an assignment changes, which `SCAN`s the match's keys when no specific user is given.
 
@@ -514,7 +514,7 @@ A WebSocket is a full-duplex, persistent TCP connection between browser and serv
 
 Versus **polling**, which pays a full request, headers and connection setup per check and is always latency-bound by the interval. Versus **SSE**, which is a long-lived HTTP response streaming `text/event-stream`, server-to-client only, with automatic reconnection and `Last-Event-ID` built in.
 
-SSE is the fair challenge, because my fan-out genuinely is one-directional. Three reasons I still chose WebSockets. The client isn't purely passive — it sends `join` and `leave` for a specific match room, and with SSE that's a second out-of-band HTTP channel plus server-side session correlation. Viewer counting depends on knowing precisely when a connection goes away, and SSE disconnects are noticed late and unreliably. And HTTP/1.1's six-connections-per-origin limit makes a long-lived SSE stream a real cost on a page that also fetches.
+SSE is a fair alternative because the score mostly travels one way. I still chose WebSockets because the client sends `join` and `leave`, viewer counting depends on knowing when a connection closes, and a long-lived SSE request would also consume one of the browser’s connections to the origin.
 
 **→ If they push: "if the product became purely one-way, would you switch?"**
 Yes, and I'd say so. SSE would be a legitimate simplification — it's plain HTTP, it traverses proxies that mangle upgrades, and reconnection with replay is in the spec rather than in a library. The thing that would make me keep WebSockets is the viewer count, which is a product feature that depends on precise disconnect detection.
@@ -525,7 +525,7 @@ Yes, and I'd say so. SSE would be a legitimate simplification — it's plain HTT
 
 *Testing: whether you chose the library or inherited it.*
 
-The honest answer: because of the Redis adapter and rooms, which are the two things I would otherwise have written badly.
+The honest answer is that I wanted the Redis adapter and rooms without writing that infrastructure myself.
 
 With raw `ws` I'd hand-roll room membership and the match→sockets map; cross-instance fan-out over Redis pub/sub, including not re-delivering my own messages; client reconnection with backoff and jitter; heartbeats and dead-connection detection; and packet encoding. That's several hundred lines of infrastructure with subtle bugs, in a project whose value is the cricket domain. `@socket.io/redis-adapter` is one line and it is the *entire* horizontal scaling story.
 
@@ -542,7 +542,7 @@ Transport negotiation. socket.io defaults to establishing the session over HTTP 
 
 *Testing: do you actually understand horizontal scaling, or does it just work on your laptop.*
 
-Via the Redis adapter. When instance A calls `io.to('match:x').emit('ball', payload)`, the adapter publishes the encoded packet — plus the broadcast options, target rooms, exclusions, and the originating instance's id so it doesn't double-deliver to itself — to a Redis pub/sub channel. Every instance is subscribed. Each one receives it and re-emits to *its own* locally-connected sockets in that room. So instance A never needs to know that instance B, or the socket on it, exists.
+The Redis adapter handles it. Instance A publishes the socket event to Redis, and every API instance receives it. Instance B then emits the event only to its own sockets that joined `match:<matchId>`. A does not need to know which instance owns a particular viewer connection.
 
 Rooms are the addressing scheme: a room is a server-side set of socket ids you broadcast to by name. I use exactly one pattern, `match:<matchId>`, produced by a shared `matchRoom()` helper so client and server cannot disagree about the string. A ball in one match therefore costs nothing to viewers of any other match.
 
@@ -557,7 +557,7 @@ It is, and then I owe: correct room bookkeeping on disconnect, self-delivery sup
 
 *Testing: this is the question where the serverless-specific insight lives.*
 
-A Redis **sorted set** per match, `viewers:<matchId>`, holding socket ids scored by join timestamp. On join it's one `MULTI`: `ZADD`, then `ZREMRANGEBYSCORE` to prune anything older than 15 minutes, then `EXPIRE` to refresh the key, then `ZCARD` — one round-trip, consistent count. On leave or disconnect it's `ZREM` plus `ZCARD`.
+I keep a Redis sorted set per match, with socket IDs scored by their join time. On join I add the socket, remove entries older than fifteen minutes, refresh the expiry, and read the count. On leave or disconnect I remove it and read the count again.
 
 The obvious implementation is the adapter's `fetchSockets()`, and it cannot work here. `fetchSockets()` broadcasts a request and waits for **every subscribed instance to answer**. On a platform that *freezes* idle instances, a frozen instance still holds its Redis subscription — so it's counted among the expected responders, and it will never reply. The call stalls for its full timeout and then fails. A sorted set has no dependency on who happens to be awake.
 
@@ -572,7 +572,7 @@ Because during `disconnecting` the socket's rooms are still attached, so I can i
 
 *Testing: an explicit trade-off with a known breaking point.*
 
-It's a couple of KB larger on the wire and it buys self-healing.
+It costs a couple of extra kilobytes per ball, but it makes the client self-healing.
 
 A client that misses one message is corrected by the next. That means no replay protocol, no gap-filling request, and no server-side per-client buffer — three pieces of machinery that don't exist because of this one decision. `seq` monotonicity is then enough to discard an out-of-order arrival.
 
@@ -589,7 +589,7 @@ I know exactly where it breaks. A snapshot is 2–3KB; the cost is snapshot × v
 
 *Testing: the client lifecycle, including failure.*
 
-`useLiveMatch` is snapshot-first, then subscribe. `GET /public/matches/:slug/snapshot` resolves the slug from a Redis cache, reads the snapshot from Redis or rebuilds it by folding the log, and returns the current score — that renders immediately, before any socket exists. Then the socket connects, emits `join` with the match id, the server adds it to the room and `ZADD`s the viewer set, and echoes `joined` with the count. From then on, every ball arrives as a push.
+`useLiveMatch` loads the snapshot first and subscribes second. The HTTP request resolves the slug, reads or rebuilds the snapshot, and renders the current score before the socket exists. Then the socket joins the match room and the server adds it to the viewer set. From that point, new balls arrive as pushes.
 
 That ordering is the whole point: the page is useful before the socket is open, and a slow or failed socket degrades to a static-but-correct score rather than a spinner.
 
@@ -604,7 +604,7 @@ Different provenance, different trust. A refetch is a fresh read of the source o
 
 *Testing: the single most defensible decision in the project. Have three reasons ready.*
 
-Three concrete reasons.
+I keep writes on HTTP for three practical reasons.
 
 **Auth.** HTTP gives me a per-request `Authorization` header and middleware that already exists. A socket authenticates once at connect and then has to re-check authorization per message anyway, because assignments change mid-connection.
 
@@ -623,7 +623,7 @@ Decision, and here's the test: what does a socket grant? Exactly one thing — r
 
 *Testing: whether "it works on my machine" is your standard.*
 
-The correctness test that matters is the cross-instance guarantee, because it's the one you cannot verify by clicking around. Boot two `createApp` instances against one Redis, connect a `socket.io-client` to each, POST a ball to instance A, and assert the client on instance B receives it with the right snapshot. Then the reconnect path: kill the connection, assert the client refetches and converges on the server's state. Both are possible precisely because `createApp` doesn't call `listen`.
+The most important test is the cross-instance one. I would start two `createApp` instances against the same Redis, connect a client to each, post a ball to instance A, and check that the client on instance B receives the correct snapshot. Then I would drop the connection and verify that reconnecting refetches and converges on the server state.
 
 For load: k6 or Artillery with the socket.io engine — ramp N clients into one room, drive a scripted scorer at real over pace, and measure end-to-end ball-to-render latency percentiles, memory per connection, and Redis pub/sub throughput. The two things I'd specifically watch for are p99 degrading non-linearly past some connection count, and pub/sub bandwidth becoming the wall, which is what I'd expect to break first given the full-snapshot design.
 
@@ -642,7 +642,7 @@ The round where the interviewer will try to catch you overselling. Don't.
 
 *Testing: the mechanism, precisely.*
 
-Every ball the scorer taps is written to **IndexedDB first**, keyed by its `clientEventId`, with status `pending`. If the browser is online, the drain runs immediately: it lists the queue in `createdAt` order and POSTs each ball sequentially, removing each one on success. If offline, the ball sits there and the UI says so. A `window` `online` listener triggers a drain the moment connectivity returns.
+Every ball is written to **IndexedDB first**, keyed by `clientEventId`, and marked `pending`. If the browser is online, the drain submits balls in `createdAt` order and removes each one after success. If it is offline, the ball stays there, and the `online` event starts the drain when connectivity returns.
 
 Meanwhile the console renders the **optimistic** state: the last server-confirmed state with every queued ball folded on top by the same reducer the server uses. So the scorer sees a live, correct score with no network at all — not a mock, the same function producing the same answer the server will produce when the queue drains.
 
@@ -657,7 +657,7 @@ The design point is that **every ball goes through the queue, even online.** `na
 
 *Testing: precision. A vague answer here reads as "I bolted this on".*
 
-Queued: ball submissions, and only ball submissions. The full `BallRequestInput` — runs off bat, extras and type, wicket details, striker/non-striker/bowler ids, and the client-generated `clientEventId`.
+I queue ball submissions only: the runs, extras, wicket details, player IDs, and the client-generated `clientEventId`.
 
 Not queued: undo, corrections, toss, playing XI, start match, resume innings, and every organizer action. Two different reasons.
 
@@ -674,7 +674,7 @@ It is, and it's the one genuine gap in that list — the other exclusions I'd de
 
 *Testing: intellectual honesty. Overselling here is fatal; a precise answer is a strong signal.*
 
-It's a durable, ordered, at-least-once **outbox** with an event-driven drain, and I'd rather describe it that way than call it something it isn't.
+I would call it a durable, ordered, at-least-once **outbox** with an event-driven drain. I would not describe it as a full background queue.
 
 What it genuinely has: durability across reloads and crashes, FIFO ordering, safe replay via idempotency keys, a terminal `failed` state, and an explicit user-triggered retry.
 
@@ -691,7 +691,7 @@ No manifest, no Service Worker, deliberate for the version I shipped. Background
 
 *Testing: the failure path, which is where this design is weakest. Know it cold.*
 
-Balls 1 and 2 are gone from the queue, accepted. Ball 3 is marked `failed` with the server's message, the drain **breaks**, and 4 through 7 stay `pending` and unsent. The UI shows the failed count and a retry action. The optimistic state still includes all five unsent balls, so the scorer's score doesn't jump backwards — but they can now see something is wrong.
+Balls 1 and 2 are removed after being accepted. Ball 3 is marked `failed`, the drain stops, and balls 4 through 7 remain pending. The UI shows the error and a retry action. The optimistic score still includes the pending balls, so it does not suddenly jump backwards while the scorer investigates.
 
 The break is deliberate: the balls are causally dependent. Ball 4 was validated against a state that includes ball 3. If 3 didn't land, submitting 4 means submitting it against a server state that never saw 3, and the server will either reject it or — worse — accept it into the wrong position in the over. Stopping preserves the invariant that the server's log is a prefix of the scorer's intent. Continuing would trade a stalled queue for a corrupted innings.
 
@@ -738,14 +738,14 @@ The saving grace is idempotency — the loser's submissions come back 200 with t
 
 *Testing: the standard question. The differentiator is the storage argument.*
 
-Register with email, username, name and password → the account is created unverified and a 6-digit OTP is emailed, or logged in dev → verifying the code both confirms the address and signs them in, so there's no second step. Login accepts username or email plus password. A successful auth returns a short-lived access JWT **in the response body** and sets an **httpOnly refresh cookie**.
+The flow is registration, OTP verification, and then a signed-in session. Registration creates an unverified account and sends a six-digit code. Once the code is verified, the user is signed in. Login accepts either username or email and returns a short-lived access JWT in the response body plus an httpOnly refresh cookie.
 
 The access token lives in a module-scoped variable in the SPA — memory only, never `localStorage`. `localStorage` is readable by any JavaScript on the page, so a single XSS, in my code or in a dependency, exfiltrates a valid token. A closure variable isn't reachable from an injected script without already having execution in that context, and it dies with the tab. It's also only 15 minutes, so the window is small even in the worst case.
 
 The reload then survives on the cookie: `AuthProvider` calls `/auth/refresh` on mount, the browser sends the httpOnly cookie automatically, and it comes back with a fresh access token. That's the whole point of the split — the thing JavaScript can read is short-lived and low-value, and the thing that's long-lived is unreadable by JavaScript.
 
 **→ If they push: "why is the refresh token opaque rather than a JWT?"**
-Because a refresh token must be revocable, and a stateless JWT can't be — it's valid until it expires no matter what you do. Making it a 48-byte random string means the database row *is* the authority: revoke the row and it's dead immediately. JWTs are the right shape for a 15-minute access token, where statelessness beats revocability; they're the wrong shape for a 30-day one.
+The refresh token needs to be revocable, so I made it a random opaque value stored as a database hash. Revoking the row makes it invalid immediately. A short-lived JWT is fine for the access token, but I would not use a 30-day stateless JWT for the refresh role.
 
 ---
 
@@ -768,7 +768,7 @@ Different threat models. A password is low-entropy and human-chosen, so a leaked
 
 *Testing: security thinking beyond "hash the password".*
 
-Every surface, deliberately.
+I tried to handle enumeration consistently across every user-facing surface.
 
 **Login**: identical message for unknown user and wrong password — and identical *timing*, via `burnPasswordComparison`. Without it, "no such username" returns in about a millisecond while "wrong password" takes 250ms, so an attacker learns which accounts exist purely from response time no matter how carefully the message is worded. When the user doesn't exist, that function burns an equivalent bcrypt comparison against a decoy. The decoy is generated lazily from a random value rather than checked into the repo — a literal digest in source is a published hash of a known string, and a malformed one would be rejected instantly and defeat the whole purpose.
 
@@ -787,7 +787,7 @@ It is, and it's the one I can't fully close — you cannot both enforce uniquene
 
 *Testing: knowing which mitigation addresses which attack.*
 
-XSS is attacker-controlled script executing in my origin, so it can do anything my JavaScript can do. Mitigations: React's default escaping, no `dangerouslySetInnerHTML` anywhere, helmet's security headers, and — the one that actually limits blast radius — keeping the access token out of `localStorage`, so a successful XSS can't walk away with a long-lived credential.
+For XSS, I rely on React’s escaping, avoid `dangerouslySetInnerHTML`, use Helmet’s headers, and keep the access token out of `localStorage`. That last part limits the damage if an injected script ever runs, because it cannot simply read a long-lived token.
 
 CSRF is a third-party site causing the browser to send an authenticated request using ambient credentials. `sameSite=strict` on the refresh cookie means the browser won't send it on any cross-site request, which kills CSRF against `/auth/refresh`. Every other authenticated endpoint uses the `Authorization` header, which a cross-site form or image tag cannot set — so there is no ambient-authority endpoint to forge against. CORS is an explicit origin allow-list, not a wildcard, and `credentials: true` requires it to be explicit.
 
@@ -802,7 +802,7 @@ The refresh cookie was scoped to path `/auth`. Login worked, the session worked,
 
 *Testing: the authorization-in-tokens trap.*
 
-`sub` (user id), `email`, `iss: 'howzat'`, and the expiry. That's it.
+The JWT contains the user ID, email, issuer, and expiry. I deliberately keep it small.
 
 What it deliberately does *not* contain is anything about permissions — no role, no list of matches you may score. Permissions are read per request, which means revoking a scorer assignment takes effect immediately rather than waiting up to 15 minutes for a token to expire. Putting authorization claims in a bearer token is putting a cache with no invalidation into the hands of the client.
 
@@ -821,7 +821,7 @@ Only if the explicit invalidation fails, since I `SCAN` and delete that match's 
 
 *Testing: whether you've actually operated it or just pushed it.*
 
-One Vercel project. The SPA is the static output at `/`, the API is a Vercel Function at `/api/*` via a rewrite, and sockets live at `/api/socket.io`. One origin for both.
+It is deployed as one Vercel project: the SPA is served at `/`, the API is exposed under `/api`, and the socket endpoint is `/api/socket.io`. Keeping them on one origin simplifies cookies and local-to-production behaviour.
 
 Same-origin buys three things: the refresh cookie stays first-party, which is what makes `sameSite=strict` viable; CORS disappears from the browser path entirely; and the socket connects to `window.location.origin`, so there's no separate socket host to configure per environment. The dev setup mirrors it deliberately through the Vite proxy, so dev and prod have the same origin topology rather than two different sets of bugs.
 
@@ -836,7 +836,7 @@ Two. The rewrite has to target a static `api/server` rather than a `[...path]` c
 
 *Testing: do you know the constraint and did you verify the behaviour.*
 
-It works because the function *exports an `http.Server`* rather than a request handler, so the server's own upgrade handling is in place and socket.io attaches to it exactly as it does locally. The platform routes the upgrade to the function and the instance stays alive for the connection's duration.
+The function exports an `http.Server`, so socket.io can use the normal HTTP upgrade path. The platform routes the upgrade to that server and keeps the instance alive while the connection is active.
 
 The constraint is real and hard: the connection is torn down at the function's maximum duration, 300 seconds on the free plan. So a live-match socket reconnects at least every five minutes.
 
@@ -853,7 +853,7 @@ For this scale, yes — the reconnect is invisible and the operational simplicit
 
 *Testing: the single best serverless insight in the project.*
 
-`publishMatchEvent` returns a promise that settles once every in-process subscriber has finished.
+`publishMatchEvent` returns a promise that finishes after its in-process subscribers finish.
 
 On the **hot ball path** I drop it with `void`. The only consumer there is socket fan-out, and I don't want the scorer's response waiting on a broadcast.
 
@@ -870,7 +870,7 @@ Each one is caught individually inside the bus, so a failing subscriber never fa
 
 *Testing: infrastructure literacy.*
 
-`DATABASE_URL` is Neon's **pooled** endpoint — a transaction-mode pooler — and is what the app uses at runtime. `DIRECT_URL` is the non-pooled endpoint, used by Prisma Migrate, because migrations run DDL and session-level operations a transaction-mode pooler cannot support. Both point at the same database. Using the pooled one for migrations fails in confusing ways, so it's worth having the two named explicitly.
+`DATABASE_URL` is the pooled Neon endpoint used by the running app. `DIRECT_URL` is the direct endpoint used by Prisma migrations, because migrations need operations that a transaction-mode pooler does not support. They point to the same database but serve different jobs.
 
 The underlying problem: a Postgres connection is expensive — it forks a backend process with its own memory — so a pool amortises them. Serverless breaks the assumption a pool is built on, because each instance has its own pool and the platform may run hundreds of instances, so you get pools-of-pools and exhaust `max_connections` under load. The fix is an external pooler that multiplexes many short-lived clients onto few real backends.
 
@@ -889,7 +889,7 @@ Module graph loads, env is parsed and validated, subscribers register, socket.io
 
 *Testing: server state vs client state, and avoiding two systems owning one value.*
 
-React Query because I had **server state**, not client state, and the two need different tools. It gave me caching keyed by resource, deduplication of concurrent identical requests, background refetch, and one declarative invalidation model. Hand-rolling that with `useEffect` means loading flags, unmount races, stale closures, and a manual refetch at every mutation site.
+I used React Query for server state: cached API data, request deduplication, background refetching, and invalidation after mutations. That is a lot of behaviour to recreate with individual `useEffect` calls, and it is easy to introduce stale closures or inconsistent loading states.
 
 The two systems are deliberately kept apart rather than merged. The **scorer console** uses React Query — it's the writer, so it invalidates on every mutation. The **viewer page** uses `useLiveMatch`, which owns its snapshot in local state fed by the socket, with HTTP only for the initial load and for resync. Pushing socket payloads into the query cache would mean two systems racing to own one key, which is how you get a value that flickers between two sources.
 
@@ -904,7 +904,7 @@ It's coarse on purpose. Any write to a match moves both the header — status, t
 
 *Testing: hooks discipline — deps, refs, cleanup.*
 
-Three steps. Fetch the snapshot over HTTP so the score is on screen before any socket exists. Join `match:{id}` and apply every broadcast that passes `isNewerSnapshot`. On reconnect, refetch, because the gap while disconnected is unknowable.
+`useLiveMatch` does three things: fetches the snapshot over HTTP, joins `match:{id}` and accepts only newer broadcasts, and refetches after reconnect because the disconnected gap is unknowable.
 
 Two details that matter. The latest snapshot is held in a **ref**, not read from state, inside the socket callbacks — because if `snapshot` were a dependency of the subscription effect, the effect would tear down and rebuild the entire socket subscription on *every single ball*. Unsubscribing and resubscribing six times an over is both wasteful and a source of dropped messages in the gap.
 
@@ -921,7 +921,7 @@ A 401 on a request where we *had* a token means it expired mid-session, so `apiF
 
 *Testing: product empathy expressed as engineering decisions.*
 
-One tap per ball for the common case: the run pad is 0 through 6 and commits immediately, with no confirmation step. Extras, wicket and undo are all one reach away rather than behind a menu. Keyboard shortcuts for everything, because a regular scorer often has a laptop.
+For the common case, scoring is one tap: the run pad goes from 0 to 6 and commits immediately. Extras, wickets, and undo are close by, and I added keyboard shortcuts because a regular scorer may use a laptop.
 
 The crease is inferred by the reducer, so the console only asks who's on strike or bowling when it genuinely changed — after a wicket or at an over boundary. Manual overrides are available and are cleared automatically once a ball is accepted, which is exactly the effect I re-pointed at the displayed sequence so it doesn't wedge offline.
 
@@ -940,7 +940,7 @@ Semantic elements and real buttons rather than clickable divs, so keyboard and s
 
 *Testing: whether your coverage is a decision or an accident.*
 
-I test the pure domain exhaustively — 45 tests over the scoring reducer, the fixture generator's pairing guarantees, NRR including the worked bowled-out scenario, and career-stat aggregation. All in `packages/shared`, all running in milliseconds with no database, no mocks, no fixtures.
+I put most of the tests around the pure domain code: the scoring reducer, fixture guarantees, NRR including the bowled-out case, and career-stat aggregation. Those tests run quickly in `packages/shared` without a database or mocks.
 
 I don't unit-test Express routes, Prisma calls, or React components.
 
@@ -955,7 +955,7 @@ The NRR bowled-out case, written so it *fails* against the naive implementation 
 
 *Testing: honesty plus a concrete plan.*
 
-Time, honestly — and I'd rather say that than dress it up. What I'd argue is that it was the right *order*: the domain tests cover the logic that's expensive to get wrong, and the cross-system behaviour is covered by a documented manual verification pass rather than by nothing.
+Honestly, it was a time trade-off. I prioritized the domain tests because that is where a wrong result can look valid. I did document a manual cross-system verification pass, but the first automated tests I would add are integration tests around the real Postgres and Redis behaviour.
 
 That pass exists because the things most likely to be wrong here are cross-system behaviours no unit test reaches. Delete the Redis snapshot and confirm the rebuilt score is identical. Re-post a ball with the same `clientEventId` and confirm a 200 with an unmoved score. Run two API instances, score through one, confirm a viewer on the other updates. Kill the API with the live page open and confirm it resyncs. Each row is a specific action with a specific expected result, repeatable by someone who didn't write the code.
 
@@ -970,7 +970,7 @@ Agreed, and it's testable — `fake-indexeddb` for the store, a stubbed `submit`
 
 *Testing: systematic debugging in a distributed system.*
 
-First question: did the *server's* score go backwards, or only the client's? Those are completely different bugs and the log tells you immediately.
+My first question would be whether the server’s score went backwards or only the client’s display. Those point to different layers, and the event log lets me separate them quickly.
 
 Fetch `/public/matches/:slug/snapshot` and compare it against a fold of the event log. If they agree, the log is fine and it's a client ordering bug — which points straight at `isNewerSnapshot`, and specifically at the innings-rollover case, since that's the one place seq comparison alone is insufficient.
 
@@ -989,7 +989,7 @@ Pull the innings' event log, because it's append-only, so the answer is definite
 
 *Testing: operational maturity.*
 
-Today: Pino structured JSON logs with `pino-http`, health checks excluded from auto-logging or they'd drown the log at a line per second. Match ids, event ids, user ids, durations and error objects are logged. Tokens, OTP codes in production, password hashes and auth request bodies are not.
+Today I have structured JSON logs with Pino. I include match IDs, event IDs, user IDs, durations, and error details, but not tokens, OTPs, password hashes, or authentication request bodies. Health checks are excluded so they do not drown out useful traffic.
 
 Errors are uniform by construction: every failure is an `AppError` with a `status`, a machine-readable `code` and a message, so the error middleware has exactly one shape to serialise — `{ error: { code, message, details? } }`. Anything else that escapes a handler is an unexpected bug and becomes a generic 500 with the detail logged and never leaked. `AppError` also carries an `expected` flag defaulting to `status < 500`, so a 404 or a validation failure logs at `info` rather than `error` — otherwise you train yourself to ignore your own error log and an alert on error-level becomes meaningless.
 
@@ -1012,7 +1012,7 @@ Where they stop asking what you built and start attacking it. Concede real point
 
 *Testing: self-assessment. A vague answer is worse than a harsh one.*
 
-The offline queue's failure handling. A semantically rejected ball halts the queue permanently with no way to inspect or discard it; there's no backoff; two tabs can interleave drains; and the failure UI shows an error string rather than the offending ball.
+The weakest part is the offline queue’s failure handling. A rejected ball can block everything behind it, there is no real backoff, two tabs can drain at once, and the UI does not show enough detail about the ball that failed.
 
 That's the piece where the *design* is right — persist-then-send, idempotent replay, optimistic fold through the shared reducer — and the *implementation* is thin. Everything else in this codebase either does what it claims or documents why it doesn't.
 
@@ -1027,7 +1027,7 @@ The player-stats projection. It re-implements the fold — including maiden dete
 
 *Testing: will you defend a deliberate inefficiency or fold.*
 
-It's O(matches × innings × events) per completion, and I chose it with my eyes open.
+It is O(matches × innings × events) per completion, and I accepted that cost for the current league size.
 
 Incrementing is O(1) and is **not idempotent**. Replay the event and a team gets four points for one win. And replay is not hypothetical here: the trigger is a domain event, and a correction to a finished match requires republishing it. Recomputing means a replay *converges*, a manually repaired row heals on the next match, and a correction propagates without anyone remembering a second place to update.
 
@@ -1042,7 +1042,7 @@ Guilty, and it's the clearest performance defect in the codebase. It should be o
 
 *Testing: can you find your own single point of loss.*
 
-One place, and it's the client: a ball sitting in IndexedDB that never drains because the queue is wedged on a semantic rejection, on a device that then gets cleared or replaced. That's the only path from "the scorer entered it" to "it doesn't exist."
+The real loss point is the client outbox. A ball can sit in IndexedDB behind a rejected item, and then disappear if the device is cleared or replaced before the scorer resolves it. Once a ball reaches Postgres, I do not have a comparable loss path.
 
 Everywhere else, no. Once a ball reaches Postgres it's in an append-only table with a unique key, never updated and never deleted. Redis holds nothing that isn't derivable. A failed snapshot write degrades a read to a rebuild. A failed publish loses a broadcast, which the next one corrects. Notification *emails* are fire-and-forget and can be lost, but the durable in-app notice is a row written first, precisely so the channel that can fail isn't the channel of record.
 
@@ -1055,7 +1055,7 @@ Everywhere else, no. Once a ball reaches Postgres it's in an append-only table w
 
 *Testing: the closing question. Have something real.*
 
-That the decisions that mattered were almost all about **where** something lives, not how it's written.
+The biggest lesson for me was that the important decisions were mostly about where responsibility lives, not about writing clever code.
 
 Making the reducer pure is what let it run in four places and agree by construction. Making Redis strictly derivable is what let me stop reasoning about cache coherence. Making the event bus a seam is what turned a silent serverless-freeze bug into a one-line `await`. None of those are clever code; they're placement decisions, and each one removed a category of bug rather than fixing an instance of one.
 
@@ -1067,19 +1067,19 @@ The second thing: be much more suspicious of framework defaults. socket.io's pol
 
 Short answers. They'll come as follow-ups, not as their own questions.
 
-**Idempotency?** Doing it N times has the same effect as once. By spec GET/PUT/DELETE/HEAD are idempotent; POST isn't. Mine is, via a client-supplied idempotency key with a uniqueness constraint behind it.
+**Idempotency?** Repeating the same operation has the same effect as doing it once. POST is not automatically idempotent, so I add that property with a client-supplied key and a unique database constraint.
 
 **Optimistic vs pessimistic concurrency?** Pessimistic locks first and assumes conflict; optimistic proceeds and detects conflict at write time via a version. I use pessimistic on the ball write (a lock) and optimistic on the snapshot cache (`lastEventSeq` as the version).
 
 **CAP, and where does this sit?** Under partition you choose availability or consistency. CP for writes — a ball fails rather than being accepted possibly-conflicting. AP for reads — viewers get a slightly stale cached snapshot. The offline scorer is AP at the edge, and gets away with it because the merge is trivial: append-only, idempotent, single writer.
 
-**What consistency does a viewer get?** Eventual, with **monotonic reads**. Being 400ms stale is invisible; a score going backwards is alarming, and `isNewerSnapshot` is what prevents it.
+**What consistency does a viewer get?** Eventual consistency with monotonic reads. A viewer may be slightly behind, but `isNewerSnapshot` prevents an older score from replacing a newer one.
 
 **Event sourcing? CQRS?** Event sourcing: state derived by folding an append-only log. I do it for the match domain, not for setup data. CQRS informally: the write model is the log, the read models are the snapshot, `PointsTable` and `PlayerMatchStats`. No event store abstraction, no versioned event schema, no sagas — deliberate scoping.
 
 **What's a projection?** A read model derived from the log. Three here: the Redis snapshot (one innings, shaped for display), `PointsTable` (all completed matches, shaped for standings), `PlayerMatchStats` (one match, shaped per player).
 
-**At-least-once vs exactly-once?** Exactly-once isn't achievable end-to-end across a network; what people mean is at-least-once delivery plus idempotent processing, which is what I have. The socket fan-out is at-most-once and lossy by design, which is fine because every message is a full snapshot.
+**At-least-once vs exactly-once?** End-to-end exactly-once is not realistic across a network. I use at-least-once submission with idempotent processing. Socket messages can be lost, but each one is a full snapshot and the next read or broadcast repairs the client.
 
 **ACID, and what's actually atomic here?** Atomicity, Consistency, Isolation, Durability. Genuinely atomic: the standings upsert (one transaction, so no reader sees a half-updated table), the player-stats upsert, refresh-token rotation, the XI replacement, fixture generation. Explicitly not atomic: the Postgres write and the Redis snapshot write.
 
@@ -1087,7 +1087,7 @@ Short answers. They'll come as follow-ups, not as their own questions.
 
 **Connection pooling, and why serverless breaks it?** A pool amortises expensive Postgres connections. Serverless gives each instance its own pool across potentially hundreds of instances, exhausting `max_connections`. Fixed by an external transaction-mode pooler — which then can't do session-level operations, hence `DIRECT_URL` for migrations.
 
-**When is a distributed lock the wrong tool?** When you need a guarantee rather than a coordination hint. No lease prevents a paused holder from acting after expiry unless the resource itself checks a fencing token. Use it to reduce contention; put the real invariant in the resource.
+**When is a distributed lock the wrong tool?** When the lock itself is being treated as the guarantee. A paused holder can outlive a lease, so the database or resource still needs to enforce the invariant. I use the lock to reduce contention, not as the only protection.
 
 **Give me a race condition from this project.** Two balls concurrently reading `lastEventSeq = 41` and both writing 42 — prevented by the lock, backstopped by the unique constraint. Also: a slow snapshot write landing after a newer one, prevented by the seq guard. Also, not fully closed: two tabs draining the offline queue at once.
 
@@ -1097,7 +1097,7 @@ Short answers. They'll come as follow-ups, not as their own questions.
 
 **Why is a JWT hard to revoke?** It's self-verifying, so there's no server-side record to delete — it's valid until it expires. Work around it with short expiry, a denylist (which reintroduces the state you were avoiding), or by keeping the long-lived half stateful, which is what I did.
 
-**Backpressure — do you have any?** Very little, and I know where. The socket broadcast has none; socket.io buffers per-socket, so a slow client grows a buffer rather than applying pressure upstream. The offline queue's sequential drain is *accidental* backpressure — it never has more than one request in flight. The fix at scale is dropping intermediate snapshots for a lagging client, which is safe precisely because every message is a full state.
+**Backpressure — do you have any?** Not much on the socket path; socket.io can buffer for a slow client. The offline drain does have a simple form of backpressure because it sends one request at a time. At larger scale I would drop intermediate snapshots for lagging viewers, since the latest full snapshot is enough.
 
 ---
 

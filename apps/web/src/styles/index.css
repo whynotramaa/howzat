@@ -1,23 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
-/*
- * ─────────────────────────────────────────────────────────────────────────────
- *  Type, theme mapping, and the motion vocabulary
- * ─────────────────────────────────────────────────────────────────────────────
- *
- *  Three faces, each with one job:
- *
- *    Newsreader        display — page titles, results, pull quotes. Never UI.
- *    Instrument Sans   everything you interact with: labels, buttons, tables.
- *    DM Mono           figures that sit in columns — overs, ball chips, NRR.
- *
- *  Newsreader is a news serif on an optical-size axis, so a 48px page title and
- *  a 20px sheet heading are cut differently rather than scaled from one drawing
- *  — the large sizes gain stroke contrast, the small ones stay sturdy. That is
- *  the right register for a scorecard: this is a results page, not a masthead.
- */
-
 @theme inline {
   --color-surface: var(--surface);
   --color-raised: var(--surface-raised);
@@ -60,8 +43,6 @@
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
 }
 
-/* ── Base ─────────────────────────────────────────────────────────────────── */
-
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
@@ -73,7 +54,6 @@ body {
   background: var(--surface);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  /* 15px body: the interface is data-dense and 16 reads clumsy at this scale. */
   font-size: 0.9375rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -91,30 +71,17 @@ body {
   border-radius: var(--radius-xs);
 }
 
-/*
- * Form fields opt out of the ring.
- *
- * A field already has a border, and that border turns to the accent on focus. Adding
- * the global outline on top produced two accent lines with a gap between them
- * around every input — a halo, on the one screen (signing in) where the
- * interface should be at its quietest. The border alone is the mark.
- */
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: none;
 }
 
-/* A hairline scrollbar, so a long scorecard does not gain a grey slab. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
 }
 
-/*
- * Native controls inherit the palette rather than the OS chrome. Left alone, a
- * <select> in dark mode renders as a light widget on ink and breaks the page.
- */
 select,
 textarea,
 input {
@@ -122,26 +89,14 @@ input {
   color: inherit;
 }
 
-/* ── Type utilities ──────────────────────────────────────────────────────── */
-
 .serif {
   font-family: var(--font-serif);
   font-weight: 400;
   letter-spacing: -0.015em;
-  /*
-   * 1.12, not the 1.05 the old display face wanted: Newsreader is a text serif
-   * with real descenders, and at 1.05 a two-line page title collided with
-   * itself. Still tighter than prose, because display sizes over-lead.
-   */
   line-height: 1.12;
-  /* The opsz axis is loaded — let the browser pick the cut for the size. */
   font-optical-sizing: auto;
 }
 
-/*
- * The small capitalised label above a heading. Two of these stacked is the
- * fastest way to make a page look generated, so they appear once per section.
- */
 .eyebrow {
   font-size: 0.6875rem;
   font-weight: 500;
@@ -151,7 +106,6 @@ input {
   color: var(--text-muted);
 }
 
-/* Figures that live in a column must never change width as they change value. */
 .tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
@@ -163,7 +117,6 @@ input {
   letter-spacing: -0.02em;
 }
 
-/* The score itself. Optically tightened, because big figures over-space. */
 .score-figure {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -172,22 +125,6 @@ input {
   line-height: 0.92;
 }
 
-/* ── The live stage ──────────────────────────────────────────────────────── */
-
-/*
- * The public share link is the one screen that is not paper.
- *
- * It is a broadcast graphic: someone has opened it on a phone, at a ground, to
- * find out the score in under a second, and every scoreboard they have ever
- * looked at — the one at the ground, the one on television — was light on dark.
- * So this surface commits to dark in both themes rather than inverting with the
- * rest of the product.
- *
- * It is expressed by overriding the raw tokens rather than by re-styling
- * components. `@theme inline` keeps the var() reference intact all the way to
- * the declaration, so a Card, a Pill and a table inside this element pick the
- * stage palette up through the cascade without knowing it exists.
- */
 .live-stage {
   --surface: #08090b;
   --surface-raised: #121519;
@@ -205,34 +142,6 @@ input {
   --text-on-inverse: #f4f6f8;
   --text-muted-on-inverse: #838a93;
 
-  /* Lifted past the app's dark blue: this ground is nearer black than that one. */
-  --accent: #74b8f2;
-  --accent-strong: #93cbf8;
-  --accent-soft: #101f2d;
-  --accent-line: #2f5a80;
-
-  --live: #e0574a;
-  --live-soft: #2c1512;
-  --alert: #e0574a;
-  --alert-soft: #2c1512;
-  --success: #63b98d;
-  --success-soft: #12241a;
-  --warning: #ddb463;
-  --warning-soft: #251d10;
-
-  --focus: #74b8f2;
-
-  /*
-   * No elevation on the stage. A drop shadow implies a sheet of paper lifted
-   * off a surface; a scoreboard is a lit panel, and the hairline is what
-   * separates it from the dark behind it.
-   */
-  --shadow-xs: none;
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-
-  /* Set inline from the two sides' kit colours. */
   --team-a: #1268bd;
   --team-b: #363c44;
 
@@ -241,68 +150,6 @@ input {
   color: var(--text-primary);
 }
 
-/*
- * The two sides' colours as a single 2px rule across the top of the scoreboard,
- * split down the middle. Flat, not blended: a gradient between two arbitrary
- * kit colours produces a muddy third colour that belongs to neither team, and
- * blending the accent into it tipped the whole surface blue.
- */
-.live-stage-seam {
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    var(--team-a) 0,
-    var(--team-a) 50%,
-    var(--team-b) 50%,
-    var(--team-b) 100%
-  );
-}
-
-/*
- * The header condenses as you scroll past the scoreboard: the wordmark stays,
- * the score slides in beside it. Height is not animated — only opacity and a
- * small translate — so the page below never reflows while you are reading it.
- */
-.live-stage-bar {
-  backdrop-filter: blur(14px) saturate(140%);
-  background: color-mix(in oklab, var(--surface) 78%, transparent);
-}
-
-.live-condensed {
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
-  pointer-events: none;
-}
-
-.live-condensed[data-shown='true'] {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* The panel language of the stage: a flat plate and a hairline. Nothing else. */
-.live-panel {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-}
-
-/*
- * The chase bar. Two figures compete for the same 100% — runs made and balls
- * used — and the point of drawing them together is that a chase is only ever
- * about which of the two runs out first.
- */
-.chase-track {
-  position: relative;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--line);
-  overflow: hidden;
-}
-
-/* The batting side's own colour, flat. */
 .chase-fill {
   position: absolute;
   inset-block: 0;
@@ -321,11 +168,6 @@ input {
   transition: left var(--dur-gauge) var(--ease);
 }
 
-/*
- * The ball that just landed. It arrives once, keyed on the delivery — a scale
- * and a fade, with no glow: a scoreboard that keeps flashing at you is one you
- * stop trusting to mean anything.
- */
 @keyframes ball-land {
   from {
     transform: scale(0.8);
@@ -351,15 +193,6 @@ input {
   color: #fff;
 }
 
-/* ── The landing page ────────────────────────────────────────────────────── */
-
-/*
- * The front page is the only surface allowed to move as you scroll. Everywhere
- * else motion is a load-in and then stillness, because the rest of the product
- * is something people are trying to read. Here they are being shown around.
- */
-
-/* An accent hairline that fills across the top as the page is read. */
 .scroll-progress {
   position: fixed;
   inset-block-start: 0;
@@ -372,13 +205,6 @@ input {
   pointer-events: none;
 }
 
-/*
- * Scroll reveal. The element is placed in its finished position and the
- * transition runs on a data attribute the observer flips, so a browser with no
- * IntersectionObserver, or a crawler, sees the finished page and not a blank
- * one — the animation is an enhancement, never the thing that makes text
- * visible.
- */
 .scroll-reveal {
   opacity: 1;
   transform: none;
@@ -393,7 +219,6 @@ input {
   transform: translateY(var(--reveal-shift, 18px));
 }
 
-/* The seam that runs down the left of the numbered rules. */
 .landing-ledger {
   position: relative;
 }
@@ -413,11 +238,6 @@ input {
   );
 }
 
-/*
- * Content tiles. The accent hairline is the only thing that changes on hover —
- * no lift, no shadow. The page is a page, not a stack of cards floating over
- * one another.
- */
 .bento-tile {
   transition: border-color var(--dur) var(--ease);
 }
@@ -426,13 +246,6 @@ input {
   border-color: var(--accent-line);
 }
 
-/* ── Structure ───────────────────────────────────────────────────────────── */
-
-/*
- * A rule with an accent cap at its left edge, used to open a section. It is the
- * one piece of ornament in the system and it earns its place by doing a job:
- * it says a new block of content has started without adding another box.
- */
 .rule {
   height: 1px;
   background: var(--line);
@@ -449,13 +262,6 @@ input {
   background: var(--accent-strong);
 }
 
-/* ── Motion ──────────────────────────────────────────────────────────────── */
-
-/*
- * Everything here happens once. There is no looping animation in this product
- * apart from the live pulse, which is a status indicator, not decoration.
- */
-
 @keyframes reveal {
   from {
     opacity: 0;
@@ -467,7 +273,6 @@ input {
   }
 }
 
-/* On load, content arrives in one orchestrated sweep — --delay staggers it. */
 .reveal {
   animation: reveal var(--dur-slow) var(--ease) both;
   animation-delay: var(--delay, 0ms);
@@ -484,7 +289,6 @@ input {
   }
 }
 
-/* Sheets and dialogs rise; they never hard-fade into place. */
 .sheet-in {
   animation: sheet-in var(--dur) var(--ease) both;
 }
@@ -502,10 +306,6 @@ input {
   animation: scrim-in var(--dur) var(--ease) both;
 }
 
-/*
- * A changed figure lifts into place. Keyed on the value in React, so it fires
- * on the ball that changed the score and on nothing else.
- */
 @keyframes figure-in {
   from {
     opacity: 0;
@@ -537,10 +337,6 @@ input {
   animation: live-pulse 1.8s var(--ease-in-out) infinite;
 }
 
-/*
- * Reduced motion switches the vocabulary off rather than shortening it — a
- * 0.01ms sweep is still a sweep, and the point is not to move at all.
- */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -554,11 +350,6 @@ input {
     transition-duration: 0.01ms !important;
   }
 
-  /*
-   * Scroll-driven effects are removed outright rather than shortened. A reveal
-   * that still starts from opacity 0 is still a flash, and the parallax offset
-   * is exactly the kind of movement this preference exists to refuse.
-   */
   .scroll-reveal,
   .scroll-reveal[data-visible='false'] {
     opacity: 1 !important;
@@ -566,14 +357,6 @@ input {
   }
 }
 
-/* ── The match clock ─────────────────────────────────────────────────────── */
-
-/*
- * The colon between the minutes and the seconds blinks once a second while the
- * clock is running. It is the oldest running-clock affordance there is, it
- * costs one keyframe, and it means the timer reads as live even in a still
- * screenshot — which no amount of arc animation achieves.
- */
 @keyframes clock-colon {
   0%,
   45% {
@@ -589,14 +372,6 @@ input {
   animation: clock-colon 1s steps(1, end) infinite;
 }
 
-/*
- * The figures.
- *
- * Set in the mono face at a weight that holds at 60px, tabular so the width
- * never moves as the digits do, and optically tightened because large figures
- * over-space. There is no dial, no bezel and no gloss: the number is the
- * instrument.
- */
 .clock-digits {
   font-family: var(--font-mono);
   font-weight: 500;
@@ -609,10 +384,6 @@ input {
   transition: color var(--dur) var(--ease);
 }
 
-/*
- * The period, as one hairline filling left to right. It is the whole gauge —
- * a line answers "how far through" without asking anyone to read a ring.
- */
 .clock-track {
   height: 3px;
   border-radius: 999px;
@@ -627,17 +398,6 @@ input {
   background: var(--accent-strong);
 }
 
-/* ── The console keys ────────────────────────────────────────────────────── */
-
-/*
- * The flat key.
- *
- * The three occasional actions — save, card, change — are plates: one hairline,
- * one radius, no extrusion. They are pressed a handful of times a match and a
- * deck of four equally raised keys is a deck with no hierarchy at all. The
- * feedback is motion rather than mass: the plate settles a hair on press and
- * comes back, which is enough on a target this size.
- */
 .console-key {
   display: flex;
   flex-direction: column;
@@ -671,11 +431,6 @@ input {
   opacity: 0.38;
 }
 
-/*
- * The transport. One circular target for whatever the clock will accept next —
- * filled with the accent while stopped, a plain plate while running, because a
- * pause control shouting at you all half is a control you learn to ignore.
- */
 .transport {
   display: grid;
   place-items: center;
@@ -698,30 +453,6 @@ input {
   opacity: 0.4;
 }
 
-/* ── The goal key ────────────────────────────────────────────────────────── */
-
-/*
- * The one control in the product with mass.
- *
- * Everything else here is flat, and that is right for a page you read. Recording
- * a goal is not reading: it is done one-handed, at a ground, in daylight, by
- * somebody whose eyes are on the pitch rather than the phone. That target has to
- * look like it has a top and a side and something underneath it, because that is
- * what tells a thumb where it is and what tells the eye, in peripheral vision,
- * that the tap landed. Nothing else on the screen earns that, so nothing else
- * gets it.
- *
- * Three stacked layers, all sharing one radius and one tone:
- *
- *   .push__shadow  what the key casts onto the panel
- *   .push__edge    the side wall — the darker extrusion the face rides on
- *   .push__face    the top, lifted by --push-depth
- *
- * Pressing translates only the face, so the wall is *consumed* rather than moved
- * — which is what a real key does, and the reason this reads as travel instead
- * of as a card sliding about. Release is slower than press, because a key
- * returns more slowly than it goes down.
- */
 .push {
   position: relative;
   display: block;
@@ -750,10 +481,11 @@ input {
   opacity: 0.22;
   transform: translateY(4px);
   filter: blur(10px);
-  transition: transform 200ms var(--ease), opacity 200ms var(--ease);
+  transition:
+    transform 200ms var(--ease),
+    opacity 200ms var(--ease);
 }
 
-/* The side wall. One flat darker tone, not a gradient — a wall is one plane. */
 .push__edge {
   position: absolute;
   inset: 0;
@@ -766,11 +498,6 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /*
-   * A single soft top-light, not a three-stop gradient. The old face had a
-   * highlight, a body and a shaded foot and read as a plastic toy; this is one
-   * lit surface with a hairline of specular at the very top edge.
-   */
   background: linear-gradient(
     180deg,
     color-mix(in oklab, var(--push-tone) 93%, #fff) 0%,
@@ -778,7 +505,6 @@ input {
   );
   box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 24%, transparent);
   transform: translateY(calc(var(--push-depth) * -1));
-  /* Snappy going down, unhurried coming back — the asymmetry is the feel. */
   transition: transform 220ms cubic-bezier(0.3, 0.7, 0.4, 1.2);
   will-change: transform;
 }
@@ -808,11 +534,6 @@ input {
   filter: saturate(0.35);
 }
 
-/*
- * The ring that leaves the button when it is pressed. One expanding hairline,
- * once, keyed on the press — not a ripple that fills the surface, which would
- * cover the label at the exact moment the label is being confirmed.
- */
 @keyframes push-halo {
   from {
     opacity: 0.55;
@@ -844,27 +565,6 @@ input {
   }
 }
 
-/* ── Recording an incident ───────────────────────────────────────────────── */
-
-/*
- * The confirmation that flies over the console when a goal, card or save lands.
- *
- * A scorer on a touchline is not looking at the screen when they tap — they are
- * looking at the pitch. Without a confirmation the only feedback that a goal
- * was recorded is a number changing somewhere they are not looking, which is
- * why the console felt inert. This rises, holds long enough to be caught in
- * peripheral vision, and leaves.
- *
- * It is deliberately the one piece of theatre in the product, and it is
- * theatre that does a job: it is the receipt.
- */
-/*
- * The card itself. It arrives *through* the plane rather than sliding along it:
- * up from below, overshooting a hair, settling. The old version scaled from 0.94
- * to 1 and faded, which is the default every framework ships and reads as a
- * toast — something that reports an outcome. This is not reporting an outcome,
- * it is announcing a goal, and the difference is entirely in the timing curve.
- */
 @keyframes incident-flash {
   0% {
     opacity: 0;
@@ -891,145 +591,6 @@ input {
   animation: incident-flash 1.9s cubic-bezier(0.16, 1.1, 0.3, 1) forwards;
 }
 
-/*
- * The aura behind it — a wash in the incident's own colour, thrown onto the page
- * for a beat. This is what makes a goal feel different from a substitution
- * without either of them needing a bigger card: the whole screen takes the
- * colour for a quarter of a second and then lets it go.
- */
-@keyframes incident-aura {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.25);
-  }
-}
-
-.incident-aura {
-  background: radial-gradient(
-    circle at center,
-    color-mix(in oklab, var(--flash-tone) 42%, transparent) 0%,
-    color-mix(in oklab, var(--flash-tone) 10%, transparent) 45%,
-    transparent 70%
-  );
-  animation: incident-aura 1.9s var(--ease) forwards;
-  pointer-events: none;
-}
-
-/*
- * A single specular sweep across the card, once, at the moment it lands. It is
- * the cheapest possible piece of stagecraft and it is the reason the surface
- * reads as a lit panel rather than a rectangle of paint.
- */
-@keyframes incident-sheen {
-  0% {
-    transform: translateX(-140%) skewX(-18deg);
-    opacity: 0;
-  }
-  22% {
-    opacity: 1;
-  }
-  70%,
-  100% {
-    transform: translateX(240%) skewX(-18deg);
-    opacity: 0;
-  }
-}
-
-.incident-sheen {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: 45%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, #fff 22%, transparent),
-    transparent
-  );
-  animation: incident-sheen 1.9s var(--ease) forwards;
-  pointer-events: none;
-}
-
-/* The word lands letter-spaced and closes up — it settles into being read. */
-@keyframes incident-word {
-  0% {
-    opacity: 0;
-    letter-spacing: 0.22em;
-    transform: translateY(6px);
-  }
-  100% {
-    opacity: 1;
-    letter-spacing: -0.015em;
-    transform: translateY(0);
-  }
-}
-
-.incident-word {
-  animation: incident-word 620ms var(--ease) both;
-}
-
-/* The mark turns in as it arrives, on the same beat, 60ms behind the word. */
-@keyframes incident-glyph {
-  0% {
-    opacity: 0;
-    transform: rotate(-24deg) scale(0.5);
-  }
-  60% {
-    transform: rotate(4deg) scale(1.06);
-  }
-  100% {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
-}
-
-.incident-glyph {
-  animation: incident-glyph 680ms cubic-bezier(0.2, 1.2, 0.3, 1) both;
-  animation-delay: 60ms;
-}
-
-/* The tally underneath ticks up as the flash lands, so the eye is drawn to the
-   number that actually changed rather than only to the announcement. */
-@keyframes score-bump {
-  0% {
-    transform: scale(1);
-  }
-  30% {
-    transform: scale(1.14);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.score-bump {
-  animation: score-bump 520ms var(--ease);
-}
-
-/* The console's own press feedback now lives on the control itself — see the
-   push button above, where the travel is real rather than a scale. */
-
-/* ── Substitutions ───────────────────────────────────────────────────────── */
-
-/*
- * A shirt changing occupant.
- *
- * The position stays put and the *person* in it changes, which is exactly what
- * a substitution is — so the mark rotates through a half-turn and comes back,
- * rather than sliding in from off-screen. A shirt flying across the pitch would
- * be describing a transfer, not a change.
- *
- * Keyed on the player's id in the markup, so React remounts the node and this
- * runs once, at the moment the new name arrives.
- */
 @keyframes shirt-swap {
   0% {
     transform: rotateY(90deg) scale(0.82);
@@ -1049,8 +610,6 @@ input {
   animation: shirt-swap 520ms var(--ease) both;
 }
 
-/* The player leaving the pitch fades down into the bench strip rather than
-   vanishing — a name that disappears takes the reason with it. */
 @keyframes bench-arrive {
   from {
     opacity: 0;
@@ -1066,12 +625,6 @@ input {
   animation: bench-arrive 420ms var(--ease) both;
 }
 
-/*
- * The two-arrow mark a substitution is written with everywhere in football.
- * Drawn rather than animated on a loop: it appears in a timeline that may hold
- * twenty of them, and twenty looping animations is a page that will not sit
- * still while it is being read.
- */
 @keyframes sub-arrows {
   0% {
     opacity: 0;

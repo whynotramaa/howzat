@@ -17,13 +17,6 @@ import { getSnapshot, loadEvents, loadInningsContext } from '../snapshot';
 import { toInningsDto, toMatchDto } from './serialize';
 import { abandonMatch, openFirstInnings, recordToss, setPlayingXi } from './lifecycle';
 
-/**
- * Match setup and the innings lifecycle. Everything here is gated by
- * requireScorerForMatch — the match-level check, not merely a role check —
- * because an organizer of one tournament has no business touching another's
- * match, and an assigned scorer must be able to run the pre-match wizard
- * without organizer rights.
- */
 export const matchesRouter = Router();
 
 matchesRouter.use(requireAuth);
@@ -58,7 +51,6 @@ matchesRouter.get(
   }),
 );
 
-/** The squads available for selection, with each player's role. */
 matchesRouter.get(
   '/:matchId/squads',
   requireScorerForMatch,
@@ -70,7 +62,9 @@ matchesRouter.get(
       include: {
         team1: { include: { players: { orderBy: { createdAt: 'asc' } } } },
         team2: { include: { players: { orderBy: { createdAt: 'asc' } } } },
-        matchPlayers: { select: { playerId: true, battingOrder: true, isCaptain: true, isKeeper: true } },
+        matchPlayers: {
+          select: { playerId: true, battingOrder: true, isCaptain: true, isKeeper: true },
+        },
       },
     });
 
@@ -137,7 +131,6 @@ matchesRouter.put(
   }),
 );
 
-/** Opens innings one and takes the match LIVE. */
 matchesRouter.post(
   '/:matchId/start',
   requireScorerForMatch,
@@ -149,11 +142,6 @@ matchesRouter.post(
   }),
 );
 
-/**
- * Resumes after the innings break. The second innings row already exists —
- * it was created when the first one closed — so this only flips the match
- * back to LIVE.
- */
 matchesRouter.post(
   '/:matchId/innings/:number/resume',
   requireScorerForMatch,
@@ -173,15 +161,6 @@ matchesRouter.post(
   }),
 );
 
-/**
- * Everything the scoring console needs in one read: the match, the innings in
- * progress, and the folded state of its event log.
- *
- * Distinct from /snapshot, which is the spectator projection — it carries only
- * the two batsmen at the crease and the current bowler, and a console cannot
- * be driven from that. The log is folded here rather than cached because the
- * console refetches once per ball, not once per viewer.
- */
 matchesRouter.get(
   '/:matchId/state',
   requireScorerForMatch,
@@ -222,8 +201,6 @@ matchesRouter.get(
     const events = await loadEvents(live.id);
     const state = buildState(context, events);
 
-    // Only meaningful at an over boundary; mid-over the bowler is already
-    // fixed by the deliveries in `state.thisOver`.
     const deliveries = materializeEvents(events);
     const previousOverBowlerId =
       state.thisOver.length === 0 && state.legalBalls > 0
@@ -258,7 +235,6 @@ matchesRouter.get(
   }),
 );
 
-/** The full ball-by-ball log, for the correction history and any audit. */
 matchesRouter.get(
   '/:matchId/events',
   requireScorerForMatch,

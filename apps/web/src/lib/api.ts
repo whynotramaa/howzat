@@ -1,10 +1,5 @@
 import type { ApiErrorBody, AuthSession } from '@howzat/shared';
 
-/**
- * In dev the Vite proxy serves the API under /api on the same origin, which
- * keeps the refresh cookie first-party. In a build, VITE_API_BASE_URL points
- * at the deployed API.
- */
 const BASE_URL = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL ?? '') : '/api';
 
 export class ApiError extends Error {
@@ -20,7 +15,6 @@ export class ApiError extends Error {
     this.details = body.details;
   }
 
-  /** Field-keyed messages when the API rejected a form. */
   get fieldErrors(): Record<string, string> {
     return this.code === 'BAD_REQUEST' && this.details && typeof this.details === 'object'
       ? (this.details as Record<string, string>)
@@ -28,10 +22,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * The access token lives in memory only. Persisting it to localStorage would
- * hand it to any XSS; the httpOnly refresh cookie is what survives a reload.
- */
 let accessToken: string | null = null;
 let refreshInFlight: Promise<string | null> | null = null;
 
@@ -41,7 +31,6 @@ export function setAccessToken(token: string | null): void {
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  /** Internal — stops a refresh loop from retrying forever. */
   _retried?: boolean;
 }
 
@@ -59,8 +48,6 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 
-  // A 401 on a token we *had* means it expired mid-session: refresh once,
-  // silently, and replay. The user should never see a login screen for this.
   if (response.status === 401 && !_retried && accessToken !== null) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
@@ -83,7 +70,6 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return payload as T;
 }
 
-/** Concurrent 401s share one refresh rather than stampeding the endpoint. */
 export function refreshAccessToken(): Promise<string | null> {
   refreshInFlight ??= (async () => {
     try {

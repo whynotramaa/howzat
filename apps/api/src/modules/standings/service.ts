@@ -18,18 +18,9 @@ import { notFound } from '../../lib/errors';
 import { toTeamRef } from '../fixtures/service';
 import { onMatchEvent } from '../../realtime/bus';
 
-/**
- * Phase 6. Triggered by the match:completed domain event only — no cron, no
- * polling — and recomputed for the whole tournament from Innings rows inside
- * one transaction. Recomputing rather than incrementing is what makes it
- * idempotent: replaying the event, or repairing a bad row, converges on the
- * same answer instead of double-counting.
- */
-
 const CACHE_TTL_SECONDS = 300;
 const cacheKey = (tournamentId: string) => `standings:${tournamentId}`;
 
-/** Reads finished matches in the shape the pure aggregator expects. */
 async function loadResults(tournamentId: string): Promise<MatchResult[]> {
   const matches = await prisma.match.findMany({
     where: {
@@ -49,7 +40,7 @@ async function loadResults(tournamentId: string): Promise<MatchResult[]> {
     innings: match.innings.map((innings) => ({
       battingTeamId: innings.battingTeamId,
       bowlingTeamId: innings.bowlingTeamId,
-      runs: 0, // filled in below from the event log
+      runs: 0,
       legalBalls: 0,
       oversQuota: innings.oversQuota,
       endReason: innings.endReason,
@@ -57,11 +48,6 @@ async function loadResults(tournamentId: string): Promise<MatchResult[]> {
   }));
 }
 
-/**
- * Runs and legal balls come from the event log, not from a stored total —
- * the log is the source of truth, and a correction must be reflected in the
- * points table without anyone remembering to update a second place.
- */
 async function fillInningsTotals(results: MatchResult[]): Promise<void> {
   const inningsIds = await prisma.innings.findMany({
     where: { matchId: { in: results.map((result) => result.matchId) } },
@@ -81,8 +67,6 @@ async function fillInningsTotals(results: MatchResult[]): Promise<void> {
       },
     });
 
-    // Same supersede semantics as the reducer: a corrected ball is replaced,
-    // an undone ball is dropped.
     const replaced = new Map<string, (typeof events)[number]>();
     const removed = new Set<string>();
 
@@ -113,14 +97,6 @@ async function fillInningsTotals(results: MatchResult[]): Promise<void> {
   }
 }
 
-// ───────────────────────────────────────────────────────────  football ──
-
-/**
- * Finished football matches, with the goals folded out of the event log rather
- * than read from a stored total — the same discipline as fillInningsTotals, and
- * for the same reason: the log is the truth, and an undone goal must leave the
- * league table without anyone remembering a second place to update.
- */
 async function loadFootballResults(tournamentId: string): Promise<FootballMatchResult[]> {
   const matches = await prisma.match.findMany({
     where: {
@@ -144,8 +120,6 @@ async function loadFootballResults(tournamentId: string): Promise<FootballMatchR
       })),
     )) {
       if (event.kind !== 'GOAL' && event.kind !== 'OWN_GOAL') continue;
-      // teamId is the side credited, own goals included — so this needs no
-      // special case, which is precisely why the column stores it that way.
       if (event.teamId === match.team1Id) homeGoals += 1;
       else if (event.teamId === match.team2Id) awayGoals += 1;
     }
@@ -170,7 +144,6 @@ async function recomputeFootballStandings(tournamentId: string, teamIds: string[
         played: row.played,
         won: row.won,
         lost: row.lost,
-        // "tied" is the shared column; in football it holds draws.
         tied: row.drawn,
         noResult: 0,
         points: row.points,
@@ -200,7 +173,6 @@ async function getFootballStandings(tournamentId: string): Promise<StandingsRowD
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
 
-  // A team with no points row yet still belongs in the table on zero.
   const totals = teams.map((team) => {
     const row = rows.find((entry) => entry.teamId === team.id);
     const goalsFor = row?.goalsFor ?? 0;
@@ -230,9 +202,6 @@ async function getFootballStandings(tournamentId: string): Promise<StandingsRowD
     tied: row.drawn,
     noResult: 0,
     points: row.points,
-    // Cricket's columns stay at zero on a football row rather than being
-    // absent: one row shape means one table component, and a renderer that
-    // knows the sport knows which half to draw.
     runsScored: 0,
     oversFaced: '0.0',
     runsConceded: 0,
@@ -245,8 +214,6 @@ async function getFootballStandings(tournamentId: string): Promise<StandingsRowD
     goalDifferenceText: formatGoalDifference(row.goalDifference),
   }));
 }
-
-// ────────────────────────────────────────────────────────────  shared ──
 
 export async function recomputeStandings(tournamentId: string): Promise<void> {
   const tournament = await prisma.tournament.findUnique({
@@ -277,7 +244,6 @@ export async function recomputeStandings(tournamentId: string): Promise<void> {
     results,
   );
 
-  // One transaction, so a reader never sees a half-updated table.
   await prisma.$transaction(
     totals.map((row) =>
       prisma.pointsTable.upsert({
@@ -319,7 +285,6 @@ export async function recomputeStandings(tournamentId: string): Promise<void> {
   logger.info({ tournamentId, teams: totals.length }, 'Standings recomputed');
 }
 
-/** The rendered table, sorted and with the NRR inputs exposed. */
 export async function getStandings(tournamentId: string): Promise<StandingsRowDto[]> {
   const cached = await redis.get(cacheKey(tournamentId)).catch(() => null);
   if (cached) return JSON.parse(cached) as StandingsRowDto[];
@@ -349,7 +314,6 @@ export async function getStandings(tournamentId: string): Promise<StandingsRowDt
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
 
-  // A team with no points row yet still belongs in the table on zero.
   const totals = teams.map((team) => {
     const row = rows.find((entry) => entry.teamId === team.id);
     return {
@@ -398,10 +362,6 @@ export async function getStandings(tournamentId: string): Promise<StandingsRowDt
   return table;
 }
 
-/**
- * Subscribes once, at import time. Every completed or abandoned match rebuilds
- * the whole table for its tournament.
- */
 export function registerStandingsSubscriber(): void {
   onMatchEvent('match:completed', async ({ tournamentId }) => {
     await recomputeStandings(tournamentId);

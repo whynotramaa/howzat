@@ -1,16 +1,6 @@
 import { useEffect, useRef, useState, type ElementType, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Scroll motion for the front page.
- *
- * Two rules hold everything here together. Content is never hidden by
- * JavaScript — the element renders in its final state and an attribute is what
- * moves it, so a failure to observe leaves a readable page rather than a blank
- * one. And every reveal fires exactly once: an element that re-animates when
- * you scroll back up turns reading into a slideshow.
- */
-
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -22,18 +12,14 @@ export function ScrollReveal({
   className,
   children,
 }: {
-  /** Position within a group; multiplied by `step` for the stagger. */
   index?: number;
   step?: number;
-  /** Pixels travelled. Larger for a hero block, smaller for a list row. */
   shift?: number;
   as?: ElementType;
   className?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLElement>(null);
-  // Starts visible. The observer hides it on mount only if it is still below
-  // the fold, so anything already on screen at first paint never blinks.
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -55,8 +41,6 @@ export function ScrollReveal({
           observer.disconnect();
         }
       },
-      // A negative bottom margin means the element has to be properly on screen
-      // before it moves, not merely touching the edge.
       { rootMargin: '0px 0px -12% 0px', threshold: 0.08 },
     );
 
@@ -81,11 +65,6 @@ export function ScrollReveal({
   );
 }
 
-/**
- * An accent hairline across the top showing how far down the page you are. It is
- * written straight to a CSS variable inside a rAF, so scrolling costs one style
- * write per frame and never a React render.
- */
 export function ScrollProgress() {
   const ref = useRef<HTMLDivElement>(null);
 

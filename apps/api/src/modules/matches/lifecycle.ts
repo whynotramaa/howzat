@@ -10,17 +10,6 @@ import { notFound, unprocessable } from '../../lib/errors';
 import { assertTeamEligible } from '../teams/eligibility';
 import { publishMatchEvent } from '../../realtime/bus';
 
-/**
- * The state machine a match walks through:
- *
- *   SCHEDULED → TOSS → LIVE → (INNINGS_BREAK → LIVE) → COMPLETED
- *
- * Each transition is guarded, because every one of them has a downstream
- * consequence that is expensive to unwind: the XI is frozen at toss, the
- * event log opens at the first innings, and completion is what triggers the
- * points table in Phase 6.
- */
-
 export async function loadMatchOrThrow(matchId: string) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
@@ -35,8 +24,6 @@ export async function loadMatchOrThrow(matchId: string) {
   if (!match) throw notFound('Match');
   return match;
 }
-
-// ────────────────────────────────────────────────────────────  toss ──
 
 export async function recordToss(matchId: string, input: TossInput) {
   const match = await loadMatchOrThrow(matchId);
@@ -56,8 +43,6 @@ export async function recordToss(matchId: string, input: TossInput) {
     throw unprocessable('NOT_IN_MATCH', 'The toss winner must be one of the two teams');
   }
 
-  // Both squads must still hold exactly eleven — the same predicate that
-  // gates fixture generation, applied at the second of its two call sites.
   await assertTeamEligible(match.team1Id);
   await assertTeamEligible(match.team2Id);
 
@@ -72,12 +57,6 @@ export async function recordToss(matchId: string, input: TossInput) {
   });
 }
 
-// ──────────────────────────────────────────────────────  playing XI ──
-
-/**
- * Freezes both XIs. Replaces any previous selection wholesale, which is safe
- * only while no ball has been bowled — enforced below.
- */
 export async function setPlayingXi(matchId: string, input: PlayingXiInput) {
   const match = await loadMatchOrThrow(matchId);
 
@@ -99,7 +78,6 @@ export async function setPlayingXi(matchId: string, input: PlayingXiInput) {
     throw unprocessable('WRONG_TEAMS', 'The XIs must be for the two teams in this match');
   }
 
-  // Every named player must actually belong to the team naming them.
   const playerIds = input.teams.flatMap((team) => team.players.map((player) => player.playerId));
 
   const players = await prisma.player.findMany({
@@ -149,9 +127,6 @@ export async function setPlayingXi(matchId: string, input: PlayingXiInput) {
   });
 }
 
-// ─────────────────────────────────────────────────────────  innings ──
-
-/** Who bats first, derived from the toss rather than asked for again. */
 function battingFirstTeamId(match: Match): string {
   const { tossWinnerId, tossDecision, team1Id, team2Id } = match;
 
@@ -207,12 +182,6 @@ export async function openFirstInnings(matchId: string) {
   return innings;
 }
 
-/**
- * Closes an innings and decides what happens next: innings two opens with a
- * target, or the match is over and the result is written.
- *
- * Called from inside the scoring lock, so no other ball can land mid-decision.
- */
 export async function closeInnings(
   inningsId: string,
   state: MatchState,
@@ -233,7 +202,6 @@ export async function closeInnings(
   });
 
   if (innings.number === 1) {
-    // The chase needs one more than what was just scored.
     const next = await prisma.innings.create({
       data: {
         matchId: innings.matchId,
@@ -257,10 +225,6 @@ export async function closeInnings(
   return { matchCompleted: true, nextInningsId: null };
 }
 
-/**
- * Writes the result. The wording follows the convention every scorecard uses:
- * a side batting second wins "by N wickets", a side defending wins "by N runs".
- */
 export async function completeMatch(matchId: string, secondInningsState: MatchState) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
@@ -305,9 +269,6 @@ export async function completeMatch(matchId: string, secondInningsState: MatchSt
     data: { status: 'COMPLETED', winnerTeamId, resultText },
   });
 
-  // The trigger for the points table and NRR recompute in Phase 6. Awaited
-  // because a serverless host freezes this instance as soon as the response
-  // goes out, which would leave the rebuild half-finished.
   await publishMatchEvent('match:completed', {
     matchId,
     tournamentId: match.tournamentId,
@@ -317,7 +278,6 @@ export async function completeMatch(matchId: string, secondInningsState: MatchSt
   return updated;
 }
 
-/** Abandons a match without a result — rain, or a side that never showed. */
 export async function abandonMatch(matchId: string, resultText?: string) {
   const match = await loadMatchOrThrow(matchId);
 

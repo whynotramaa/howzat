@@ -1,18 +1,9 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Tabs, drawn as an underlined index rather than a pill group.
- *
- * The active tab is marked by an accent rule sitting on the same hairline that
- * runs under the whole row — so the indicator looks like part of the page's
- * ruling rather than a widget stuck on top of it.
- */
-
 export interface TabItem<T extends string> {
   value: T;
   label: string;
-  /** A count or a status shown after the label, e.g. the number of fixtures. */
   meta?: ReactNode;
 }
 

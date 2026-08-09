@@ -6,23 +6,6 @@ import {
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
 
-/**
- * A tournament's fixture list with its scores attached.
- *
- * The public board used to show a handful of fixtures and, for the ones that
- * were over, a single line of result text. That is enough to know who won and
- * nothing else — so this assembles the other half: what each side actually
- * made, in the units of the code being played.
- *
- * Both codes fold their own event log rather than reading a stored total, for
- * the same reason the points table does: the log is the truth, and a correction
- * to a finished match has to move every figure derived from it without anybody
- * remembering a second place to update.
- *
- * Two queries per tournament, not two per match. A twenty-fixture league is one
- * innings read and one ball read, folded in memory.
- */
-
 const NO_SCORE = null;
 
 export async function loadTournamentMatches(
@@ -59,7 +42,6 @@ export async function loadTournamentMatches(
   }));
 }
 
-/** Per-team figures keyed by team id, for one match. */
 type MatchScore = Map<string, string>;
 
 function resolveScore(
@@ -75,13 +57,6 @@ function resolveScore(
   return team1 === null && team2 === null ? NO_SCORE : { team1, team2 };
 }
 
-// ─────────────────────────────────────────────────────────────  cricket ──
-
-/**
- * "165/6 (20.0)" per batting side. Folded with the same supersede semantics as
- * the reducer — a corrected ball is replaced, an undone ball is dropped — so a
- * report never disagrees with the scorecard it summarises.
- */
 async function cricketScores(matchIds: string[]): Promise<Map<string, MatchScore>> {
   const byMatch = new Map<string, MatchScore>();
   if (matchIds.length === 0) return byMatch;
@@ -140,8 +115,6 @@ async function cricketScores(matchIds: string[]): Promise<Map<string, MatchScore
       if (effective.isWicket) wickets += 1;
     }
 
-    // An innings that opened and had nothing bowled is not a score; leaving it
-    // out is what lets a fixture read as "not started" rather than as 0/0.
     if (log.length === 0) continue;
 
     const score = byMatch.get(entry.matchId) ?? new Map<string, string>();
@@ -152,9 +125,6 @@ async function cricketScores(matchIds: string[]): Promise<Map<string, MatchScore
   return byMatch;
 }
 
-// ────────────────────────────────────────────────────────────  football ──
-
-/** A match reduced to what a scoreline needs to exist at all. */
 interface ScorableMatch {
   id: string;
   status: string;
@@ -162,16 +132,6 @@ interface ScorableMatch {
   team2Id: string | null;
 }
 
-/**
- * Goals per side. `teamId` on a goal event is the side credited — own goals
- * included — so this needs no special case, which is exactly why the column
- * stores it that way.
- *
- * A kicked-off football match is 0–0 until somebody scores, which is a real
- * score and not an absent one. So the scoreline exists for anything past the
- * whistle rather than for anything with an event, and a side that never touched
- * the ball still gets its nought.
- */
 async function footballScores(matches: ScorableMatch[]): Promise<Map<string, MatchScore>> {
   const byMatch = new Map<string, MatchScore>();
 
@@ -211,10 +171,7 @@ async function footballScores(matches: ScorableMatch[]): Promise<Map<string, Mat
       goals.set(event.teamId, (goals.get(event.teamId) ?? 0) + 1);
     }
 
-    byMatch.set(
-      match.id,
-      new Map([...goals].map(([teamId, count]) => [teamId, String(count)])),
-    );
+    byMatch.set(match.id, new Map([...goals].map(([teamId, count]) => [teamId, String(count)])));
   }
 
   return byMatch;

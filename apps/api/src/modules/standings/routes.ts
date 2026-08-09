@@ -47,11 +47,6 @@ standingsRouter.get(
   }),
 );
 
-/**
- * A manual rebuild. The table is event-triggered and self-healing, so this is
- * an operator escape hatch rather than part of the normal flow — useful after
- * restoring a backup or correcting a ball in a finished match.
- */
 standingsRouter.post(
   '/:tournamentId/standings/recompute',
   asyncHandler(async (req, res) => {

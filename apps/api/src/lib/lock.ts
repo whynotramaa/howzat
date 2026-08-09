@@ -2,16 +2,6 @@ import crypto from 'node:crypto';
 import { redis } from './redis';
 import { conflict } from './errors';
 
-/**
- * A per-match write lock. Two scorers on the same match — or one scorer whose
- * phone retried while the first request was still in flight — would otherwise
- * race on the sequence number.
- *
- * SET NX PX gives mutual exclusion; the random token makes release safe. A
- * plain DEL would let a slow holder whose lock had already expired delete
- * somebody else's lock, which is worse than no lock at all.
- */
-
 const RELEASE_SCRIPT = `
 if redis.call("get", KEYS[1]) == ARGV[1] then
   return redis.call("del", KEYS[1])
@@ -24,19 +14,13 @@ interface Lock {
   token: string;
 }
 
-async function acquireLock(
-  key: string,
-  ttlMs = 5_000,
-  attempts = 20,
-): Promise<Lock> {
+async function acquireLock(key: string, ttlMs = 5_000, attempts = 20): Promise<Lock> {
   const token = crypto.randomBytes(16).toString('hex');
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const result = await redis.set(key, token, 'PX', ttlMs, 'NX');
     if (result === 'OK') return { key, token };
 
-    // Short backoff: a ball write holds the lock for single-digit
-    // milliseconds, so the contended case resolves almost immediately.
     await sleep(25 + attempt * 5);
   }
 
@@ -44,12 +28,9 @@ async function acquireLock(
 }
 
 async function releaseLock(lock: Lock): Promise<void> {
-  await redis.eval(RELEASE_SCRIPT, 1, lock.key, lock.token).catch(() => {
-    // A failed release is harmless: the TTL reclaims the lock shortly.
-  });
+  await redis.eval(RELEASE_SCRIPT, 1, lock.key, lock.token).catch(() => {});
 }
 
-/** Runs `fn` under the lock and always releases it, success or failure. */
 export async function withLock<T>(key: string, fn: () => Promise<T>, ttlMs = 5_000): Promise<T> {
   const lock = await acquireLock(key, ttlMs);
   try {

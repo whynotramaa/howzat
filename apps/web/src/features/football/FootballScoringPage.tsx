@@ -34,45 +34,17 @@ import {
   type FootballSquadSide,
 } from './queries';
 
-/**
- * The touchline console.
- *
- * Everything on this screen is sized for one hand, in daylight, while watching
- * something else. That constraint decides the whole layout.
- *
- * It is one panel in two bands:
- *
- *   the bar    the figures and the transport, side by side on one line. The
- *              clock is glanced at constantly and the transport is the second
- *              most-pressed thing here, so they share a row rather than
- *              stacking — which also gives the deck below the room it needs.
- *   the deck   GOAL as a single raised key, and the three occasional actions —
- *              save, card, change — as flat plates beneath it. A goal is what
- *              this screen exists for; the hierarchy says so in one look, and
- *              the one extrusion in the product is spent saying it.
- *
- * Every action opens a sheet rather than firing immediately. A mis-tap that puts
- * a goal on the board is worse than one extra tap, and the sheet is where the
- * player is named — which is the part that makes the scorecard worth reading
- * afterwards.
- */
-
 type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | { kind: 'SUB' } | null;
 
 export function FootballScoringPage() {
   const { matchId = '' } = useParams();
   const { data, isPending, error } = useFootballState(matchId);
-  // The club squads, for a change made from outside the named eighteen. Not
-  // required to render the console, so a slow or failed load costs the
-  // substitution sheet its call-ups and nothing else.
   const { data: squads } = useFootballSquads(matchId);
 
   const clockCommand = useClockCommand(matchId);
   const recordEvent = useRecordFootballEvent(matchId);
   const undoEvent = useUndoFootballEvent(matchId);
 
-  // Applies a command locally before the round trip, so the whistle and the
-  // display agree. See useMatchClock for why that was the whole problem.
   const watch = useMatchClock(data?.clock ?? null, clockCommand.mutateAsync);
 
   const [pending, setPending] = useState<Pending>(null);
@@ -111,8 +83,6 @@ export function FootballScoringPage() {
       playerOffId,
     });
 
-    // Fired on success, never on the optimistic start: a receipt for something
-    // that had not landed would lie in exactly the moment it mattered.
     const side = teamId === data!.home.team.id ? data!.home : data!.away;
     const named =
       [...data!.home.squad, ...data!.away.squad].find((entry) => entry.id === playerId)?.name ??
@@ -123,8 +93,6 @@ export function FootballScoringPage() {
       teamShort: side.team.shortName,
       teamColor: side.team.primaryColor,
       playerName: named,
-      // Resolved now rather than read off a ticking value: the minute this is
-      // stamped with is the minute the write happened in.
       minuteLabel: watch.readNow().minuteLabel,
     });
 
@@ -154,7 +122,6 @@ export function FootballScoringPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        {/* ── the instrument ─────────────────────────────────────────── */}
         <Card className="overflow-hidden">
           <ClockBar
             clock={watch.clock}
@@ -165,15 +132,13 @@ export function FootballScoringPage() {
             error={clockCommand.error}
           />
 
-          {/*
-           * The deck. Hairlined off the bar above it and set on the sunken
-           * ground, because the two bands of this panel are read differently:
-           * one is watched, the other is operated.
-           */}
           <div className="border-t border-line bg-sunken px-5 py-6 sm:px-8 sm:py-7">
             {watch.clock ? (
               <>
-                <GoalKey disabled={!canRecord || busy} onPress={() => setPending({ kind: 'GOAL' })} />
+                <GoalKey
+                  disabled={!canRecord || busy}
+                  onPress={() => setPending({ kind: 'GOAL' })}
+                />
 
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   <MinorKey
@@ -240,7 +205,6 @@ export function FootballScoringPage() {
           </div>
         </Card>
 
-        {/* ── the log ────────────────────────────────────────────────── */}
         <div className="flex min-w-0 flex-col gap-4">
           {recordEvent.error ? <ErrorText error={recordEvent.error} /> : null}
           {undoEvent.error ? <ErrorText error={undoEvent.error} /> : null}
@@ -312,6 +276,11 @@ export function FootballScoringPage() {
         away={data.away}
         lineups={snapshot?.lineups ?? { home: null, away: null }}
         rosters={{ home: squads?.home ?? null, away: squads?.away ?? null }}
+        limit={snapshot?.substitutionLimit ?? null}
+        used={{
+          home: state.home.substitutions.length,
+          away: state.away.substitutions.length,
+        }}
         isPending={busy}
         onClose={() => setPending(null)}
         onSubmit={submit}
@@ -322,7 +291,6 @@ export function FootballScoringPage() {
   );
 }
 
-/** A called-up player is not on the match squad, so their name lives in the roster. */
 function squadRosterName(
   squads: { home: FootballSquadSide; away: FootballSquadSide } | undefined,
   playerId: string | null,
@@ -335,17 +303,6 @@ function squadRosterName(
   );
 }
 
-// ────────────────────────────────────────────────────────  scoreline ──
-
-/**
- * The scoreline.
- *
- * Two kit colours meet in a 3px seam across the top of the panel — flat, split
- * down the middle rather than blended, because a gradient between two arbitrary
- * kit colours produces a muddy third colour belonging to neither side. The
- * figures are the largest type in the product apart from the clock, and they
- * bump when they change so that a goal is visible from the corner of an eye.
- */
 function Scoreline({
   home,
   away,
@@ -369,15 +326,11 @@ function Scoreline({
         }}
       />
 
-      {/* Tighter than a scoreboard on purpose: on a phone every pixel spent here
-          is a pixel between the scorer's thumb and the goal key. */}
       <CardBody className="flex items-center justify-between gap-4 py-5">
         <TeamScore team={home} align="left" />
 
         <div className="flex shrink-0 flex-col items-center gap-2">
           <span
-            // Keyed on the scoreline so the figure re-mounts, and the bump runs,
-            // on the goal that changed it and on nothing else.
             key={`${homeGoals}-${awayGoals}`}
             className="score-bump score-figure flex items-center gap-3 text-[2.25rem] text-primary sm:text-[2.75rem]"
           >
@@ -417,17 +370,6 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
   );
 }
 
-// ──────────────────────────────────────────────────────────  the deck ──
-
-/**
- * The key this whole screen exists for.
- *
- * Deliberately out of proportion with everything around it. A goal is the only
- * thing that changes a football result, it has to be recorded in the seconds
- * while everyone is celebrating, and the person recording it is not looking
- * down. Size *is* the affordance here — this is the one target that can be hit
- * by feel.
- */
 function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
   return (
     <PushButton
@@ -447,14 +389,6 @@ function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void
   );
 }
 
-/**
- * The occasional actions.
- *
- * Flat plates: a hairline, a mark and a word. These happen a handful of times a
- * match, and giving them the goal key's extrusion would spend the one piece of
- * hierarchy this screen has. The colour lives in the mark rather than the
- * surface, which is the rule everywhere else in the product.
- */
 function MinorKey({
   label,
   glyph,
@@ -481,8 +415,6 @@ function MinorKey({
   );
 }
 
-// ─────────────────────────────────────────────────────────  controls ──
-
 const COMMAND_LABELS: Record<ClockCommand, string> = {
   START: 'Start the clock',
   PAUSE: 'Pause',
@@ -492,18 +424,6 @@ const COMMAND_LABELS: Record<ClockCommand, string> = {
   FULL_TIME: 'Full time',
 };
 
-/**
- * The bar: the figures on the left, the transport on the right, one line.
- *
- * The command list comes from the same table the server refuses commands with,
- * so the button that is missing here is exactly the command that would have been
- * rejected. There is no client-side guess to drift out of step.
- *
- * Whatever the clock will accept next is the round key; everything else it will
- * accept sits quietly on the line below, behind a hairline. Ending a period and
- * blowing full time are deliberate, occasional acts, and a deliberate act should
- * not be the same size as the one pressed every few minutes.
- */
 function ClockBar({
   clock,
   commands,
@@ -529,9 +449,6 @@ function ClockBar({
 
         {primary ? (
           <div className="flex shrink-0 flex-col items-center gap-2">
-            {/* A transport, not a text button. The second most-pressed thing on
-                this screen deserves a target you can hit without looking, and a
-                play/pause glyph is read faster than a word. */}
             <button
               type="button"
               className={cn(
@@ -593,45 +510,25 @@ function ClockBar({
   );
 }
 
-// ──────────────────────────────────────────────────────────  sheets ──
-
 interface SideData {
   team: TeamRef;
   squad: PlayerRef[];
 }
 
-/** A player as offered in a sheet, with whatever needs saying beside the name. */
 interface Choice {
   id: string;
   name: string;
   note?: string | null;
 }
 
-/**
- * A change.
- *
- * Who can come *off* is decided by the pitch: only somebody playing, and not
- * somebody already sent off — you cannot replace a red card.
- *
- * Who can come *on* is decided by the club squad, not by the team sheet. This
- * used to offer only the named bench, and that was wrong for the football this
- * product is actually used for: a Sunday side names eleven because eleven have
- * turned up, and the twelfth arrives during the first half. Refusing to record a
- * change that visibly happened is worse than an unnamed player appearing in the
- * log, so anyone in the squad who is not already on the pitch and has not
- * already been used can be brought on. Bringing a player on adds them to the
- * team sheet server-side, which is exactly what handing the referee a revised
- * sheet does.
- *
- * The filtering here is not the rule — the server holds that — it is what makes
- * the illegal combinations unofferable rather than merely refused.
- */
 function SubstitutionSheet({
   open,
   home,
   away,
   lineups,
   rosters,
+  limit,
+  used,
   isPending,
   onClose,
   onSubmit,
@@ -641,6 +538,8 @@ function SubstitutionSheet({
   away: SideData;
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
   rosters: { home: FootballSquadSide | null; away: FootballSquadSide | null };
+  limit: number | null;
+  used: { home: number; away: number };
   isPending: boolean;
   onClose: () => void;
   onSubmit: (
@@ -665,7 +564,6 @@ function SubstitutionSheet({
   const lineup = teamId === null ? null : isHome ? lineups.home : lineups.away;
   const roster = teamId === null ? null : isHome ? rosters.home : rosters.away;
 
-  // On the pitch, minus anyone sent off.
   const canComeOff: Choice[] = (lineup?.players ?? [])
     .filter((player) => !player.isSentOff)
     .map((player) => ({
@@ -676,7 +574,11 @@ function SubstitutionSheet({
 
   const canComeOn = availableToComeOn(lineup, roster, home, away, teamId);
 
-  const ready = Boolean(teamId && offId && onId);
+  const spent = teamId === null ? 0 : isHome ? used.home : used.away;
+  const remaining = limit === null ? null : Math.max(0, limit - spent);
+  const exhausted = remaining === 0;
+
+  const ready = Boolean(teamId && offId && onId) && !exhausted;
 
   return (
     <Sheet
@@ -687,15 +589,17 @@ function SubstitutionSheet({
       }}
       size="lg"
       title="Substitution"
-      description="Who is coming off, and who is taking their place."
+      description={
+        limit === null
+          ? 'Rolling substitutions — anyone off the pitch can come on, as often as you like.'
+          : `Who is coming off, and who is taking their place. ${limit} changes a side.`
+      }
       footer={
         <>
           <Button
             disabled={!ready}
             isLoading={isPending}
-            onClick={() =>
-              void onSubmit('SUBSTITUTION', teamId!, onId, null, offId).then(reset)
-            }
+            onClick={() => void onSubmit('SUBSTITUTION', teamId!, onId, null, offId).then(reset)}
           >
             Make the change
           </Button>
@@ -724,12 +628,22 @@ function SubstitutionSheet({
         />
 
         {teamId ? (
-          canComeOn.length === 0 ? (
+          exhausted ? (
             <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
-              Everybody in this squad has either played or been used.
+              This side has used all {limit} of its substitutions.
+            </p>
+          ) : canComeOn.length === 0 ? (
+            <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-4 text-[0.8125rem] text-secondary">
+              Everybody in this squad is either on the pitch or sent off.
             </p>
           ) : (
             <>
+              <p className="text-[0.8125rem] text-muted">
+                {remaining === null
+                  ? `${spent} change${spent === 1 ? '' : 's'} so far — no limit`
+                  : `${remaining} of ${limit} change${limit === 1 ? '' : 's'} left`}
+              </p>
+
               <PlayerChoice
                 label="Coming off"
                 players={canComeOff}
@@ -741,7 +655,7 @@ function SubstitutionSheet({
                 players={canComeOn}
                 value={onId}
                 onChange={setOnId}
-                caption="Anyone in the squad. A player who was not named is added to the team sheet when the change is recorded."
+                caption="Anyone in the squad, including a player already taken off. A player who was not named is added to the team sheet when the change is recorded."
               />
             </>
           )
@@ -751,14 +665,6 @@ function SubstitutionSheet({
   );
 }
 
-/**
- * Everybody who could legally take the field for this side right now.
- *
- * The named bench first, in team-sheet order, then the rest of the squad — a
- * substitute the manager already planned for should not be buried among thirty
- * registered players. Anyone already on the pitch, already withdrawn, or sent
- * off is gone from the list entirely; football has no re-entry.
- */
 function availableToComeOn(
   lineup: TeamLineup | null,
   roster: FootballSquadSide | null,
@@ -774,12 +680,13 @@ function availableToComeOn(
     named.set(player.id, player);
   }
 
+  // Substitutions roll: anyone off the pitch and not sent off can come on, including
+  // a player who has already been taken off once.
   const usable = (id: string) => {
     if (onPitch.has(id)) return false;
     const entry = named.get(id);
-    // Not on the team sheet at all: a call-up, and nothing has happened to them.
     if (!entry) return true;
-    return !entry.wentOffAt && !entry.isSentOff;
+    return !entry.isSentOff;
   };
 
   const bench: Choice[] = (lineup?.substitutes ?? [])
@@ -787,12 +694,13 @@ function availableToComeOn(
     .map((player) => ({
       id: player.id,
       name: player.name,
-      note: player.shirtNumber === null ? 'Bench' : `#${player.shirtNumber}`,
+      note: player.wentOffAt
+        ? `Off ${player.wentOffAt}`
+        : player.shirtNumber === null
+          ? 'Bench'
+          : `#${player.shirtNumber}`,
     }));
 
-  // The squad endpoint is the full club roster; the match state is only the
-  // eighteen. Falling back to the match squad means a failed roster fetch
-  // degrades to the old behaviour instead of an empty list.
   const all =
     roster?.players.map((player) => ({ id: player.id, name: player.name })) ??
     (teamId === home.team.id ? home.squad : away.squad);
@@ -810,14 +718,6 @@ function availableToComeOn(
   return [...bench, ...rest];
 }
 
-/**
- * A save.
- *
- * The team picked here is the side that *kept the ball out*, not the side that
- * shot — the same inversion an own goal has, in the other direction. The player
- * list is not restricted to the goalkeeper: outfield players clear shots off the
- * line, and a console that refused to record that would be wrong.
- */
 function SaveSheet({
   open,
   home,
@@ -937,8 +837,6 @@ function GoalSheet({
   }
 
   const scoringSide = teamId === home.team.id ? home : teamId === away.team.id ? away : null;
-  // An own goal is credited to one side and scored by a player from the other,
-  // so the player list has to come from the opposite team sheet.
   const playerSide = isOwnGoal ? (scoringSide === home ? away : home) : scoringSide;
 
   return (
@@ -1195,14 +1093,6 @@ function TeamChoice({
   );
 }
 
-/**
- * Naming the player.
- *
- * "Unknown" is a first-class answer rather than an omission. At this level
- * nobody always knows who got the final touch, and a console that insists is a
- * console where the goal gets recorded against the wrong person — or, worse,
- * not recorded while somebody works it out.
- */
 function PlayerChoice({
   label,
   caption,

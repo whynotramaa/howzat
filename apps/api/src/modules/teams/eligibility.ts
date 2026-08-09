@@ -2,38 +2,15 @@ import { MAX_FOOTBALL_SQUAD, PLAYERS_PER_TEAM, type Sport } from '@howzat/shared
 import { unprocessable } from '../../lib/errors';
 import { prisma } from '../../lib/prisma';
 
-/**
- * The full-squad gate, in one place. The brief makes it non-negotiable and the
- * plan calls for enforcing it at exactly two points — fixture generation
- * (Phase 3) and the team-sheet lock at toss or kick-off (Phase 4) — so it must
- * be a predicate, not a rule re-typed at each call site.
- *
- * The size itself is the tournament's rather than a constant. Cricket still
- * answers eleven and always will, but football is played five, seven and eleven
- * a side on the same municipal pitch, and a hard-coded 11 would have made the
- * second sport a special case of the first at every one of these call sites.
- */
-
 export interface TeamEligibility {
   teamId: string;
   playerCount: number;
   isEligible: boolean;
-  /** Non-null when ineligible: what the organizer still has to do. */
   reason: string | null;
-  /** The starting side. In football the squad may exceed it. */
   squadSize: number;
   maxSquadSize: number;
 }
 
-/**
- * The largest squad a side may hold.
- *
- * Cricket is an equality — a squad *is* the eleven who play. Football is a
- * range with a lot of room in it, because the squad and the starting side are
- * different numbers: a five-a-side team turns up with twelve and rolls
- * substitutes all evening. The starting five are picked from the squad at the
- * team sheet, so the squad list only has to say who is available.
- */
 export function maxSquadSizeFor(sport: Sport, squadSize: number): number {
   return sport === 'FOOTBALL' ? MAX_FOOTBALL_SQUAD : squadSize;
 }
@@ -62,7 +39,6 @@ export function evaluateEligibility(
   };
 }
 
-/** The rules a team is judged against: its tournament's. */
 export async function squadRulesForTeam(
   teamId: string,
 ): Promise<{ squadSize: number; sport: Sport }> {
@@ -86,7 +62,6 @@ export async function getTeamEligibility(teamId: string): Promise<TeamEligibilit
   return evaluateEligibility(teamId, playerCount, rules.squadSize, rules.sport);
 }
 
-/** Throws 422 unless the team holds exactly a full squad. */
 export async function assertTeamEligible(teamId: string): Promise<void> {
   const eligibility = await getTeamEligibility(teamId);
 
@@ -99,10 +74,6 @@ export async function assertTeamEligible(teamId: string): Promise<void> {
   }
 }
 
-/**
- * Batch form for fixture generation, which needs to report *every* incomplete
- * team at once rather than failing on the first one it happens to hit.
- */
 export async function assertTournamentTeamsEligible(tournamentId: string): Promise<void> {
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },

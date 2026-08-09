@@ -1,17 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/**
- * Table primitives, shared by the standings, the tournament stats panel and
- * the live scorecards — three tables that had drifted into three near-identical
- * private copies of the same two components.
- *
- * Alignment is a prop rather than a className because `cn` is a plain joiner:
- * passing "text-right" alongside a baked-in "text-center" leaves both on the
- * element and lets the stylesheet's ordering decide the winner. A prop that
- * chooses one class cannot silently lose that argument.
- */
-
 type Align = 'left' | 'center' | 'right';
 
 const ALIGNMENT: Record<Align, string> = {
@@ -20,11 +9,6 @@ const ALIGNMENT: Record<Align, string> = {
   right: 'text-right',
 };
 
-/**
- * Live scorecards carry more columns on a phone, so they tighten the cells.
- * It travels by context: threading it through forty call sites would bury the
- * one thing each cell is actually saying.
- */
 type Density = 'default' | 'compact';
 
 const PADDING: Record<Density, { th: string; td: string }> = {
@@ -40,7 +24,6 @@ export function Table({
   children,
 }: {
   density?: Density;
-  /** Width and layout only — the visual chrome belongs to the caller's wrapper. */
   className?: string;
   children: ReactNode;
 }) {
@@ -79,7 +62,6 @@ export function Td({
   children,
 }: {
   align?: Align;
-  /** Lifts the one number in the row that the reader came for. */
   emphasis?: boolean;
   className?: string;
   children?: ReactNode;

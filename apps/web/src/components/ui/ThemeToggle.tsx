@@ -20,17 +20,6 @@ function readStoredTheme(): Theme {
   }
 }
 
-/**
- * A three-way segmented control rather than a cycling button.
- *
- * Cycling hides the current state behind a guess — you press it and find out. All
- * three options visible means the choice is legible before you make it, and
- * "System" is a real, selectable position rather than an implied default.
- *
- * Choosing "System" removes the attribute entirely so the prefers-color-scheme
- * query in tokens.css takes back over, which is what makes the OS toggle
- * live-update the page.
- */
 export function ThemeToggle({ tone = 'default' }: { tone?: 'default' | 'inverse' }) {
   const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
 
@@ -41,16 +30,12 @@ export function ThemeToggle({ tone = 'default' }: { tone?: 'default' | 'inverse'
       root.removeAttribute('data-theme');
       try {
         localStorage.removeItem(STORAGE_KEY);
-      } catch {
-        /* private mode */
-      }
+      } catch {}
     } else {
       root.setAttribute('data-theme', theme);
       try {
         localStorage.setItem(STORAGE_KEY, theme);
-      } catch {
-        /* private mode */
-      }
+      } catch {}
     }
   }, [theme]);
 

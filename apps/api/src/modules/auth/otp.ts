@@ -8,14 +8,8 @@ import { badRequest, tooManyRequests, unauthorized } from '../../lib/errors';
 
 const OTP_COST = 10;
 
-/**
- * Codes are scoped to what they were issued for. A code emailed to confirm an
- * address must not also be redeemable as a password reset, even though both
- * are six digits sent to the same inbox.
- */
 export type { OtpPurpose };
 
-/** Uniform over 000000–999999, generated from a CSPRNG rather than Math.random. */
 function generateOtpCode(): string {
   return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
 }
@@ -31,18 +25,12 @@ export async function assertOtpRequestAllowed(email: string, ip: string): Promis
     );
   }
 
-  // The per-IP ceiling is deliberately looser — a shared ground wifi should
-  // not lock out a whole team, but a scripted enumeration should still stall.
   const perIp = await incrementWindow(`rl:otp:ip:${ip}`, windowSeconds);
   if (perIp.count > env.OTP_REQUESTS_PER_HOUR * 6) {
     throw tooManyRequests('Too many sign-in attempts from this network.', perIp.ttl);
   }
 }
 
-/**
- * Any previously issued, unconsumed code for the email is invalidated first —
- * only the newest code can ever work, so a leaked older code is dead.
- */
 export async function issueOtp(
   email: string,
   purpose: OtpPurpose = 'EMAIL_VERIFICATION',
@@ -62,11 +50,6 @@ export async function issueOtp(
   return code;
 }
 
-/**
- * Consumes the newest live code for the email. Every failure path returns the
- * same message: telling a caller *why* verification failed hands them an
- * account-enumeration oracle.
- */
 export async function verifyOtp(
   email: string,
   code: string,

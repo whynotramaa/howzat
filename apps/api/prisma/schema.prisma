@@ -1,37 +1,16 @@
-// Howzat — local cricket tournament & live scoring platform.
-//
-// Design note: BallEvent is an append-only log and is the sole source of truth
-// for anything that happens during a match. Everything else here is either
-// setup data (tournaments, teams, players, XI) or a derived projection that can
-// be rebuilt from the log (PointsTable). The Redis snapshot is likewise derived
-// and deliberately absent from this schema.
 
 generator client {
   provider = "prisma-client-js"
-  // "native" keeps local development working; the RHEL target is the query
-  // engine the deployed Linux runtime loads. Without it the client builds
-  // fine and then fails at runtime with "Query Engine not found".
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // Neon's pooled connection cannot run migrations; DIRECT_URL is the
-  // non-pooled endpoint. Both point at the same database.
   directUrl = env("DIRECT_URL")
 }
 
-// ─────────────────────────────────────────────────────────────── Enums ──
 
-/// Which game a tournament is played under.
-///
-/// This is the one axis the whole schema branches on, and it is deliberately a
-/// column on Tournament rather than two parallel sets of tables: a team, a
-/// squad, a fixture, a scorer assignment and a points table mean the same thing
-/// in both codes. Only what happens *during* a match differs, so only the
-/// match-time models are duplicated — BallEvent/Innings for cricket,
-/// FootballEvent/MatchClock for football.
 enum Sport {
   CRICKET
   FOOTBALL
@@ -114,37 +93,21 @@ enum WicketType {
   OBSTRUCTING_FIELD
 }
 
-// ──────────────────────────────────────────────────── Football enums ──
 
-/// What a football scorer can record. Deliberately short: the brief is goals
-/// and cards, and every extra button on a touchline console is a button that
-/// gets pressed by accident.
 enum FootballEventKind {
   GOAL
   OWN_GOAL
   YELLOW_CARD
   RED_CARD
-  /// A shot the goalkeeper kept out. The only event here credited to the side
-  /// that did *not* have the ball, which is why `teamId` on a SAVE is the
-  /// keeper's team rather than the attacking one.
   SAVE
-  /// A change: `playerId` comes on, `playerOffId` goes off. The only kind that
-  /// names two people, and the only one that changes who is on the pitch.
   SUBSTITUTION
 }
 
-/// Mirrors BallEventType. The football log is append-only for the same reason
-/// the cricket one is: a goal that was wrongly given has to stay visible as a
-/// goal that was wrongly given.
 enum FootballEventType {
   EVENT
   UNDO
 }
 
-/// Where the referee's watch is.
-///
-/// PERIOD_BREAK is distinct from PAUSED because they end differently: a pause
-/// resumes the same period, a break advances to the next one.
 enum ClockStatus {
   NOT_STARTED
   RUNNING
@@ -153,23 +116,13 @@ enum ClockStatus {
   FINISHED
 }
 
-// ──────────────────────────────────────────────────────── Identity ──
 
-/// There is no role column, and that is deliberate. Whoever creates a
-/// tournament is its organizer; whoever is assigned to a match is that match's
-/// scorer. Both are facts about a relationship, not about a person — the same
-/// account is routinely both in the same week, and asking at signup only ever
-/// produced an answer that had to be worked around later.
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
-  /// Public handle and login identifier. Also the key an organizer types when
-  /// adding a registered player to a squad, and the stats URL.
   username     String    @unique
   name         String
   passwordHash String
-  /// Null until the emailed code is confirmed. Unverified accounts can hold a
-  /// username but cannot sign in.
   emailVerifiedAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -180,7 +133,6 @@ model User {
   ballEvents        BallEvent[]
   footballEvents    FootballEvent[]
   refreshTokens     RefreshToken[]
-  /// One row per squad this account has been added to, across all tournaments.
   playerProfiles    Player[]
   notifications     Notification[]
 
@@ -192,25 +144,14 @@ enum NotificationType {
   SCORER_ASSIGNED
 }
 
-/// In-app notice, delivered to the bell and mirrored to email when sending is
-/// configured. Stored rather than derived: "you were added to a squad" is an
-/// event, and by the time someone reads it the squad may have changed again —
-/// a query over current state could not reconstruct what they were told.
-///
-/// The copy is frozen at write time for the same reason. A notification that
-/// re-renders itself from live data is a notification that can quietly start
-/// saying something the recipient was never sent.
 model Notification {
   id      String           @id @default(cuid())
   userId  String
   type    NotificationType
   title   String
   body    String
-  /// Relative path within the web app; null when there is nowhere to go.
   link    String?
 
-  /// Context, denormalized. Nullable and un-constrained on purpose: a deleted
-  /// tournament must not delete the notice that you were once added to it.
   tournamentId String?
   teamId       String?
   matchId      String?
@@ -230,9 +171,6 @@ enum OtpPurpose {
   PASSWORD_RESET
 }
 
-/// Hashed 6-digit codes with a short TTL and a hard attempt cap. Rows are
-/// retained after consumption so a replay attempt is distinguishable from a
-/// code that never existed.
 model OtpCode {
   id         String     @id @default(cuid())
   email      String
@@ -248,8 +186,6 @@ model OtpCode {
   @@map("otp_codes")
 }
 
-/// Refresh tokens are stored hashed so a database leak cannot be replayed
-/// against the API. Rotation on use; revokedAt marks a family as burned.
 model RefreshToken {
   id        String    @id @default(cuid())
   userId    String
@@ -265,7 +201,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-// ────────────────────────────────────────────────────── Tournament ──
 
 model Tournament {
   id               String           @id @default(cuid())
@@ -274,20 +209,12 @@ model Tournament {
   sport            Sport            @default(CRICKET)
   format           TournamentFormat @default(LEAGUE)
   teamsCount       Int
-  /// How many players make a full squad. Eleven for cricket, always; football
-  /// is played five, seven and eleven a side on the same municipal ground, so
-  /// the number that gates a fixture has to be the organizer's, not ours.
   playersPerTeam   Int              @default(11)
   oversPerInnings  Int              @default(20)
   doubleRoundRobin Boolean          @default(false)
   status           TournamentStatus @default(DRAFT)
 
-  // ── Football clock defaults ────────────────────────────────────────
-  // Copied onto MatchClock at kickoff rather than read live, so changing the
-  // tournament's settings can never move the clock of a match in progress.
-  /// Periods in a match: 2 for halves, 4 for quarters.
   periods          Int              @default(2)
-  /// Regulation length of one period, in minutes.
   periodMinutes    Int              @default(45)
 
   createdAt        DateTime         @default(now())
@@ -306,9 +233,7 @@ model Team {
   id           String   @id @default(cuid())
   tournamentId String
   name         String
-  /// Broadcast abbreviation (CSK, MI) — drives the compact score UI.
   shortName    String
-  /// Hex color injected as a scoped CSS variable on the live page.
   primaryColor String   @default("#1e40af")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -330,24 +255,11 @@ model Team {
   @@map("teams")
 }
 
-/// A squad slot, scoped to one team in one tournament.
-///
-/// Two kinds of player sit in this table. One has a Howzat account — the
-/// organizer found them by handle when building the squad, userId is set, and
-/// everything they do here lands on that account's career profile. The other
-/// is someone who just turned up to play: no account, so the row carries a
-/// generated `guest_…` handle purely so the UI has something stable to show
-/// and the scorer has something unambiguous to tap. A placeholder is not an
-/// identity and never accumulates a profile — if that person signs up later,
-/// their history starts from the squads they are added to afterwards.
 model Player {
   id           String     @id @default(cuid())
   teamId       String
-  /// Set when this squad slot is a registered account.
   userId       String?
   name         String
-  /// The registered account's handle, or a generated `guest_…` placeholder.
-  /// Denormalized from User so the scoring UI never needs the join.
   username     String
   role         PlayerRole @default(BATSMAN)
   battingStyle String?
@@ -370,7 +282,6 @@ model Player {
   assists      FootballEvent[] @relation("FootballAssist")
   subbedOff    FootballEvent[] @relation("FootballSubbedOff")
 
-  /// One account cannot occupy two slots in the same squad.
   @@unique([teamId, userId])
   @@unique([teamId, username])
   @@index([teamId])
@@ -378,40 +289,26 @@ model Player {
   @@map("players")
 }
 
-/// A player's card for one match, derived wholly from that match's BallEvent
-/// log and rewritten on completion — the same recompute-don't-increment
-/// discipline as PointsTable, for the same reason: a correction to a ball in a
-/// finished match must move the career figures without anyone remembering a
-/// second place to update.
-///
-/// A career profile is the sum of these rows over every Player slot belonging
-/// to an account, so "stats that keep increasing per match" is literally what
-/// the table is: one more row per match played.
 model PlayerMatchStats {
   id       String @id @default(cuid())
   matchId  String
   playerId String
   teamId   String
-  /// Denormalized so a profile query never has to walk back to the match.
   tournamentId String
 
-  // Batting
   batted     Boolean @default(false)
   runs       Int     @default(0)
   ballsFaced Int     @default(0)
   fours      Int     @default(0)
   sixes      Int     @default(0)
-  /// False when they finished not out — the divisor in a batting average.
   isOut      Boolean @default(false)
 
-  // Bowling
   bowled       Boolean @default(false)
   ballsBowled  Int     @default(0)
   runsConceded Int     @default(0)
   wickets      Int     @default(0)
   maidens      Int     @default(0)
 
-  // Fielding
   catches   Int @default(0)
   runOuts   Int @default(0)
   stumpings Int @default(0)
@@ -427,41 +324,28 @@ model PlayerMatchStats {
   @@map("player_match_stats")
 }
 
-// ──────────────────────────────────────────────────────────── Match ──
 
 model Match {
   id              String        @id @default(cuid())
   tournamentId    String
   round           Int
   stage           MatchStage    @default(LEAGUE)
-  /// Null on knockout bracket slots until their feeder matches complete.
   team1Id         String?
   team2Id         String?
-  /// Optional by design — fixture generation never depends on the calendar.
   scheduledAt     DateTime?
-  /// Free text. No venue-clash logic: explicitly out of scope.
   venue           String?
   status          MatchStatus   @default(SCHEDULED)
   tossWinnerId    String?
   tossDecision    TossDecision?
   oversPerInnings Int
-  /// Football only: "4-3-3" and friends, per side. Null until the scorer picks
-  /// one in the team-sheet step.
   team1Formation  String?
   team2Formation  String?
-  /// Football clock, per match. Null means "use the tournament's setting".
-  ///
-  /// The tournament's numbers are a default, not a rule: the same league plays
-  /// 2×45 on a Sunday and 2×30 when the pitch is booked until four, and the
-  /// person who knows which is the one standing there about to blow the
-  /// whistle. Nullable rather than copied at fixture generation so that
-  /// changing the tournament default still moves every match nobody has
-  /// deliberately overridden.
   periods         Int?
   periodMinutes   Int?
+  // Changes allowed per side. Null is futsal's rolling, unlimited bench.
+  subLimit        Int?
   winnerTeamId    String?
   resultText      String?
-  /// Short, shareable, unguessable — never expose a raw id in a public URL.
   publicSlug      String        @unique
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -485,8 +369,6 @@ model Match {
   @@map("matches")
 }
 
-/// Match-level authorization. A scorer may only submit balls for matches
-/// listed here; the organizer of the tournament passes by ownership.
 model ScorerAssignment {
   id         String   @id @default(cuid())
   matchId    String
@@ -503,14 +385,6 @@ model ScorerAssignment {
   @@map("scorer_assignments")
 }
 
-/// The playing XI, frozen at toss. Separate from Player because a squad may
-/// be larger than eleven and the XI differs match to match.
-///
-/// Football reuses this table wholesale — it is the same fact, "these are the
-/// people on the field" — and adds two columns. `lineupSlot` is an index into
-/// the chosen formation, which is what lets the pitch graphic be derived from
-/// the team sheet rather than stored as coordinates that would go stale the
-/// moment someone changed 4-4-2 to 4-3-3.
 model MatchPlayer {
   id           String  @id @default(cuid())
   matchId      String
@@ -519,11 +393,6 @@ model MatchPlayer {
   battingOrder Int?
   isCaptain    Boolean @default(false)
   isKeeper     Boolean @default(false)
-  /// Football: 0 is the goalkeeper, then the formation's lines front to back.
-  ///
-  /// Null marks a substitute — named on the team sheet, on the bench, and not
-  /// on the pitch graphic. That is the whole distinction, so there is no
-  /// separate isStarter flag to contradict it.
   lineupSlot   Int?
   shirtNumber  Int?
 
@@ -542,7 +411,6 @@ model Innings {
   number        Int
   battingTeamId String
   bowlingTeamId String
-  /// The full allotted quota. Load-bearing for the NRR bowled-out rule.
   oversQuota    Int
   targetRuns    Int?
   status        InningsStatus     @default(IN_PROGRESS)
@@ -560,15 +428,11 @@ model Innings {
   @@map("innings")
 }
 
-/// Append-only. Nothing here is ever updated or deleted: a mistake is fixed by
-/// appending a CORRECTION that points at the event it supersedes.
 model BallEvent {
   id            String        @id @default(cuid())
   matchId       String
   inningsId     String
-  /// Client-generated, unique — makes retries idempotent.
   clientEventId String        @unique
-  /// Monotonic and gap-free per innings; lets a client detect a missed delta.
   seq           Int
   overNumber    Int
   ballNumber    Int
@@ -578,7 +442,6 @@ model BallEvent {
   runsOffBat      Int        @default(0)
   extraRuns       Int        @default(0)
   extraType       ExtraType?
-  /// False for wides and no-balls — the difference between 0.4 and 0.6.
   isLegalDelivery Boolean    @default(true)
 
   isWicket          Boolean     @default(false)
@@ -610,49 +473,23 @@ model BallEvent {
   @@map("ball_events")
 }
 
-// ───────────────────────────────────────────────────────── Football ──
 
-/// Append-only, exactly like BallEvent: the sole source of truth for what
-/// happened in a football match, and the only thing the score is ever derived
-/// from. A mistake is fixed by appending an UNDO that points at the event it
-/// removes — nothing here is updated or deleted.
-///
-/// `minute` is stamped by the server from the clock at the moment of the write
-/// and then never recomputed. It has to be frozen: a goal was scored on 63
-/// minutes whatever the clock says an hour later, and a minute derived at read
-/// time would drift every time the match was paused.
 model FootballEvent {
   id            String            @id @default(cuid())
   matchId       String
-  /// Client-generated, unique — makes retries idempotent.
   clientEventId String            @unique
-  /// Monotonic and gap-free per match; lets a client detect a missed delta.
   seq           Int
   eventType     FootballEventType @default(EVENT)
   supersedesEventId String?
 
   kind   FootballEventKind
-  /// The side the event is *credited to*. For an own goal that is the side
-  /// that benefits, not the side of the player who scored it — which is why
-  /// this cannot be inferred from the player.
   teamId String
-  /// Null when nobody could say who it was, which at this level is common.
-  /// On a SUBSTITUTION this is the player coming *on*.
   playerId       String?
   assistPlayerId String?
-  /// SUBSTITUTION only: the player coming off.
-  ///
-  /// A column of its own rather than borrowing assistPlayerId. The two mean
-  /// entirely different things, and a field called "assist" holding the player
-  /// who was hooked at 60 minutes is the kind of saving that costs an hour to
-  /// understand a season later.
   playerOffId    String?
 
-  /// Elapsed minute, 1-indexed, and the period it fell in.
   minute Int
   period Int @default(1)
-  /// Minutes past the end of regulation time, 0 during normal play — the "+3"
-  /// in 45+3. Stored separately so it can be displayed the way it is spoken.
   stoppage Int @default(0)
 
   createdBy String
@@ -672,25 +509,14 @@ model FootballEvent {
   @@map("football_events")
 }
 
-/// The referee's watch, kept on the server.
-///
-/// The client renders a smooth ticking clock, but it never owns the time. What
-/// is stored is a running total plus the instant the current run started, and
-/// the elapsed time is `elapsedMs + (now - runningSince)` — which means two
-/// phones, a laptop and a projector all agree, a viewer who joins at the 70th
-/// minute sees the 70th minute, and a scorer whose browser crashed comes back
-/// to a clock that never stopped.
 model MatchClock {
   matchId String @id
-  /// Copied from the tournament at kickoff so later edits cannot move it.
   periods       Int
   periodMinutes Int
 
   currentPeriod Int         @default(1)
   status        ClockStatus @default(NOT_STARTED)
-  /// Time already banked in the current period, in milliseconds.
   elapsedMs     Int         @default(0)
-  /// The wall-clock instant the current run began; null whenever not RUNNING.
   runningSince  DateTime?
   startedAt     DateTime?
   updatedAt     DateTime    @updatedAt
@@ -700,9 +526,6 @@ model MatchClock {
   @@map("match_clocks")
 }
 
-/// Fully recomputed from Innings rows on every match completion, so it is
-/// idempotent and self-healing rather than incrementally drifting. NRR's
-/// inputs are stored alongside it so a disputed number can be traced.
 model PointsTable {
   id            String  @id @default(cuid())
   tournamentId  String
@@ -714,15 +537,10 @@ model PointsTable {
   noResult      Int     @default(0)
   points        Int     @default(0)
   runsScored    Int     @default(0)
-  /// Decimal overs are a lie in cricket; these are stored as balls and
-  /// converted at read time by ballsToOvers().
   ballsFaced    Int     @default(0)
   runsConceded  Int     @default(0)
   ballsBowled   Int     @default(0)
   nrr           Float   @default(0)
-  /// Football's equivalent of the NRR inputs. Goal difference is derived at
-  /// read time rather than stored, for the same reason NRR's inputs are kept
-  /// beside it: a disputed number should be traceable to the two it came from.
   goalsFor      Int     @default(0)
   goalsAgainst  Int     @default(0)
   updatedAt     DateTime @updatedAt

@@ -11,29 +11,18 @@ import { registerPlayerStatsSubscriber } from './modules/stats/service';
 const app = createApp();
 const server = createServer(app);
 
-// Must attach before listen so the upgrade handler is in place for the first
-// connection, and so the write path has a real publisher from the start.
 attachRealtime(server);
 
-// The points table rebuilds on match:completed. Subscribing here rather than
-// at import time keeps the dependency explicit and testable.
 registerStandingsSubscriber();
 
-// The same event also closes out every player's card for that match, which is
-// what makes a career profile grow one match at a time.
 registerPlayerStatsSubscriber();
 
 server.listen(env.PORT, () => {
   logger.info(
     { port: env.PORT, env: env.NODE_ENV, email: emailEnabled ? 'resend' : 'console' },
-    // The actual bound port, not API_BASE_URL — those diverge whenever PORT
-    // is overridden, and a log line that lies about where it is listening is
-    // worse than no log line.
     `Howzat API listening on http://localhost:${env.PORT}`,
   );
 
-  // Reported, not enforced: a Redis blip at boot should not stop the API from
-  // starting and recovering on its own a few seconds later.
   void Promise.all([pingDatabase(), pingRedis()]).then(([db, redisOk]) => {
     if (!db) logger.error('Postgres is unreachable — check DATABASE_URL');
     if (!redisOk) logger.error('Redis is unreachable — check REDIS_URL');
@@ -49,16 +38,12 @@ async function shutdown(signal: string): Promise<void> {
 
   logger.info({ signal }, 'Shutting down');
 
-  // Stop accepting connections, then release the pools. A hard 10s ceiling
-  // keeps a stuck socket from wedging a deploy.
   const timer = setTimeout(() => {
     logger.warn('Forcing exit after 10s');
     process.exit(1);
   }, 10_000);
   timer.unref();
 
-  // Close sockets first so clients get a clean disconnect and reconnect to a
-  // healthy instance, rather than hanging until the process dies.
   await closeRealtime().catch(() => undefined);
 
   server.close(async () => {

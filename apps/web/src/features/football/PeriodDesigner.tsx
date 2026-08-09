@@ -7,21 +7,6 @@ import {
 } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
-/*
- * Choosing how long a match is.
- *
- * This could have been two number fields, and two number fields would have been
- * worse. The thing being chosen is a *shape* — two forty-fives, four twelves,
- * one thirty — and a shape is something you recognise faster than you read. So
- * the control shows the shape: a bar divided into the periods, drawn to scale,
- * with the total written under it. Changing either number redraws the bar, and
- * the organizer sees what they have made before they make it.
- *
- * The presets are first because almost everybody wants one of them, and the
- * two dials underneath are for the Sunday league that plays 35-minute halves
- * because the pitch is booked until four.
- */
-
 interface Preset {
   label: string;
   detail: string;
@@ -87,7 +72,6 @@ export function PeriodDesigner({
         </div>
       </div>
 
-      {/* The shape itself. This is the control's whole reason for existing. */}
       <PeriodBar periods={periods} periodMinutes={periodMinutes} />
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -116,11 +100,6 @@ export function PeriodDesigner({
   );
 }
 
-/**
- * The match drawn to scale: one segment per period, a hairline gap where the
- * whistle goes. Segments are equal because periods are equal — this is a
- * diagram of the format, not a progress bar of a match being played.
- */
 function PeriodBar({ periods, periodMinutes }: { periods: number; periodMinutes: number }) {
   const total = periods * periodMinutes;
 
@@ -158,11 +137,6 @@ function PeriodBar({ periods, periodMinutes }: { periods: number; periodMinutes:
   );
 }
 
-/**
- * A stepper rather than a spinner: the value is set at a ground, one-handed,
- * and a native number input on a phone opens a keyboard for a number that is
- * almost always one tap away from where it already is.
- */
 function Dial({
   label,
   value,

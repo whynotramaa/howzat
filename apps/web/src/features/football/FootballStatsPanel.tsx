@@ -4,18 +4,6 @@ import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
 
-/**
- * The football leaders board.
- *
- * Three awards rather than cricket's two, because football's third measure is
- * one people actually keep: who is closest to a suspension. Own goals get their
- * own column and stay out of the goals tally — an own goal is something that
- * happened to a player, not something they achieved, and folding it in would
- * make the golden boot a lie.
- *
- * The table is sorted by goals, then assists, then *fewer* appearances: two
- * players on six goals are not level if one of them took nine games about it.
- */
 export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDto }) {
   const { goldenBoot, playmaker, mostBooked, goldenGlove, players, totals } = stats;
 
@@ -52,7 +40,9 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
           label="Most booked"
           player={mostBooked}
           value={(player) =>
-            player.redCards > 0 ? `${player.yellowCards}Y ${player.redCards}R` : `${player.yellowCards}Y`
+            player.redCards > 0
+              ? `${player.yellowCards}Y ${player.redCards}R`
+              : `${player.yellowCards}Y`
           }
           tone="text-warning"
         />
@@ -65,7 +55,11 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
         <StatTile
           label="Goals a match"
           value={totals.goalsPerMatch ?? '—'}
-          hint={totals.ownGoals > 0 ? `${totals.ownGoals} own goal${totals.ownGoals === 1 ? '' : 's'}` : undefined}
+          hint={
+            totals.ownGoals > 0
+              ? `${totals.ownGoals} own goal${totals.ownGoals === 1 ? '' : 's'}`
+              : undefined
+          }
         />
         <StatTile
           label="Cards shown"
@@ -119,9 +113,6 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
                 <Td>{player.goalsPerMatch ?? '—'}</Td>
                 <Td>{player.ownGoals || '—'}</Td>
                 <Td>{player.saves || '—'}</Td>
-                {/* Only a keeper has a goals-against column. An outfield player
-                    showing 0 conceded would read as a clean sheet they had
-                    nothing to do with. */}
                 <Td>{player.isGoalkeeper ? player.goalsConceded : '—'}</Td>
                 <Td>{player.isGoalkeeper ? player.cleanSheets : '—'}</Td>
 
@@ -176,8 +167,6 @@ function AwardCard({
             <p className={cn('mono shrink-0 text-3xl font-medium', tone)}>{value(player)}</p>
           </div>
         ) : (
-          // Deliberately not "0" against a name: nobody has earned this yet,
-          // and naming somebody for nothing is worse than an empty card.
           <p className="text-secondary">Nobody has one yet.</p>
         )}
       </CardBody>
@@ -185,7 +174,6 @@ function AwardCard({
   );
 }
 
-/** The card itself, with its count. No legend needed for this one. */
 function CardCount({ tone, count }: { tone: 'yellow' | 'red'; count: number }) {
   if (count === 0) return <span className="mono text-[0.8125rem] text-muted">—</span>;
 

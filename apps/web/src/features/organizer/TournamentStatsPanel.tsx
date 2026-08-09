@@ -7,14 +7,6 @@ import { Table, Td, Th } from '@/components/ui/Table';
 import { FootballStatsPanel } from '@/features/football/FootballStatsPanel';
 import { api } from '@/lib/api';
 
-/**
- * The leaders board for whichever sport this tournament is.
- *
- * The fetch lives here rather than in each sport's panel so the caller — a
- * tournament page that already knows nothing about sport-specific stats — can
- * keep rendering one component. The endpoint answers a union discriminated by
- * `sport`, so the branch below is the only place that has to know there are two.
- */
 export function TournamentStatsPanel({ tournamentId }: { tournamentId: string }) {
   const query = useQuery({
     queryKey: ['tournaments', tournamentId, 'stats'],

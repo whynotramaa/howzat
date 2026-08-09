@@ -4,27 +4,12 @@ import { apiFetch } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import type { ConnectionState } from '@/features/live/useLiveMatch';
 
-/**
- * Snapshot-first, then subscribe — the same two-step the cricket page uses, and
- * for the same reason: a viewer who opens the link in the 70th minute has to
- * see the 70th minute immediately, not a replay from kick-off.
- *
- *   1. GET the snapshot (Redis, or a rebuild if the cache is cold)
- *   2. join match:{id} and apply every broadcast that is newer
- *   3. on reconnect, refetch — the gap while disconnected is unknowable
- *
- * The clock needs no step of its own. It arrives inside the snapshot as a
- * banked total plus a start instant, and the component ticks it locally, so a
- * running match costs exactly as much traffic as a stopped one: nothing.
- */
-
 interface LiveFootball {
   snapshot: FootballSnapshot | null;
   connection: ConnectionState;
   viewers: number;
   error: string | null;
   isLoading: boolean;
-  /** True when the match exists but has not kicked off yet. */
   notStarted: boolean;
   refetch: () => void;
 }
@@ -43,8 +28,6 @@ export function useLiveFootball(slug: string): LiveFootball {
   const [isLoading, setIsLoading] = useState(true);
   const [notStarted, setNotStarted] = useState(false);
 
-  // Read inside socket callbacks without making them a dependency, which would
-  // tear down and rebuild the subscription on every single incident.
   const latest = useRef<FootballSnapshot | null>(null);
   const matchId = useRef<string | null>(null);
 
@@ -67,7 +50,6 @@ export function useLiveFootball(slug: string): LiveFootball {
         const full = data as FootballSnapshot;
         matchId.current = full.matchId;
         setNotStarted(false);
-        // A refetch after a gap is authoritative: take it unconditionally.
         latest.current = full;
         setSnapshot(full);
       }
@@ -99,8 +81,6 @@ export function useLiveFootball(slug: string): LiveFootball {
 
     socket.on('connect', () => {
       join();
-      // Anything that happened while we were away is unknown — resync rather
-      // than trust a stale snapshot.
       void fetchSnapshot();
     });
 
@@ -135,7 +115,6 @@ export function useLiveFootball(slug: string): LiveFootball {
       socket.off('joined');
       socket.off('viewers');
     };
-    // matchId lands with the first snapshot, so this re-runs once it is known.
   }, [apply, fetchSnapshot, snapshot?.matchId, notStarted]);
 
   return {

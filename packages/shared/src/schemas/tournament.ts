@@ -30,7 +30,6 @@ export const createTournamentSchema = z
       .default(PLAYERS_PER_TEAM),
     oversPerInnings: z.number().int().min(1).max(50).default(DEFAULT_OVERS_PER_INNINGS),
     doubleRoundRobin: z.boolean().default(false),
-    /** Football: halves, quarters, or one single run of play. */
     periods: z.number().int().min(MIN_PERIODS).max(MAX_PERIODS).default(DEFAULT_PERIODS),
     periodMinutes: z
       .number()
@@ -39,27 +38,12 @@ export const createTournamentSchema = z
       .max(MAX_PERIOD_MINUTES)
       .default(DEFAULT_PERIOD_MINUTES),
   })
-  .refine(
-    // Cricket's eleven is not a preference. Enforcing it here rather than only
-    // in the UI means a hand-rolled request cannot create a nine-a-side cricket
-    // tournament that the playing-XI lock would then refuse to start.
-    (input) => input.sport !== 'CRICKET' || input.playersPerTeam === PLAYERS_PER_TEAM,
-    {
-      message: `A cricket side is exactly ${PLAYERS_PER_TEAM} players`,
-      path: ['playersPerTeam'],
-    },
-  );
+  .refine((input) => input.sport !== 'CRICKET' || input.playersPerTeam === PLAYERS_PER_TEAM, {
+    message: `A cricket side is exactly ${PLAYERS_PER_TEAM} players`,
+    path: ['playersPerTeam'],
+  });
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
 
-/**
- * teamsCount is intentionally updatable while the tournament is DRAFT — an
- * organizer often finds out on registration day that a team dropped out.
- * The API refuses to shrink it below the number of teams already created.
- *
- * `sport` is deliberately absent. Changing it would reinterpret every squad,
- * fixture and event already recorded, and there is no honest translation from
- * a scored over into a scored half.
- */
 export const updateTournamentSchema = z.object({
   name: nameSchema.optional(),
   format: z.enum(TOURNAMENT_FORMATS).optional(),

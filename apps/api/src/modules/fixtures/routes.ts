@@ -11,19 +11,10 @@ import { loadOwnedTournament } from '../tournaments/guards';
 import { generateFixtures, previewFixtures } from './service';
 import { toMatchDto } from '../matches/serialize';
 
-/**
- * Mounted under /tournaments. Every route loads the tournament through
- * loadOwnedTournament first, so these are the organizer's own by definition:
- * the organizer is whoever created the tournament being addressed.
- *
- * Kept in their own file because fixture generation is a distinct concern
- * from tournament CRUD.
- */
 export const fixturesRouter = Router({ mergeParams: true });
 
 fixturesRouter.use(requireAuth);
 
-/** Dry run — what the schedule would look like, before anything is written. */
 fixturesRouter.post(
   '/:tournamentId/fixtures/preview',
   asyncHandler(async (req, res) => {
@@ -81,8 +72,6 @@ fixturesRouter.get(
   }),
 );
 
-// ────────────────────────────────────── per-match organizer actions ──
-
 fixturesRouter.patch(
   '/:tournamentId/matches/:matchId',
   asyncHandler(async (req, res) => {
@@ -109,9 +98,7 @@ fixturesRouter.patch(
           ? { scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null }
           : {}),
         ...(input.venue !== undefined ? { venue: input.venue } : {}),
-        ...(input.oversPerInnings !== undefined
-          ? { oversPerInnings: input.oversPerInnings }
-          : {}),
+        ...(input.oversPerInnings !== undefined ? { oversPerInnings: input.oversPerInnings } : {}),
       },
       include: { team1: true, team2: true, tournament: { select: { sport: true } } },
     });
@@ -120,14 +107,6 @@ fixturesRouter.patch(
   }),
 );
 
-/**
- * Scorer assignment — the row `requireScorerForMatch` looks for, and the only
- * thing that makes anyone a scorer. Being "a scorer" is per match: any account
- * can be assigned to this one without that saying anything about the next.
- *
- * The authz cache is invalidated immediately so access takes effect on the
- * next request rather than up to a minute later.
- */
 fixturesRouter.post(
   '/:tournamentId/matches/:matchId/scorers',
   asyncHandler(async (req, res) => {
@@ -153,9 +132,6 @@ fixturesRouter.post(
 
     if (!scorer) throw notFound('User');
 
-    // Upsert returns the row either way, so `createdAt` is what distinguishes a
-    // fresh assignment from re-saving an existing one — and only a fresh one is
-    // worth telling someone about.
     const before = await prisma.scorerAssignment.findUnique({
       where: { matchId_scorerId: { matchId, scorerId: scorer.id } },
       select: { id: true },
@@ -175,8 +151,6 @@ fixturesRouter.post(
           ? `${match.team1.shortName} v ${match.team2.shortName}`
           : `round ${match.round}`;
 
-      // Best effort: the assignment is what grants access, and it is already
-      // written. A failed notice must not make the organizer retry it.
       try {
         await notifyScorerAssignment(scorer.id, {
           matchId,
@@ -212,7 +186,6 @@ fixturesRouter.delete(
   }),
 );
 
-/** Exact lookup by handle or email, for assigning a scorer to a match. */
 fixturesRouter.get(
   '/:tournamentId/scorers/search',
   asyncHandler(async (req, res) => {

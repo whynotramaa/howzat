@@ -25,26 +25,9 @@ import {
 } from '../snapshot';
 import { closeInnings } from '../matches/lifecycle';
 
-/**
- * The write path, in the order the plan specifies:
- *
- *   1. authorization (route middleware)
- *   2. acquire lock:match:{id}
- *   3. transaction — read the log, validate, insert
- *   4. duplicate clientEventId → return the current snapshot with 200
- *   5. fold the log, write the Redis snapshot
- *   6. publish the delta
- *   7. release the lock
- *
- * Steps 3 and 5 are not atomic across two systems. Postgres is the truth and
- * Redis is derived, so a crash between them costs a stale cache, never a lost
- * ball — the next read rebuilds.
- */
-
 export interface BallResult {
   snapshot: MatchSnapshot;
   state: MatchState;
-  /** True when this exact clientEventId had already been recorded. */
   duplicate: boolean;
   inningsCompleted: boolean;
   matchCompleted: boolean;
@@ -72,16 +55,10 @@ async function loadLiveInnings(matchId: string): Promise<LiveInnings> {
   return innings;
 }
 
-/**
- * The bowler of the previous over, needed for the consecutive-overs rule.
- * Read from the log rather than tracked in state so it survives a rebuild.
- */
 function previousOverBowlerId(events: BallEvent[], state: MatchState): string | null {
   if (state.thisOver.length > 0) return null;
   if (state.legalBalls === 0) return null;
 
-  // Materialized, so an undone or corrected last ball does not name the wrong
-  // bowler and wrongly trip the consecutive-overs rule.
   const deliveries = materializeEvents(events);
   const last = deliveries[deliveries.length - 1];
 
@@ -103,10 +80,6 @@ export async function recordBall(
 
     const innings = await loadLiveInnings(matchId);
 
-    // ── idempotency ─────────────────────────────────────────────────
-    // A retry must be indistinguishable from the original success. The
-    // scorer's phone has no way to know whether its first attempt landed,
-    // so replaying the queue has to be safe.
     const existing = await prisma.ballEvent.findUnique({
       where: { clientEventId: input.clientEventId },
       select: { inningsId: true },
@@ -131,7 +104,6 @@ export async function recordBall(
     const events = await loadEvents(innings.id);
     const state = buildState(context, events);
 
-    // ── validation, before anything is written ──────────────────────
     const verdict = validateBall(state, input, context, {
       matchStatus: match.status,
       previousOverBowlerId: previousOverBowlerId(events, state),
@@ -145,7 +117,6 @@ export async function recordBall(
       );
     }
 
-    // ── append ──────────────────────────────────────────────────────
     const legal = isLegalDelivery(input.extraType);
     const legalThisOver = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
 
@@ -174,8 +145,6 @@ export async function recordBall(
         },
       })
       .catch(async (err) => {
-        // Belt and braces: another request may have inserted the same
-        // clientEventId between our check and this write.
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
           return null;
         }
@@ -193,7 +162,6 @@ export async function recordBall(
       };
     }
 
-    // ── project ─────────────────────────────────────────────────────
     const nextState = buildState(context, [...events, toBallEvent(created)]);
     const snapshot = buildSnapshot(match, nextState, context);
 
@@ -213,8 +181,6 @@ export async function recordBall(
         snapshot.resultText = refreshed.resultText;
       }
 
-      // Fan-out only — nothing subscribes to this event in-process, so there
-      // is no work to wait for and the ball write should not pay for it.
       void publishMatchEvent('innings:complete', {
         matchId,
         inningsNumber: nextState.inningsNumber,
@@ -235,10 +201,6 @@ export async function recordBall(
   });
 }
 
-/**
- * Appends a CORRECTION superseding an earlier ball. Nothing is deleted — the
- * original stays in the log, and the reducer skips it in favour of this one.
- */
 export async function correctBall(
   matchId: string,
   targetEventId: string,
@@ -320,7 +282,6 @@ export async function correctBall(
   });
 }
 
-/** Undo is a correction that removes rather than replaces. */
 export async function undoLastBall(
   matchId: string,
   clientEventId: string,
@@ -375,9 +336,6 @@ export async function undoLastBall(
           eventType: 'UNDO',
           supersedesEventId: target.id,
           isLegalDelivery: false,
-          // An UNDO carries no runs; the player columns are copied from its
-          // target because the schema requires them and they keep the audit
-          // trail readable.
           runsOffBat: 0,
           extraRuns: 0,
           extraType: null,
@@ -405,7 +363,6 @@ export async function undoLastBall(
   });
 }
 
-/** Fold the log for one innings and project it. */
 async function project(
   match: { id: string; publicSlug: string; status: string; resultText: string | null },
   inningsId: string,

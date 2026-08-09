@@ -10,26 +10,6 @@ import type {
 import type { WicketType } from '../types/enums';
 import { formatOvers } from './format';
 
-/**
- * The one function the whole system is built on.
- *
- * `buildState` folds `applyBall` over an innings' append-only event log. The
- * same code runs in four places — the API's snapshot writer, the scorer's
- * optimistic renderer, the viewer's delta applier, and the cold-cache rebuild
- * — so all four agree by construction rather than by careful maintenance.
- *
- * It is pure: no I/O, no Date.now(), no randomness. Given the same context and
- * the same events it always produces the same state.
- */
-
-/**
- * Wicket types the bowler is credited for. A run-out is nobody's wicket.
- *
- * Exported because the career-stats projection has to answer the same question
- * about the same log, and two independently-maintained lists of what counts as
- * a bowler's wicket is exactly the kind of drift nobody notices until a
- * profile and a scorecard disagree.
- */
 export const BOWLER_CREDITED: ReadonlySet<WicketType> = new Set<WicketType>([
   'BOWLED',
   'CAUGHT',
@@ -77,14 +57,6 @@ export function createInitialState(context: InningsContext): MatchState {
   };
 }
 
-/**
- * Resolves corrections into a clean chronological list of deliveries.
- *
- * Nothing is ever deleted from the log. A CORRECTION carries replacement data
- * and names the ball it supersedes; an UNDO removes one. Replacing in place
- * (rather than appending the correction at its own, later seq) is what keeps
- * the over ticker in the order the balls were actually bowled.
- */
 export function materializeEvents(events: BallEvent[]): BallEvent[] {
   const ordered = [...events].sort((a, b) => a.seq - b.seq);
 
@@ -104,16 +76,12 @@ export function materializeEvents(events: BallEvent[]): BallEvent[] {
   const result: BallEvent[] = [];
 
   for (const event of ordered) {
-    // Corrections and undos are instructions, not deliveries — they are
-    // applied to their target, never folded on their own.
     if (event.eventType !== 'BALL') continue;
     if (removed.has(event.id)) continue;
 
     const replacement = replacements.get(event.id);
 
     if (replacement) {
-      // Keep the original's position in the over; take everything else from
-      // the correction.
       result.push({
         ...replacement,
         overNumber: event.overNumber,
@@ -135,8 +103,6 @@ export function buildState(context: InningsContext, events: BallEvent[]): MatchS
     state = applyBall(state, delivery, context);
   }
 
-  // lastEventSeq tracks the raw log, not the materialized list, so a client
-  // comparing it against a delta's seq sees corrections too.
   const highestSeq = events.reduce((max, event) => Math.max(max, event.seq), 0);
 
   return { ...state, lastEventSeq: highestSeq };
@@ -147,8 +113,6 @@ export function applyBall(
   event: BallEvent,
   context: InningsContext,
 ): MatchState {
-  // A completed innings absorbs nothing further. Validation rejects this
-  // before it can happen; the reducer stays total regardless.
   if (state.isComplete) return state;
 
   const isWide = event.extraType === 'WIDE';
@@ -157,14 +121,10 @@ export function applyBall(
 
   const teamRuns = event.runsOffBat + event.extraRuns;
 
-  // Byes and leg-byes are the batting side's runs but not the bowler's fault.
   const bowlerRuns = event.runsOffBat + (isWide || isNoBall ? event.extraRuns : 0);
 
-  // A batsman is credited with facing a no-ball, but never a wide.
   const facedDelivery = !isWide;
 
-  // Runs physically run by the batsmen, which is what decides strike. The
-  // wide/no-ball penalty run is not run, so it never rotates strike.
   const runsRun = isWide
     ? Math.max(0, event.extraRuns - 1)
     : isNoBall
@@ -174,8 +134,6 @@ export function applyBall(
   const batsmen = { ...state.batsmen };
   const bowlers = { ...state.bowlers };
 
-  // The event names its own striker, non-striker and bowler, so a new batsman
-  // or a bowler change needs no inference — the scorer already declared it.
   const striker = ensureBatsman(batsmen, event.strikerId, context);
   ensureBatsman(batsmen, event.nonStrikerId, context);
   const bowler = ensureBowler(bowlers, event.bowlerId, context);
@@ -239,8 +197,6 @@ export function applyBall(
     needsNewBatsman = true;
   }
 
-  // ── strike and the end of the over ──────────────────────────────────
-
   let strikerId: string | null = event.strikerId;
   let nonStrikerId: string | null = event.nonStrikerId;
 
@@ -266,15 +222,11 @@ export function applyBall(
 
   const recentBalls = [...state.recentBalls, summary].slice(-RECENT_BALLS_KEPT);
 
-  // Whichever end the dismissed batsman occupies is now vacant. The scorer
-  // names the replacement on the next ball; this only drives the UI prompt.
   const vacatedId = event.isWicket ? (event.dismissedPlayerId ?? event.strikerId) : null;
   if (vacatedId !== null && vacatedId === strikerId) strikerId = null;
   if (vacatedId !== null && vacatedId === nonStrikerId) nonStrikerId = null;
 
   const partnerships = updatePartnerships(state, event, teamRuns, facedDelivery);
-
-  // ── does the innings end here? ──────────────────────────────────────
 
   const wicketsAllowed = Math.max(1, context.battingXI.length - 1);
   const quotaBalls = context.oversQuota * BALLS_PER_OVER;
@@ -283,8 +235,6 @@ export function applyBall(
   let isComplete = false;
   let endReason: MatchState['endReason'] = null;
 
-  // Chase first: a winning run off the last legal ball is a chase, not an
-  // overs-complete innings, and the distinction changes the NRR calculation.
   if (target !== null && runs >= target) {
     isComplete = true;
     endReason = 'TARGET_CHASED';
@@ -320,8 +270,6 @@ export function applyBall(
     lastEventSeq: Math.max(state.lastEventSeq, event.seq),
   };
 }
-
-// ────────────────────────────────────────────────────────── helpers ──
 
 function ensureBatsman(
   batsmen: Record<string, BatsmanState>,
@@ -375,11 +323,6 @@ function nameOf(squad: InningsContext['battingXI'], playerId: string): string {
   return squad.find((player) => player.id === playerId)?.name ?? 'Unknown player';
 }
 
-/**
- * A partnership is defined by the pair at the crease. When the pair changes —
- * which only happens after a wicket — the previous one closes and a new one
- * opens, so no explicit "new batsman" signal is needed.
- */
 function updatePartnerships(
   state: MatchState,
   event: BallEvent,
@@ -430,7 +373,6 @@ function summarize(event: BallEvent, teamRuns: number): BallSummary {
   };
 }
 
-/** The ticker glyph: "·", "4", "W", "wd", "2nb", "1lb". */
 function displayFor(event: BallEvent): string {
   if (event.isWicket && event.extraType === null) {
     return event.runsOffBat > 0 ? `${event.runsOffBat}W` : 'W';

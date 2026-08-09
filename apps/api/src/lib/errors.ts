@@ -1,14 +1,7 @@
-/**
- * Every failure the API produces is an AppError, so the error middleware has
- * exactly one shape to serialize: { error: { code, message, details? } }.
- * Anything else that escapes a handler is an unexpected bug and becomes a
- * generic 500 with the detail logged, never leaked.
- */
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
   readonly details?: unknown;
-  /** Expected failures (validation, 404) are logged at info, not error. */
   readonly expected: boolean;
 
   constructor(
@@ -40,10 +33,6 @@ export const notFound = (what = 'Resource') => new AppError(404, 'NOT_FOUND', `$
 export const conflict = (message: string, details?: unknown) =>
   new AppError(409, 'CONFLICT', message, { details });
 
-/**
- * A rule of cricket or of the tournament lifecycle was broken — distinct from
- * a malformed request. The UI shows these verbatim to the organizer/scorer.
- */
 export const unprocessable = (code: string, message: string, details?: unknown) =>
   new AppError(422, code, message, { details });
 

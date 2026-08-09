@@ -6,14 +6,6 @@ import { requireScorerForMatch } from '../../middleware/requireScorerForMatch';
 import { rateLimitBallWrites } from '../../middleware/rateLimit';
 import { correctBall, recordBall, undoLastBall } from './service';
 
-/**
- * Ball ingest. Mounted on /matches so the route carries :matchId, which is
- * what requireScorerForMatch keys on.
- *
- * All writes are HTTP, never websocket. Keeping them here means auth,
- * idempotency, validation and retry semantics live in one place and the
- * realtime layer stays a read-only fan-out that can be swapped or removed.
- */
 export const scoringRouter = Router();
 
 scoringRouter.use(requireAuth);
@@ -28,9 +20,6 @@ scoringRouter.post(
 
     const result = await recordBall(matchId, input, req.user!.id);
 
-    // 200 for a duplicate, 201 for a new ball. Both carry the same body, so a
-    // client replaying its offline queue cannot tell the difference — which is
-    // exactly what idempotency is for.
     res.status(result.duplicate ? 200 : 201).json({
       snapshot: result.snapshot,
       duplicate: result.duplicate,

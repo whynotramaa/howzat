@@ -7,23 +7,6 @@ import { Input } from '@/components/ui/Input';
 import { useTournament } from '@/features/organizer/queries';
 import { useAssignScorer, useRemoveScorer } from './queries';
 
-/**
- * Who may score this match.
- *
- * A tournament has one organizer, but a match has whoever is standing at that
- * pitch — and on a Sunday with four fixtures running at once those are four
- * different people. That is the whole reason ScorerAssignment is a per-match
- * row rather than a role on an account, and this is the screen that writes it.
- *
- * The card hides itself for anyone who is not the organizer. The check is the
- * tournament read succeeding: only an organizer can load a tournament, so a
- * failed read is precisely the signal that this viewer is an assigned scorer
- * rather than the owner. That is cheaper and harder to get wrong than a
- * separate permission call, and it fails closed.
- *
- * Shared by both sports because the concept is identical in both — nothing here
- * knows or cares whether the match is scored in overs or in minutes.
- */
 export function MatchScorersCard({
   tournamentId,
   matchId,
@@ -58,8 +41,8 @@ export function MatchScorersCard({
         <p className="eyebrow">Permissions</p>
         <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
         <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-          Anyone with an account can score this match once you assign them. They do not need to
-          be in a squad or own the tournament — and each match can have its own.
+          Anyone with an account can score this match once you assign them. They do not need to be
+          in a squad or own the tournament — and each match can have its own.
         </p>
       </CardHeader>
 

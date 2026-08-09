@@ -1,15 +1,6 @@
 import type { CareerStatsDto } from '../types/domain';
 import { formatOvers, round2 } from '../scoring/format';
 
-/**
- * Career totals from per-match rows.
- *
- * Pure, and deliberately so: this is the arithmetic people argue about in a
- * WhatsApp group after a match, so it needs to be testable without a database
- * in the way. The API's job is to hand it rows; every rule about what counts
- * as an innings or a not-out lives here.
- */
-
 export interface CareerInput {
   batted: boolean;
   runs: number;
@@ -64,15 +55,11 @@ export function aggregateCareer(rows: readonly CareerInput[]): CareerStatsDto {
       batting.sixes += row.sixes;
       if (!row.isOut) batting.notOuts += 1;
 
-      // A hundred is not also counted as a fifty — the convention every
-      // scorecard uses, and the one people expect to see on a profile.
       if (row.runs >= 100) batting.hundreds += 1;
       else if (row.runs >= 50) batting.fifties += 1;
 
-      // A duck requires being dismissed for nought; 0 not out is not a duck.
       if (row.runs === 0 && row.isOut) batting.ducks += 1;
 
-      // Ties on runs go to the unbeaten innings: 84* is the better knock.
       if (
         row.runs > batting.highScore ||
         (row.runs === batting.highScore && !row.isOut && !batting.highScoreNotOut)
@@ -90,7 +77,6 @@ export function aggregateCareer(rows: readonly CareerInput[]): CareerStatsDto {
       bowling.maidens += row.maidens;
       if (row.wickets >= 5) bowling.fiveWicketHauls += 1;
 
-      // More wickets wins; on equal wickets, fewer runs wins.
       if (
         !best ||
         row.wickets > best.wickets ||
@@ -111,19 +97,15 @@ export function aggregateCareer(rows: readonly CareerInput[]): CareerStatsDto {
     matches: rows.length,
     batting: {
       ...batting,
-      // Null, not zero: "never been dismissed" is not an average of 0.
       average: dismissals > 0 ? round2(batting.runs / dismissals) : null,
-      strikeRate:
-        batting.ballsFaced > 0 ? round2((batting.runs / batting.ballsFaced) * 100) : null,
+      strikeRate: batting.ballsFaced > 0 ? round2((batting.runs / batting.ballsFaced) * 100) : null,
     },
     bowling: {
       ...bowling,
       oversBowled: formatOvers(bowling.ballsBowled),
       average: bowling.wickets > 0 ? round2(bowling.runsConceded / bowling.wickets) : null,
       economy:
-        bowling.ballsBowled > 0
-          ? round2(bowling.runsConceded / (bowling.ballsBowled / 6))
-          : null,
+        bowling.ballsBowled > 0 ? round2(bowling.runsConceded / (bowling.ballsBowled / 6)) : null,
       strikeRate: bowling.wickets > 0 ? round2(bowling.ballsBowled / bowling.wickets) : null,
       bestFigures: best ? `${best.wickets}/${best.runs}` : null,
     },

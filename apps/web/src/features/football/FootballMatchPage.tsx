@@ -17,6 +17,7 @@ import { cn } from '@/lib/cn';
 import { MatchScorersCard } from '@/features/matches/MatchScorersCard';
 import { Bench, Pitch } from './Pitch';
 import { PeriodDesigner } from './PeriodDesigner';
+import { SubstitutionRule } from './SubstitutionRule';
 import {
   useFootballSquads,
   useKickOff,
@@ -24,23 +25,10 @@ import {
   type FootballSquadSide,
 } from './queries';
 
-/**
- * The pre-match screen for a football fixture: pick a shape, fill it, kick off.
- *
- * The cricket wizard asks for a toss and then eleven names in batting order.
- * Football has neither, and forcing it through the same three steps would have
- * meant asking for a coin toss that decides nothing. What it has instead is a
- * shape — and because the shape is the thing, the team sheet is built *on* the
- * pitch: tap an empty position, tap the player who plays there. Nobody has to
- * translate "slot 7" into "right midfield" in their head.
- */
-
 type Side = 'HOME' | 'AWAY';
 
 interface Selection {
-  /** slot → playerId. Sparse until the starting side is full. */
   bySlot: Record<number, string>;
-  /** Named on the sheet, no slot — they can still score or be booked. */
   substitutes: string[];
   formation: string;
   captainId: string | null;
@@ -58,25 +46,20 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   const [activeSide, setActiveSide] = useState<Side>('HOME');
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
 
-  // The clock for *this* match. Seeded from what the fixture would run on —
-  // its own override if it has one, otherwise the tournament's default — and
-  // editable right up to the whistle, because the person standing at the pitch
-  // is the one who knows it is booked until four.
   const [clock, setClock] = useState<{ periods: number; periodMinutes: number } | null>(null);
+  const [subLimit, setSubLimit] = useState<{ value: number | null } | null>(null);
 
   const squadSize = data?.playersPerTeam ?? 11;
-  // Everyone in the squad who is not starting may sit on the bench. There is no
-  // separate cap — "the five I pick start, the rest can come on" is exactly the
-  // rule, so the bench is simply the remainder of the squad.
   const maxSubs = Math.max(
     0,
     ((activeSide === 'HOME' ? data?.home : data?.away)?.players.length ?? 0) - squadSize,
   );
-  const clockSetting = clock ??
-    (data ? { periods: data.periods, periodMinutes: data.periodMinutes } : null);
+  const clockSetting =
+    clock ?? (data ? { periods: data.periods, periodMinutes: data.periodMinutes } : null);
 
-  // Seed from whatever is already saved, so reopening the page does not throw
-  // away a sheet somebody named this morning.
+  // Null is a choice of its own — unlimited — so an untouched picker is its own state.
+  const substitutionLimit = subLimit ? subLimit.value : (data?.substitutionLimit ?? null);
+
   const homeSelection = home ?? (data ? seed(data.home, squadSize) : null);
   const awaySelection = away ?? (data ? seed(data.away, squadSize) : null);
 
@@ -104,13 +87,10 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
     if (!data || !homeSelection || !awaySelection) return;
 
     await saveLineups.mutateAsync({
-      teams: [
-        toPayload(data.home.id, homeSelection),
-        toPayload(data.away.id, awaySelection),
-      ],
+      teams: [toPayload(data.home.id, homeSelection), toPayload(data.away.id, awaySelection)],
     });
 
-    await kickOff.mutateAsync(clockSetting ?? {});
+    await kickOff.mutateAsync({ ...(clockSetting ?? {}), substitutionLimit });
     navigate(`/matches/${match.id}/score`);
   }
 
@@ -129,7 +109,9 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   return (
     <div className="flex flex-col gap-9">
       <SectionHeading
-        eyebrow={`Round ${match.round} · ${data.periods} × ${data.periodMinutes} minutes`}
+        eyebrow={`Round ${match.round} · ${data.periods} × ${data.periodMinutes} minutes · ${
+          substitutionLimit === null ? 'rolling subs' : `${substitutionLimit} subs a side`
+        }`}
         title={`${data.home.name} v ${data.away.name}`}
         description="Pick a shape for each side, fill it from the squad, and kick off. The clock starts the moment you do."
         action={
@@ -139,8 +121,6 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
               slug={match.publicSlug}
               matchLabel={`${data.home.shortName} v ${data.away.shortName}`}
             />
-            {/* Only at full time — until then the report would be of a match
-                that is still happening. */}
             {finished ? (
               <PdfButton
                 build={() =>
@@ -227,8 +207,6 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         ) : null}
       </div>
 
-      {/* Per-match, not per-tournament: four fixtures on a Sunday are four
-          different people holding four phones. */}
       <MatchScorersCard
         tournamentId={match.tournamentId}
         matchId={match.id}
@@ -244,9 +222,9 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
             <p className="eyebrow mb-1.5">This match</p>
             <p className="serif text-xl text-primary">How long are we playing?</p>
             <p className="mt-1.5 max-w-2xl text-[0.8125rem] text-secondary">
-              Set for this fixture alone. The tournament&rsquo;s setting is only ever the
-              starting point — a league that plays two forty-fives still plays two thirties
-              when the pitch is booked until four.
+              Set for this fixture alone. The tournament&rsquo;s setting is only ever the starting
+              point — a league that plays two forty-fives still plays two thirties when the pitch is
+              booked until four.
             </p>
           </CardHeader>
 
@@ -255,6 +233,11 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
               periods={clockSetting.periods}
               periodMinutes={clockSetting.periodMinutes}
               onChange={setClock}
+            />
+
+            <SubstitutionRule
+              value={substitutionLimit}
+              onChange={(value) => setSubLimit({ value })}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-5 border-t border-line pt-7">
@@ -279,8 +262,6 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
     </div>
   );
 }
-
-// ────────────────────────────────────────────────────  the team sheet ──
 
 function TeamSheetEditor({
   squad,
@@ -312,8 +293,6 @@ function TeamSheetEditor({
 
     const bySlot = { ...selection.bySlot };
 
-    // A player already placed elsewhere moves rather than duplicating: naming
-    // the same person twice is the mistake this control has to make impossible.
     for (const [key, value] of Object.entries(bySlot)) {
       if (value === playerId) delete bySlot[Number(key)];
     }
@@ -322,8 +301,6 @@ function TeamSheetEditor({
     onChange({
       ...selection,
       bySlot,
-      // Putting somebody on the pitch takes them off the bench. They cannot be
-      // in both places, and the server refuses a sheet that says they are.
       substitutes: selection.substitutes.filter((id) => id !== playerId),
     });
     onSlotFocus(null);
@@ -340,13 +317,7 @@ function TeamSheetEditor({
         <select
           value={selection.formation}
           disabled={disabled}
-          onChange={(event) =>
-            // Slots are indices into a squad of a fixed size, so changing shape
-            // never invalidates one: everybody keeps their number and simply
-            // stands somewhere else. That is the whole benefit of deriving
-            // coordinates from the formation rather than storing them.
-            onChange({ ...selection, formation: event.target.value })
-          }
+          onChange={(event) => onChange({ ...selection, formation: event.target.value })}
           className={cn(
             'mono h-10 rounded-[var(--radius-sm)] border border-line bg-raised px-3 text-sm text-primary',
             'hover:border-line-strong focus:border-[var(--accent-strong)]',
@@ -441,10 +412,6 @@ function TeamSheetEditor({
                     >
                       {player.name}
                     </span>
-                    {/* Where they are in this match — not what kind of player
-                        they are. Football has no batsmen, and the only position
-                        anyone names is the goalkeeper, which is decided by who
-                        takes slot 0 on the pitch above. */}
                     <span className="eyebrow">
                       {isStarting
                         ? (spots.find((spot) => spot.slot === startingSlot)?.line ?? 'Starting')
@@ -511,8 +478,6 @@ function TeamSheetEditor({
   );
 }
 
-// ──────────────────────────────────────────────────────────  helpers ──
-
 function seed(squad: FootballSquadSide, squadSize: number): Selection {
   const bySlot: Record<number, string> = {};
   const substitutes: string[] = [];
@@ -520,8 +485,6 @@ function seed(squad: FootballSquadSide, squadSize: number): Selection {
 
   for (const player of squad.players) {
     if (!player.selected) continue;
-    // Selected with no slot is exactly what a substitute is, on the wire and
-    // in the database alike.
     if (player.slot !== null) bySlot[player.slot] = player.id;
     else substitutes.push(player.id);
     if (player.isCaptain) captainId = player.id;
@@ -539,13 +502,11 @@ function countNamed(selection: Selection | null): number {
   return selection ? Object.keys(selection.bySlot).length : 0;
 }
 
-/** The slot a player is starting in, or null when they are not in the side. */
 function startingSlotOf(selection: Selection, playerId: string): number | null {
   const found = Object.entries(selection.bySlot).find(([, id]) => id === playerId);
   return found ? Number(found[0]) : null;
 }
 
-/** What the pitch graphic renders while the sheet is still being filled. */
 function previewLineup(
   squad: FootballSquadSide,
   selection: Selection,
@@ -579,8 +540,6 @@ function previewLineup(
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,
-          // Nothing has happened yet: this is the sheet as it will be named,
-          // not the pitch as it will look at 62 minutes.
           isOnPitch: false,
           cameOnAt: null,
           wentOffAt: null,
@@ -606,8 +565,6 @@ function previewLineup(
           yellowCards: 0,
           redCards: 0,
           isSentOff: false,
-          // Nothing has happened yet: this is the sheet as it will be named,
-          // not the pitch as it will look at 62 minutes.
           isOnPitch: false,
           cameOnAt: null,
           wentOffAt: null,

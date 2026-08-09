@@ -138,8 +138,6 @@ export function ScoringPage() {
     );
   }
 
-  // Everything the console reasons about has to include the deliveries that are
-  // still only on this device, the consecutive-overs rule included.
   const optimistic = foldQueuedBalls(state, context, previousOverBowlerId, queue.items);
 
   return (
@@ -209,14 +207,6 @@ function optimisticEvent(state: MatchState, input: BallRequestInput): BallEvent 
   };
 }
 
-/**
- * Replays the queued deliveries on top of the last state the server confirmed.
- *
- * The bowler of the previous over has to be carried through the fold as well:
- * offline the server's answer is frozen at the moment the connection dropped,
- * and a stale one both offers the wrong bowlers at the over boundary and lets
- * through a ball the server will reject with CONSECUTIVE_OVERS on sync.
- */
 function foldQueuedBalls(
   state: MatchState,
   context: InningsContext,
@@ -258,10 +248,6 @@ function Console({
   const [wicketOpen, setWicketOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Every accepted ball clears the manual picks, so the crease falls back to
-  // what the reducer says. Tracked against the displayed sequence, not the
-  // server's: offline the server's sequence never moves, and a stuck override
-  // would freeze the striker and the bowler for the rest of the innings.
   useEffect(() => {
     if (displayState.lastEventSeq === appliedSeq) return;
     setOverride({});
@@ -339,7 +325,6 @@ function Console({
   function handleRuns(runs: number) {
     switch (extraType) {
       case 'WIDE':
-        // The penalty run is part of extraRuns, always.
         return submit({ runsOffBat: 0, extraRuns: runs + 1, extraType: 'WIDE' });
       case 'NO_BALL':
         return submit({ runsOffBat: runs, extraRuns: 1, extraType: 'NO_BALL' });
@@ -654,7 +639,6 @@ function CreaseCard({
             label={state.legalBalls === 0 && !state.needsNewBatsman ? 'Openers' : 'New batter'}
             players={availableBatsmen}
             onPick={(playerId) =>
-              // Fill the empty end; after a wicket the incoming batter is on strike.
               onOverride(crease.striker === null ? { striker: playerId } : { nonStriker: playerId })
             }
           />
@@ -923,7 +907,6 @@ function WicketSheet({
             disabled={!dismissedId || (needsFielder && !fielderId)}
             onClick={() =>
               void onSubmit({
-                // Wides and byes are recorded as extras, not bat runs.
                 runsOffBat: extraType === null || extraType === 'NO_BALL' ? runs : 0,
                 extraRuns:
                   extraType === 'WIDE'

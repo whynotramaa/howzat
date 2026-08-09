@@ -1,26 +1,9 @@
-import {
-  FOOTBALL_POINTS_DRAW,
-  FOOTBALL_POINTS_LOSS,
-  FOOTBALL_POINTS_WIN,
-} from '../constants';
-
-/**
- * The football league table. Pure, for the same reason the NRR module is:
- * it takes finished matches and returns rows, so the whole thing is testable
- * without a database and recomputed from scratch rather than incremented.
- *
- * Ordering is the near-universal one — points, then goal difference, then goals
- * scored, then head-to-head, then name. Goal difference sits above goals scored
- * because a 4-3 win and a 1-0 win are worth the same, and a table that ranked
- * the shootout higher would be rewarding a leaky defence.
- */
+import { FOOTBALL_POINTS_DRAW, FOOTBALL_POINTS_LOSS, FOOTBALL_POINTS_WIN } from '../constants';
 
 export interface FootballMatchResult {
   matchId: string;
   teamIds: [string, string];
-  /** Goals in the same order as `teamIds`. */
   goals: [number, number];
-  /** Null for a draw, and for an abandoned match (which is also noResult). */
   winnerTeamId: string | null;
   noResult: boolean;
 }
@@ -62,12 +45,8 @@ export function aggregateFootballStandings(
     const rowA = totals.get(teamA);
     const rowB = totals.get(teamB);
 
-    // A match involving a team outside this tournament is not ours to count.
     if (!rowA || !rowB) continue;
 
-    // An abandoned match counts for nothing at all — no appearance, no goals.
-    // Cricket awards a point for a washout because a scheduled fifty overs
-    // cannot be replayed next Sunday; a football fixture simply is.
     if (match.noResult) continue;
 
     const [goalsA, goalsB] = match.goals;
@@ -103,12 +82,6 @@ export function aggregateFootballStandings(
   return [...totals.values()];
 }
 
-/**
- * Points, goal difference, goals scored, head-to-head, name. Head-to-head is
- * only consulted between exactly two level teams — with three or more the
- * mini-table is ambiguous, so it is skipped rather than guessed at, the same
- * call the cricket table makes.
- */
 export function sortFootballStandings(
   rows: FootballTeamTotals[],
   matches: FootballMatchResult[],
@@ -135,12 +108,7 @@ export function sortFootballStandings(
   });
 }
 
-/** Negative when `a` ranks ahead of `b`, positive when behind, 0 when level. */
-export function footballHeadToHead(
-  a: string,
-  b: string,
-  matches: FootballMatchResult[],
-): number {
+export function footballHeadToHead(a: string, b: string, matches: FootballMatchResult[]): number {
   let aWins = 0;
   let bWins = 0;
 
@@ -155,7 +123,6 @@ export function footballHeadToHead(
   return bWins - aWins;
 }
 
-/** "+7", "0", "−3" — signed, with a true minus sign rather than a hyphen. */
 export function formatGoalDifference(value: number): string {
   if (value === 0) return '0';
   return value > 0 ? `+${value}` : `−${Math.abs(value)}`;

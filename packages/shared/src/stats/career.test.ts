@@ -28,7 +28,6 @@ describe('aggregateCareer — batting', () => {
       row({ batted: true, runs: 30, ballsFaced: 20, isOut: false }),
     ]);
 
-    // 80 runs, one dismissal — an average of 80, not 40.
     expect(career.batting.average).toBe(80);
     expect(career.batting.notOuts).toBe(1);
   });
@@ -36,7 +35,6 @@ describe('aggregateCareer — batting', () => {
   it('reports no average at all when never dismissed', () => {
     const career = aggregateCareer([row({ batted: true, runs: 12, isOut: false })]);
 
-    // Null rather than 0: "never out" is not "averages nothing".
     expect(career.batting.average).toBeNull();
   });
 
@@ -93,7 +91,6 @@ describe('aggregateCareer — bowling', () => {
   });
 
   it('computes economy over true overs, not the base-6 display form', () => {
-    // 27 balls = 4.5 overs displayed, but 4.5 overs exactly for the rate.
     const career = aggregateCareer([
       row({ bowled: true, ballsBowled: 27, runsConceded: 36, wickets: 1 }),
     ]);

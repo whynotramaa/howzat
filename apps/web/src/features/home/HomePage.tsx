@@ -9,19 +9,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 import { useAuth } from '@/features/auth/AuthProvider';
 
-/*
- * The public front page.
- *
- * It is laid out as a spread rather than a funnel: a statement, a specimen of
- * the thing itself, then what it does, how it is used, and the rules the engine
- * actually enforces. The specimen card is the argument — it is the live view,
- * built from the same components against the same palette, so the page is not
- * describing the product, it is showing it.
- *
- * Motion is scroll-driven here and nowhere else in the product. On a front page
- * the reader is being shown around; on a scorecard they are trying to read.
- */
-
 export function HomePage() {
   const { user } = useAuth();
   const home = user ? '/dashboard' : '/login';
@@ -75,8 +62,6 @@ const SECTIONS = [
   { href: '#how', label: 'How it works' },
   { href: '#rules', label: 'The laws' },
 ] as const;
-
-// ─────────────────────────────────────────────────────────────────  hero ──
 
 function Hero({ home, signedIn }: { home: string; signedIn: boolean }) {
   return (
@@ -141,15 +126,6 @@ function Hero({ home, signedIn }: { home: string; signedIn: boolean }) {
   );
 }
 
-/**
- * A specimen of the live card. It is wrapped in `.live-stage`, so it inherits
- * the exact palette the real share link uses rather than approximating it — the
- * page is showing the product, and a mock that drifts from the thing it depicts
- * is worse than no mock.
- *
- * The figures are fixed and chosen to show the awkward cases at once: a chase in
- * progress, an over containing a wide and a wicket, and a bowler mid-spell.
- */
 function SpecimenCard() {
   return (
     <div
@@ -166,8 +142,6 @@ function SpecimenCard() {
         </span>
       </div>
 
-      {/* Both sides, one above the other, the way a scoreboard at a ground
-          lists them — the side batting carries the large figure. */}
       <div className="px-5 py-6 sm:px-6">
         <div className="flex items-end justify-between gap-6">
           <div className="min-w-0">
@@ -255,13 +229,6 @@ const SPECIMEN_CREASE = [
 
 const SPECIMEN_OVER = ['1', '4', 'wd', '0', 'W'] as const;
 
-// ────────────────────────────────────────────────────────  capabilities ──
-
-/**
- * A bento grid rather than three equal cards. The blocks are different sizes
- * because the things they describe are different sizes — the scorer's console
- * is the product, and the export is a footnote.
- */
 function Capabilities() {
   return (
     <section
@@ -350,8 +317,6 @@ const SMALL_TILES = [
   },
 ] as const;
 
-// ──────────────────────────────────────────────────────────────  how it ──
-
 function HowItWorks() {
   return (
     <section id="how" className="border-y border-line bg-sunken/40">
@@ -397,8 +362,6 @@ const STEPS = [
     body: 'The public card shows the current score the instant it opens, mid-match, with no login. The points table updates itself when a result lands.',
   },
 ] as const;
-
-// ───────────────────────────────────────────────────────────────  rules ──
 
 function Rules() {
   return (
@@ -470,8 +433,6 @@ const RULES = [
   },
 ] as const;
 
-// ─────────────────────────────────────────────────────────────  closing ──
-
 function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
   return (
     <section className="mx-auto w-full max-w-[80rem] px-5 pb-24 sm:px-8 lg:px-12">
@@ -489,8 +450,6 @@ function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
             </div>
 
             <Link to={home} className="shrink-0">
-              {/* On ink, the primary slab would be invisible — so the button here
-                  inverts with the surface it sits on. */}
               <span className="inline-flex h-[3.5rem] items-center rounded-[var(--radius-sm)] border border-[var(--accent)]/45 px-8 text-[0.9375rem] font-medium text-on-inverse transition-colors hover:bg-white/5">
                 {signedIn ? 'Open your dashboard' : 'Create your account'} →
               </span>

@@ -6,8 +6,6 @@ import { apiFetch } from '@/lib/api';
 import { ErrorText, Skeleton, SkeletonCard } from '@/components/ui/Feedback';
 import { useMatch } from './queries';
 
-// Each sport's screens are their own chunk. The dispatch below already knows
-// which one it needs before it renders, so the other never leaves the server.
 const FootballMatchPage = lazy(() =>
   import('@/features/football/FootballMatchPage').then((m) => ({ default: m.FootballMatchPage })),
 );
@@ -23,25 +21,7 @@ const LiveMatchPage = lazy(() =>
   import('@/features/live/LiveMatchPage').then((m) => ({ default: m.LiveMatchPage })),
 );
 const MatchPage = lazy(() => import('./MatchPage').then((m) => ({ default: m.MatchPage })));
-const ScoringPage = lazy(() =>
-  import('./ScoringPage').then((m) => ({ default: m.ScoringPage })),
-);
-
-/*
- * Which sport's screen to draw.
- *
- * Every route that opens a match needs this answer before it can render
- * anything, and it cannot come from the URL: a match is addressed by id or by
- * slug, and neither says what game is being played. So the sport travels on the
- * match itself — MatchDto.sport for the signed-in routes, and the public match
- * header for the share link.
- *
- * Dispatching in its own component rather than with a branch inside each page
- * is what keeps the two consoles genuinely separate. A cricket page that starts
- * with `if (football)` ends up with football's concerns threaded through all
- * nine hundred of its lines; a page that is only ever mounted for one sport
- * never learns the other exists.
- */
+const ScoringPage = lazy(() => import('./ScoringPage').then((m) => ({ default: m.ScoringPage })));
 
 export function MatchRoute() {
   const { matchId = '' } = useParams();
@@ -77,13 +57,6 @@ interface PublicMatchHeader {
   sport: Sport;
 }
 
-/**
- * The share link, which is one URL for both codes.
- *
- * This is the only place where a wrong guess would be visible to someone who
- * never signed in, so it waits for the header rather than rendering a cricket
- * scoreboard optimistically and swapping it a moment later.
- */
 export function LiveRoute() {
   const { slug = '' } = useParams();
 
@@ -91,7 +64,6 @@ export function LiveRoute() {
     queryKey: ['public', 'match', slug],
     queryFn: () => apiFetch<PublicMatchHeader>(`/public/matches/${slug}`),
     enabled: Boolean(slug),
-    // The sport of a match never changes, so this is fetched once per visit.
     staleTime: Infinity,
   });
 
@@ -99,13 +71,7 @@ export function LiveRoute() {
 
   return (
     <Suspense fallback={<RouteSkeleton />}>
-      {/* A slug that does not resolve is still the cricket page's job to
-          explain — it renders the same "could not load the score" message. */}
-      {!error && data?.sport === 'FOOTBALL' ? (
-        <LiveFootballPage slug={slug} />
-      ) : (
-        <LiveMatchPage />
-      )}
+      {!error && data?.sport === 'FOOTBALL' ? <LiveFootballPage slug={slug} /> : <LiveMatchPage />}
     </Suspense>
   );
 }

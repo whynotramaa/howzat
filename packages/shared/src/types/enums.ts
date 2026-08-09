@@ -1,9 +1,3 @@
-/**
- * These mirror the Prisma enums exactly. They live here (rather than being
- * imported from @prisma/client) so the web app can use them without pulling
- * the Prisma runtime into the browser bundle.
- */
-
 export const SPORTS = ['CRICKET', 'FOOTBALL'] as const;
 export type Sport = (typeof SPORTS)[number];
 
@@ -64,8 +58,6 @@ export type WicketType = (typeof WICKET_TYPES)[number];
 export const NOTIFICATION_TYPES = ['SQUAD_ADDED', 'SCORER_ASSIGNED'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-// ─────────────────────────────────────────────────────────── football ──
-
 export const FOOTBALL_EVENT_KINDS = [
   'GOAL',
   'OWN_GOAL',
@@ -88,12 +80,6 @@ export const CLOCK_STATUSES = [
 ] as const;
 export type ClockStatus = (typeof CLOCK_STATUSES)[number];
 
-/**
- * What the scorer can ask the clock to do. Deliberately a verb list rather
- * than a target status: "resume" and "start next period" both end in RUNNING,
- * but only one of them is legal at a given moment, and naming the intent is
- * what lets the server say which.
- */
 export const CLOCK_COMMANDS = [
   'START',
   'PAUSE',

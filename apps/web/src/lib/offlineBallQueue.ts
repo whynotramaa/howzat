@@ -133,7 +133,6 @@ export async function drainBallQueue(
         item.id,
         error instanceof Error ? error.message : 'Could not sync this ball',
       );
-      // Preserve delivery order when a queued ball fails.
       break;
     }
   }

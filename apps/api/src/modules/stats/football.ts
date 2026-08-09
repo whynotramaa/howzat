@@ -6,31 +6,9 @@ import {
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
 
-/**
- * Football's tournament leaderboards.
- *
- * Unlike the cricket side, this is folded straight out of the event log at read
- * time rather than through a stored per-match projection. That is a deliberate
- * difference and not an inconsistency: PlayerMatchStats exists because a cricket
- * tournament is a quarter of a million ball events and folding them on every
- * page view would not be viable. A football tournament of the same size is a few
- * hundred goals and cards. Introducing a projection table here would buy nothing
- * and add a second place for the truth to live.
- *
- * What it keeps is the property that matters: the numbers are a function of the
- * log. An undone goal leaves the golden boot without anybody remembering to
- * decrement a counter.
- */
-
 export async function getFootballTournamentStats(
   tournamentId: string,
 ): Promise<FootballTournamentStatsDto> {
-  // Every match that has kicked off, not only the finished ones.
-  //
-  // The stricter rule was wrong in practice: a tournament played over one
-  // evening has nothing to show until the last whistle, and the question people
-  // ask at half-time — "who has scored?" — had no answer. The table does shuffle
-  // while a match is on, which is correct; it is a live leaderboard.
   const matches = await prisma.match.findMany({
     where: { tournamentId, status: { in: ['LIVE', 'INNINGS_BREAK', 'COMPLETED'] } },
     select: {
@@ -42,7 +20,6 @@ export async function getFootballTournamentStats(
         select: {
           playerId: true,
           teamId: true,
-          // Slot 0 is the goalkeeper by definition of the formation geometry.
           lineupSlot: true,
           player: { select: { id: true, name: true, username: true } },
         },
@@ -86,9 +63,6 @@ export async function getFootballTournamentStats(
   };
 
   for (const match of matches) {
-    // An appearance is being named on the team sheet of a match that finished.
-    // Recorded before the events are read so a player who did nothing all game
-    // still appears in the table — playing is itself a fact worth having.
     for (const entry of match.matchPlayers) {
       const existing = rows.get(entry.playerId);
 
@@ -115,8 +89,6 @@ export async function getFootballTournamentStats(
       });
     }
 
-    // Goals against are settled per match, after the log has been read, so the
-    // two keepers can be charged with what the other side scored.
     const conceded = { [match.team1Id ?? '']: 0, [match.team2Id ?? '']: 0 };
 
     for (const event of materializeFootballEvents(
@@ -160,15 +132,13 @@ export async function getFootballTournamentStats(
       }
     }
 
-    // Whoever started in goal is charged with what the *other* side scored.
-    // Attributed by position rather than by event because a goal is scored
-    // against a team: nobody records which keeper was beaten, only who scored.
     for (const entry of match.matchPlayers) {
       if (entry.lineupSlot !== 0) continue;
 
       const against =
-        (entry.teamId === match.team1Id ? conceded[match.team2Id ?? ''] : conceded[match.team1Id ?? '']) ??
-        0;
+        (entry.teamId === match.team1Id
+          ? conceded[match.team2Id ?? '']
+          : conceded[match.team1Id ?? '']) ?? 0;
 
       bump(rows, entry.playerId, (row) => {
         row.keptGoal += 1;
@@ -206,8 +176,6 @@ export async function getFootballTournamentStats(
         yellowCards: row.yellowCards,
         redCards: row.redCards,
         goalsPerMatch: row.matches > 0 ? round2(row.goals / row.matches) : null,
-        // A red is worth three yellows, the usual weighting, so one sending-off
-        // outranks a pair of bookings.
         disciplinePoints: row.yellowCards + row.redCards * 3,
       } satisfies FootballPlayerStatsDto;
     })
@@ -215,7 +183,6 @@ export async function getFootballTournamentStats(
       (a, b) =>
         b.goals - a.goals ||
         b.assists - a.assists ||
-        // Fewer appearances for the same tally is the better record.
         a.matches - b.matches ||
         a.playerName.localeCompare(b.playerName),
     );
@@ -234,24 +201,9 @@ export async function getFootballTournamentStats(
 
 function bump<T>(rows: Map<string, T>, playerId: string, apply: (row: T) => void): void {
   const row = rows.get(playerId);
-  // A player named in the log but not on any team sheet can only mean the sheet
-  // was edited after the fact. Skipping is better than inventing a row with no
-  // team and no appearances behind it.
   if (row) apply(row);
 }
 
-/**
- * The leader on one measure, or null when nobody has any of it. A zero-goal
- * "golden boot" is worse than an empty card — it names somebody for nothing.
- */
-/**
- * The golden glove: most clean sheets, then fewest goals let in.
- *
- * Ordered that way round rather than on goals conceded alone, because conceded
- * rewards a keeper who has played fewer matches — and a keeper who played once
- * and let in nothing is not having a better season than one who has kept four
- * clean sheets out of six.
- */
 function bestKeeper(players: FootballPlayerStatsDto[]): FootballPlayerStatsDto | null {
   const keepers = players.filter((player) => player.isGoalkeeper);
   if (keepers.length === 0) return null;

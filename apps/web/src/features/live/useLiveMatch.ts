@@ -3,15 +3,6 @@ import { hasSequenceGap, isNewerSnapshot, type MatchSnapshot } from '@howzat/sha
 import { apiFetch } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 
-/**
- * Snapshot-first, then subscribe — the two-step that makes a mid-match join
- * show the current score instantly instead of replaying from ball one.
- *
- *   1. GET the snapshot (Redis, or a rebuild if the cache is cold)
- *   2. join match:{id} and apply every broadcast that is newer
- *   3. on reconnect, refetch — the gap while disconnected is unknowable
- */
-
 export type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'offline';
 
 interface LiveMatch {
@@ -20,7 +11,6 @@ interface LiveMatch {
   viewers: number;
   error: string | null;
   isLoading: boolean;
-  /** True when the match exists but has not been started yet. */
   notStarted: boolean;
   refetch: () => void;
 }
@@ -39,8 +29,6 @@ export function useLiveMatch(slug: string): LiveMatch {
   const [isLoading, setIsLoading] = useState(true);
   const [notStarted, setNotStarted] = useState(false);
 
-  // Read inside socket callbacks without making them a dependency, which would
-  // tear down and rebuild the subscription on every single ball.
   const latest = useRef<MatchSnapshot | null>(null);
   const matchId = useRef<string | null>(null);
 
@@ -63,7 +51,6 @@ export function useLiveMatch(slug: string): LiveMatch {
         const full = data as MatchSnapshot;
         matchId.current = full.matchId;
         setNotStarted(false);
-        // A refetch after a gap is authoritative: take it unconditionally.
         latest.current = full;
         setSnapshot(full);
       }
@@ -95,8 +82,6 @@ export function useLiveMatch(slug: string): LiveMatch {
 
     socket.on('connect', () => {
       join();
-      // Anything that happened while we were away is unknown — resync rather
-      // than trust a stale snapshot.
       void fetchSnapshot();
     });
 
@@ -107,8 +92,6 @@ export function useLiveMatch(slug: string): LiveMatch {
     socket.on('ball', (payload) => {
       if (payload.matchId !== id) return;
 
-      // Whole snapshots are self-healing, so a gap is not a correctness
-      // problem — but refetching keeps the scorecard tab consistent too.
       if (hasSequenceGap(latest.current, payload.snapshot)) {
         void fetchSnapshot();
         return;
@@ -140,7 +123,6 @@ export function useLiveMatch(slug: string): LiveMatch {
       socket.off('joined');
       socket.off('viewers');
     };
-    // matchId lands with the first snapshot, so this re-runs once it is known.
   }, [applySnapshot, fetchSnapshot, snapshot?.matchId, notStarted]);
 
   return {

@@ -1,9 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Prisma emits cuid()s, not uuids — validating as a uuid would reject every
- * real id. A permissive opaque-id check is the honest constraint here.
- */
 export const idSchema = z
   .string()
   .trim()
@@ -19,7 +15,6 @@ export const emailSchema = z
   .max(254)
   .email('Enter a valid email address');
 
-/** #RGB or #RRGGBB. Used for team colors, which get injected as CSS vars. */
 export const hexColorSchema = z
   .string()
   .trim()
@@ -27,41 +22,21 @@ export const hexColorSchema = z
 
 export const nameSchema = z.string().trim().min(2, 'Too short').max(80, 'Too long');
 
-/**
- * Handles generated for squad members who have no account start with this.
- * Reserving the prefix at registration is what stops a real account from
- * being created that shadows a placeholder — or, worse, from a placeholder
- * being mistaken for a real profile in a squad list.
- */
 export const GUEST_USERNAME_PREFIX = 'guest_';
 
-/**
- * A public handle: lowercase, 3–20 characters, letters/digits/underscore, and
- * it must start with a letter. Deliberately narrow — it appears in URLs, it is
- * what people type to log in, and it is what an organizer types when adding a
- * known player to a squad, so ambiguity is expensive.
- */
 export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
   .min(3, 'At least 3 characters')
   .max(20, 'At most 20 characters')
-  .regex(
-    /^[a-z][a-z0-9_]*$/,
-    'Start with a letter; letters, numbers and underscores only',
-  );
+  .regex(/^[a-z][a-z0-9_]*$/, 'Start with a letter; letters, numbers and underscores only');
 
-/** The handle an account may claim — the same rules, minus the reserved prefix. */
 export const claimableUsernameSchema = usernameSchema.refine(
   (value) => !value.startsWith(GUEST_USERNAME_PREFIX),
   { message: `Usernames cannot start with "${GUEST_USERNAME_PREFIX}" — that prefix is reserved` },
 );
 
-/**
- * Sign-in accepts either handle or email in one field. Which one it is can be
- * decided by looking for an "@", so the form never has to ask.
- */
 export const loginIdentifierSchema = z
   .string()
   .trim()
@@ -69,11 +44,6 @@ export const loginIdentifierSchema = z
   .min(3, 'Enter your username or email')
   .max(254);
 
-/**
- * Long rather than complex. Character-class rules push people towards
- * "Password1!" and no further; length is the property that actually costs an
- * attacker something, so that is the only thing enforced here.
- */
 export const passwordSchema = z
   .string()
   .min(8, 'At least 8 characters')

@@ -21,25 +21,8 @@ import {
 } from './snapshot';
 import { clockReadingFor } from './lifecycle';
 
-/**
- * The football write path, in the same order the cricket one uses:
- *
- *   1. authorization (route middleware)
- *   2. acquire lock:match:{id}
- *   3. read the log, stamp the minute, insert
- *   4. duplicate clientEventId → return the current snapshot with 200
- *   5. project, write the Redis snapshot
- *   6. publish
- *   7. release the lock
- *
- * Steps 3 and 5 are not atomic across two systems, and pretending otherwise
- * would be dishonest: Postgres is the truth, Redis is derived, and a crash
- * between them costs a stale cache rather than a lost goal.
- */
-
 export interface FootballEventResult {
   snapshot: FootballSnapshot;
-  /** True when this exact clientEventId had already been recorded. */
   duplicate: boolean;
   seq: number;
 }
@@ -61,10 +44,6 @@ export async function recordFootballEvent(
   return withLock(matchLockKey(matchId), async () => {
     const match = await loadFootballMatch(matchId);
 
-    // ── idempotency ─────────────────────────────────────────────────
-    // A retry must be indistinguishable from the original success. The
-    // scorer's phone has no way to know whether its first attempt landed,
-    // so replaying a queued tap has to be safe.
     const existing = await prisma.footballEvent.findUnique({
       where: { clientEventId: input.clientEventId },
       select: { id: true },
@@ -89,25 +68,11 @@ export async function recordFootballEvent(
       throw unprocessable('NOT_IN_MATCH', 'That team is not playing in this match');
     }
 
-    // A change may bring on anybody in the club squad, not only the names
-    // picked before kick-off. Grassroots team sheets are written when eleven
-    // players have turned up and the twelfth arrives ten minutes later; a
-    // console that could only offer the pre-match bench was refusing to record
-    // substitutions that had actually happened. Bringing an unnamed player on
-    // adds them to the sheet as a substitute, which is what the manager handing
-    // the referee a revised sheet does.
-    //
-    // Decided here, written just before the event is inserted: every check
-    // below can still refuse the change, and a refused change must not leave a
-    // player standing on the team sheet who never took the field.
     const calledUp =
       input.kind === 'SUBSTITUTION' && input.playerId
         ? await isSquadCallUp(input.teamId, input.playerId, match.matchPlayers)
         : false;
 
-    // A named player must be on one of the two team sheets. Which side they
-    // are on is deliberately not checked against `teamId`: an own goal is
-    // credited to the opposition, and that is the whole point of the field.
     if (input.playerId || input.assistPlayerId || input.playerOffId) {
       const named = [input.playerId, input.assistPlayerId, input.playerOffId].filter(
         (id): id is string => id !== null,
@@ -142,8 +107,6 @@ export async function recordFootballEvent(
       throw unprocessable('SUB_NOT_APPLICABLE', 'Only a substitution names a player coming off');
     }
 
-    // The change is legal, so the sheet can be revised. Everything from here is
-    // the write itself.
     if (calledUp) await addToTeamSheet(matchId, input.teamId, input.playerId!);
 
     const reading = clockReadingFor(toClockDto(match.clock));
@@ -180,11 +143,6 @@ export async function recordFootballEvent(
   });
 }
 
-/**
- * Undo. Appends a row that names the event it removes; nothing is deleted,
- * because a goal that was wrongly given has to stay visible as a goal that was
- * wrongly given.
- */
 export async function undoFootballEvent(
   matchId: string,
   clientEventId: string,
@@ -228,9 +186,6 @@ export async function undoFootballEvent(
       seq,
       eventType: 'UNDO',
       supersedesEventId: target.id,
-      // An UNDO row carries a copy of what it removes rather than nulls: the
-      // log is read by people as well as by the reducer, and "undo" with no
-      // subject is an entry nobody can interpret a season later.
       kind: target.kind,
       teamId: target.teamId,
       playerId: target.playerId,
@@ -255,13 +210,6 @@ export async function undoFootballEvent(
   });
 }
 
-/**
- * Is this a player who is in the club squad but not on the match sheet?
- *
- * Read-only, and deliberately narrow: they must already belong to *this* team.
- * Returning false rather than throwing lets the caller's existing team-sheet
- * check produce the error, so "not one of ours" is worded in one place.
- */
 async function isSquadCallUp(
   teamId: string,
   playerId: string,
@@ -277,18 +225,6 @@ async function isSquadCallUp(
   return player !== null;
 }
 
-/**
- * Writes the revised team sheet.
- *
- * Added with no lineup slot, which is exactly what a substitute is — on the
- * sheet, on the bench, not standing anywhere on the pitch graphic. The reducer
- * then treats them like any other named substitute, so nothing downstream has
- * to know they arrived late.
- *
- * Runs inside the match lock, so a duplicate can only come from a genuine
- * retry; P2002 means the row is already there, which is the outcome this
- * function wanted anyway.
- */
 async function addToTeamSheet(matchId: string, teamId: string, playerId: string): Promise<void> {
   try {
     await prisma.matchPlayer.create({
@@ -301,22 +237,11 @@ async function addToTeamSheet(matchId: string, teamId: string, playerId: string)
   logger.debug({ matchId, teamId, playerId }, 'Called a squad player onto the team sheet');
 }
 
-/**
- * The rules of a change, checked against the state the log actually produces
- * rather than against the team sheet as it was named.
- *
- * Football has no re-entry: once a player is off, they are off. That single
- * rule is what makes the other two checks necessary rather than paranoid — a
- * console that let you bring back somebody already hooked would produce a
- * pitch with twelve players on it, and no later correction could tell which of
- * the two appearances was the mistake.
- */
 async function assertSubstitutionIsLegal(
   matchId: string,
   teamId: string,
   onId: string,
   offId: string,
-  /** True when the incoming player is a squad call-up not yet on the sheet. */
   isCallUp: boolean,
 ): Promise<void> {
   const match = await loadFootballMatch(matchId);
@@ -331,8 +256,6 @@ async function assertSubstitutionIsLegal(
 
   const onPitch = new Set(resolveOnPitch(starters, side).values());
 
-  // A call-up has already been confirmed to belong to this team; they are just
-  // not written onto the sheet yet, which is what recording the change fixes.
   const onSide = (playerId: string) =>
     match.matchPlayers.some((entry) => entry.teamId === teamId && entry.playerId === playerId);
 
@@ -343,11 +266,9 @@ async function assertSubstitutionIsLegal(
   if (!onPitch.has(offId)) {
     throw unprocessable(
       'NOT_ON_PITCH',
-      side.subbedOff.includes(offId)
-        ? 'That player has already been substituted'
-        : side.sentOff.includes(offId)
-          ? 'That player has been sent off — a side that goes down to ten plays on'
-          : 'That player is not on the pitch',
+      side.sentOff.includes(offId)
+        ? 'That player has been sent off — a side that goes down to ten plays on'
+        : 'That player is not on the pitch',
     );
   }
 
@@ -355,16 +276,23 @@ async function assertSubstitutionIsLegal(
     throw unprocessable('ALREADY_ON', 'That player is already playing');
   }
 
-  if (side.subbedOff.includes(onId)) {
-    throw unprocessable('NO_RE_ENTRY', 'A player who has been taken off cannot come back on');
+  if (side.sentOff.includes(onId)) {
+    throw unprocessable('SENT_OFF', 'A player who has been sent off cannot come back on');
+  }
+
+  // A player who has been taken off may come back on: these are rolling
+  // substitutions, capped only by the limit the scorer set at kick off.
+  const limit = match.subLimit;
+
+  if (limit !== null && side.substitutions.length >= limit) {
+    throw unprocessable(
+      'SUB_LIMIT_REACHED',
+      `That side has used all ${limit} of its substitutions`,
+      { teamId, limit, used: side.substitutions.length },
+    );
   }
 }
 
-/**
- * The next sequence number for this match. Read inside the lock, so it cannot
- * race; the unique index on (matchId, seq) is the belt to that braces, and a
- * violation is surfaced as a duplicate rather than a 500.
- */
 async function nextSeq(matchId: string): Promise<number> {
   const last = await prisma.footballEvent.findFirst({
     where: { matchId },
@@ -375,14 +303,13 @@ async function nextSeq(matchId: string): Promise<number> {
   return (last?.seq ?? 0) + 1;
 }
 
-async function insertEvent(data: Prisma.FootballEventUncheckedCreateInput): Promise<'OK' | 'DUPLICATE'> {
+async function insertEvent(
+  data: Prisma.FootballEventUncheckedCreateInput,
+): Promise<'OK' | 'DUPLICATE'> {
   try {
     await prisma.footballEvent.create({ data });
     return 'OK';
   } catch (err) {
-    // P2002 is a unique violation: either the same clientEventId arrived twice
-    // concurrently, or two writers raced for a sequence number. Both are the
-    // retry case, and both are answered with the current state.
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       return 'DUPLICATE';
     }

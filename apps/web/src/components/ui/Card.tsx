@@ -1,14 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Surfaces and section furniture.
- *
- * A card here is a hairline and a sheet of paper: no gradient, no heavy shadow,
- * no coloured header. What separates one block from the next is the rule and the
- * padding, which is why the padding is generous — 24px on a phone, 32 on a desk.
- */
-
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
@@ -43,10 +35,6 @@ export function CardBody({ className, children, ...props }: CardProps) {
   );
 }
 
-/**
- * The standard way to open a section: an eyebrow, a serif title, and the accent
- * rule. Used everywhere so that every page is built out of the same measure.
- */
 export function SectionHeading({
   eyebrow,
   title,
@@ -75,11 +63,6 @@ export function SectionHeading({
   );
 }
 
-/**
- * Empty states are where the sport is allowed to speak. This is the first thing
- * a new organizer sees, and "no data" is a worse sentence than the one a person
- * standing at a ground would actually say.
- */
 export function EmptyState({
   title,
   description,
@@ -93,7 +76,6 @@ export function EmptyState({
     <div
       className={cn(
         'flex flex-col items-center gap-3 rounded-[var(--radius-lg)] px-6 py-20 text-center',
-        // A dashed hairline reads as an unfilled slot rather than a broken card.
         'border border-dashed border-line-strong bg-raised/40',
       )}
     >
@@ -104,11 +86,6 @@ export function EmptyState({
   );
 }
 
-/**
- * A figure with a label under it, on a sunken plate. The label sits below the
- * number, not above: the number is the thing being read, and the eye should
- * land on it first.
- */
 export function StatTile({
   label,
   value,

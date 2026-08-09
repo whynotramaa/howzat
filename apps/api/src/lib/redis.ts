@@ -2,21 +2,11 @@ import Redis, { type RedisOptions } from 'ioredis';
 import { env } from '../config/env';
 import { logger } from './logger';
 
-/**
- * Upstash (and most hosted Redis) terminate TLS, hence the rediss:// scheme.
- * ioredis infers TLS from the scheme; the explicit options below are the ones
- * that matter for a serverless-ish provider with aggressive idle timeouts.
- */
 const baseOptions: RedisOptions = {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
-  // Connect on first command rather than at import. A serverless cold start
-  // otherwise opens three TCP connections before knowing whether the request
-  // it woke up for needs Redis at all.
   lazyConnect: true,
   retryStrategy(times) {
-    // Back off to a 5s ceiling, then keep trying — a Redis blip should
-    // degrade the service, not kill the process.
     return Math.min(times * 200, 5_000);
   },
 };
@@ -33,11 +23,8 @@ export function createRedisClient(label: string): Redis {
 
 const globalForRedis = globalThis as unknown as { redis?: Redis };
 
-/** The general-purpose client: OTP rate limits, auth caches, snapshots. */
 export const redis = globalForRedis.redis ?? createRedisClient('main');
 
-// Cached unconditionally: a reused serverless instance must not open a new
-// connection per invocation — Upstash's free tier caps concurrent connections.
 globalForRedis.redis = redis;
 
 export async function pingRedis(): Promise<boolean> {
@@ -54,12 +41,6 @@ export async function disconnectRedis(): Promise<void> {
   await redis.quit().catch(() => redis.disconnect());
 }
 
-// ───────────────────────────────────────────────── small helpers ──
-
-/**
- * Fixed-window counter. Returns the current count and the seconds remaining
- * in the window, so callers can send a truthful Retry-After.
- */
 export async function incrementWindow(
   key: string,
   windowSeconds: number,

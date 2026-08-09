@@ -7,33 +7,14 @@ import type {
 } from '../types/football';
 import type { PlayerRef } from '../types/scoring';
 
-/**
- * Folding the football log into a score.
- *
- * Same contract as the cricket reducer, and the same reason for it: the log is
- * the truth, the score is a projection, and the projection is recomputed rather
- * than incremented so a correction cannot leave a stale total behind. Pure, so
- * the server and every viewer's browser arrive at the same 2-1.
- */
-
 export interface FootballContext {
   matchId: string;
   homeTeamId: string;
   awayTeamId: string;
-  /** Names for the timeline. Missing ids simply render without a name. */
   players: Record<string, PlayerRef>;
-  /** Regulation minutes per period — used to write "45+2" rather than "47". */
   periodMinutes: number;
 }
 
-/**
- * Drops undone events and returns what actually stands, in sequence order.
- *
- * An UNDO row names the event it removes; both stay in the log forever. This
- * is the football twin of materializeEvents, and it exists for the same reason:
- * everything downstream — the score, the timeline, the points table — has to
- * agree on which events count, and that agreement has to live in one function.
- */
 export function materializeFootballEvents(events: FootballEvent[]): FootballEvent[] {
   const removed = new Set<string>();
 
@@ -82,10 +63,6 @@ export function buildFootballState(
       case 'GOAL':
       case 'OWN_GOAL': {
         side.goals += 1;
-        // An own goal is credited to the side that benefits but must never
-        // appear in that side's scorer list — the player belongs to the other
-        // team, and a scorers column that quietly gains an opponent is worse
-        // than one that omits an own goal.
         if (event.kind === 'GOAL' && event.playerId) {
           side.scorers[event.playerId] = (side.scorers[event.playerId] ?? 0) + 1;
         }
@@ -93,8 +70,6 @@ export function buildFootballState(
       }
 
       case 'SUBSTITUTION': {
-        // The one kind that changes who is playing. Recorded on the side making
-        // the change; `playerId` is coming on, `playerOffId` is going off.
         if (event.playerId && event.playerOffId) {
           side.substitutions.push({
             onId: event.playerId,
@@ -102,6 +77,8 @@ export function buildFootballState(
             minute: event.minute,
             minuteLabel: formatMinute(event, context.periodMinutes),
           });
+          // A player may come off and go back on again, so these read as "at some point",
+          // never as "is off the pitch" — resolveOnPitch is the authority on who is playing.
           if (!side.subbedOn.includes(event.playerId)) side.subbedOn.push(event.playerId);
           if (!side.subbedOff.includes(event.playerOffId)) {
             side.subbedOff.push(event.playerOffId);
@@ -111,9 +88,6 @@ export function buildFootballState(
       }
 
       case 'SAVE': {
-        // Credited to the defending side — the one that did *not* have the
-        // ball. That inversion is why a save carries its own teamId rather
-        // than being derived from whoever was attacking.
         side.saves += 1;
         if (event.playerId) {
           side.savesBy[event.playerId] = (side.savesBy[event.playerId] ?? 0) + 1;
@@ -123,8 +97,6 @@ export function buildFootballState(
 
       case 'YELLOW_CARD':
       case 'RED_CARD': {
-        // A card is recorded against the player's own side. `teamId` on a card
-        // is that side already — only goals have the own-goal inversion.
         const carded = event.teamId === context.homeTeamId ? home : away;
         if (event.kind === 'YELLOW_CARD') carded.yellowCards += 1;
         else carded.redCards += 1;
@@ -135,8 +107,6 @@ export function buildFootballState(
           else tally.red += 1;
           carded.cards[event.playerId] = tally;
 
-          // Off for a straight red, or for a second yellow — the rule that
-          // decides how many players are left on the pitch.
           const off = tally.red > 0 || tally.yellow >= 2;
           if (off && !carded.sentOff.includes(event.playerId)) {
             carded.sentOff.push(event.playerId);
@@ -154,8 +124,6 @@ export function buildFootballState(
     home,
     away,
     incidents,
-    // The high-water mark of the *whole* log, undos included: it is a staleness
-    // marker for the wire, not a count of what stands.
     lastEventSeq: events.reduce((max, event) => Math.max(max, event.seq), 0),
   };
 }
@@ -173,9 +141,7 @@ function toIncident(event: FootballEvent, context: FootballContext): FootballInc
       ? (context.players[event.assistPlayerId]?.name ?? null)
       : null,
     playerOffId: event.playerOffId,
-    playerOffName: event.playerOffId
-      ? (context.players[event.playerOffId]?.name ?? null)
-      : null,
+    playerOffName: event.playerOffId ? (context.players[event.playerOffId]?.name ?? null) : null,
     minute: event.minute,
     period: event.period,
     stoppage: event.stoppage,
@@ -183,10 +149,6 @@ function toIncident(event: FootballEvent, context: FootballContext): FootballInc
   };
 }
 
-/**
- * "45+2'" or "67'". The stoppage form is not cosmetic: a goal on 45+2 and a
- * goal on 47 are different facts, and only one of them ever gets said aloud.
- */
 export function formatMinute(
   event: Pick<FootballEvent, 'minute' | 'period' | 'stoppage'>,
   periodMinutes: number,
@@ -197,17 +159,6 @@ export function formatMinute(
   return `${event.minute}'`;
 }
 
-/**
- * Who is standing on the pitch for one side, by the slot they occupy.
- *
- * Starters are placed first, then each substitution in order moves the incoming
- * player into the slot the outgoing one held. Applying them in sequence rather
- * than as a set is what makes a double change through the same position resolve
- * correctly — the second sub replaces whoever the first one brought on.
- *
- * A player sent off leaves their slot empty. That is the point: a side down to
- * ten should look like a side down to ten.
- */
 export function resolveOnPitch(
   starters: Array<{ playerId: string; slot: number }>,
   team: FootballTeamState,
@@ -224,9 +175,6 @@ export function resolveOnPitch(
 
   for (const change of team.substitutions) {
     const slot = slotOf(change.offId);
-    // A change naming somebody who is not on the pitch cannot be honoured
-    // without inventing a position for them, so it is dropped rather than
-    // guessed at. The server refuses these; this is the belt to that brace.
     if (slot === null) continue;
     bySlot.set(slot, change.onId);
   }
@@ -239,7 +187,34 @@ export function resolveOnPitch(
   return bySlot;
 }
 
-/** Whether an event kind is a goal in either direction. */
+/**
+ * The most recent time a player came on and the most recent time they went off.
+ * Under rolling substitutions either can happen more than once, so the latest wins.
+ */
+export function lastChangeFor(
+  team: FootballTeamState,
+  playerId: string,
+): { on: string | null; off: string | null } {
+  let on: string | null = null;
+  let off: string | null = null;
+
+  for (const change of team.substitutions) {
+    if (change.onId === playerId) on = change.minuteLabel;
+    if (change.offId === playerId) off = change.minuteLabel;
+  }
+
+  return { on, off };
+}
+
+/** How many changes a side has left, or `null` when the bench is unlimited. */
+export function substitutionsRemaining(
+  team: FootballTeamState,
+  limit: number | null,
+): number | null {
+  if (limit === null) return null;
+  return Math.max(0, limit - team.substitutions.length);
+}
+
 export function isGoalKind(kind: FootballEventKind): boolean {
   return kind === 'GOAL' || kind === 'OWN_GOAL';
 }
@@ -253,10 +228,6 @@ export const FOOTBALL_EVENT_LABELS: Record<FootballEventKind, string> = {
   SUBSTITUTION: 'Substitution',
 };
 
-/**
- * The wording every scorecard uses. A draw names no winner, which is the whole
- * reason football needed its own result writer rather than reusing cricket's.
- */
 export function footballResultText(
   home: { name: string; goals: number },
   away: { name: string; goals: number },
@@ -266,9 +237,7 @@ export function footballResultText(
   }
 
   const [winner, loser, side] =
-    home.goals > away.goals
-      ? ([home, away, 'HOME'] as const)
-      : ([away, home, 'AWAY'] as const);
+    home.goals > away.goals ? ([home, away, 'HOME'] as const) : ([away, home, 'AWAY'] as const);
 
   return {
     text: `${winner.name} won ${winner.goals}–${loser.goals}`,

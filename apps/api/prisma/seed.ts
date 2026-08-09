@@ -4,27 +4,15 @@ import { PrismaClient, type PlayerRole, type Prisma } from '@prisma/client';
 import { generateRoundRobin, GUEST_USERNAME_PREFIX, PLAYOFF_BRACKET } from '@howzat/shared';
 import { generateSlugs } from '../src/lib/slug';
 
-/**
- * Seeds two tournaments:
- *
- *   • "Sunday League 2026" — 4 teams, a small sandbox for quick manual tests.
- *   • "IPL 2026"           — 10 teams, full fixtures, ready to score and share.
- *
- * Idempotent: re-running updates rather than duplicating, and it never
- * regenerates fixtures for a tournament whose matches have already started.
- *
- * The IPL squads below are illustrative demo data, not real 2026 rosters.
- */
 const prisma = new PrismaClient();
 
-/**
- * Every seeded account shares one password, printed at the end. These are
- * local demo accounts on a `.local` domain — the point is being able to sign
- * in without hunting through a log, not secrecy.
- */
 const DEMO_PASSWORD = 'howzat1234';
 
-const ORGANIZER = { email: 'organizer@howzat.local', username: 'organizer', name: 'Demo Organizer' };
+const ORGANIZER = {
+  email: 'organizer@howzat.local',
+  username: 'organizer',
+  name: 'Demo Organizer',
+};
 const DEMO_SCORER = { email: 'scorer@howzat.local', username: 'demoscorer', name: 'Demo Scorer' };
 const DEFAULT_SCORER = {
   email: 'whynotramaa@howzat.local',
@@ -62,112 +50,182 @@ const IPL_TEAMS: Array<{
   players: Array<{ name: string; role: PlayerRole }>;
 }> = [
   {
-    name: 'Chennai Super Kings', shortName: 'CSK', primaryColor: '#f9cd05',
+    name: 'Chennai Super Kings',
+    shortName: 'CSK',
+    primaryColor: '#f9cd05',
     players: [
-      R('Ruturaj Gaikwad', 'BATSMAN'), R('Rachin Ravindra', 'BATSMAN'),
-      R('Shivam Dube', 'ALL_ROUNDER'), R('Sam Curran', 'ALL_ROUNDER'),
-      R('MS Dhoni', 'KEEPER'), R('Ravindra Jadeja', 'ALL_ROUNDER'),
-      R('Deepak Chahar', 'BOWLER'), R('Matheesha Pathirana', 'BOWLER'),
-      R('Maheesh Theekshana', 'BOWLER'), R('Tushar Deshpande', 'BOWLER'),
+      R('Ruturaj Gaikwad', 'BATSMAN'),
+      R('Rachin Ravindra', 'BATSMAN'),
+      R('Shivam Dube', 'ALL_ROUNDER'),
+      R('Sam Curran', 'ALL_ROUNDER'),
+      R('MS Dhoni', 'KEEPER'),
+      R('Ravindra Jadeja', 'ALL_ROUNDER'),
+      R('Deepak Chahar', 'BOWLER'),
+      R('Matheesha Pathirana', 'BOWLER'),
+      R('Maheesh Theekshana', 'BOWLER'),
+      R('Tushar Deshpande', 'BOWLER'),
       R('Ajinkya Rahane', 'BATSMAN'),
     ],
   },
   {
-    name: 'Mumbai Indians', shortName: 'MI', primaryColor: '#004b8d',
+    name: 'Mumbai Indians',
+    shortName: 'MI',
+    primaryColor: '#004b8d',
     players: [
-      R('Rohit Sharma', 'BATSMAN'), R('Ishan Kishan', 'KEEPER'),
-      R('Suryakumar Yadav', 'BATSMAN'), R('Tilak Varma', 'BATSMAN'),
-      R('Hardik Pandya', 'ALL_ROUNDER'), R('Tim David', 'BATSMAN'),
-      R('Jasprit Bumrah', 'BOWLER'), R('Trent Boult', 'BOWLER'),
-      R('Piyush Chawla', 'BOWLER'), R('Gerald Coetzee', 'BOWLER'),
+      R('Rohit Sharma', 'BATSMAN'),
+      R('Ishan Kishan', 'KEEPER'),
+      R('Suryakumar Yadav', 'BATSMAN'),
+      R('Tilak Varma', 'BATSMAN'),
+      R('Hardik Pandya', 'ALL_ROUNDER'),
+      R('Tim David', 'BATSMAN'),
+      R('Jasprit Bumrah', 'BOWLER'),
+      R('Trent Boult', 'BOWLER'),
+      R('Piyush Chawla', 'BOWLER'),
+      R('Gerald Coetzee', 'BOWLER'),
       R('Nehal Wadhera', 'BATSMAN'),
     ],
   },
   {
-    name: 'Royal Challengers Bengaluru', shortName: 'RCB', primaryColor: '#c8102e',
+    name: 'Royal Challengers Bengaluru',
+    shortName: 'RCB',
+    primaryColor: '#c8102e',
     players: [
-      R('Virat Kohli', 'BATSMAN'), R('Faf du Plessis', 'BATSMAN'),
-      R('Rajat Patidar', 'BATSMAN'), R('Glenn Maxwell', 'ALL_ROUNDER'),
-      R('Dinesh Karthik', 'KEEPER'), R('Cameron Green', 'ALL_ROUNDER'),
-      R('Mohammed Siraj', 'BOWLER'), R('Yash Dayal', 'BOWLER'),
-      R('Karn Sharma', 'BOWLER'), R('Lockie Ferguson', 'BOWLER'),
+      R('Virat Kohli', 'BATSMAN'),
+      R('Faf du Plessis', 'BATSMAN'),
+      R('Rajat Patidar', 'BATSMAN'),
+      R('Glenn Maxwell', 'ALL_ROUNDER'),
+      R('Dinesh Karthik', 'KEEPER'),
+      R('Cameron Green', 'ALL_ROUNDER'),
+      R('Mohammed Siraj', 'BOWLER'),
+      R('Yash Dayal', 'BOWLER'),
+      R('Karn Sharma', 'BOWLER'),
+      R('Lockie Ferguson', 'BOWLER'),
       R('Will Jacks', 'ALL_ROUNDER'),
     ],
   },
   {
-    name: 'Kolkata Knight Riders', shortName: 'KKR', primaryColor: '#3a225d',
+    name: 'Kolkata Knight Riders',
+    shortName: 'KKR',
+    primaryColor: '#3a225d',
     players: [
-      R('Shreyas Iyer', 'BATSMAN'), R('Sunil Narine', 'ALL_ROUNDER'),
-      R('Phil Salt', 'KEEPER'), R('Venkatesh Iyer', 'ALL_ROUNDER'),
-      R('Andre Russell', 'ALL_ROUNDER'), R('Rinku Singh', 'BATSMAN'),
-      R('Varun Chakravarthy', 'BOWLER'), R('Mitchell Starc', 'BOWLER'),
-      R('Harshit Rana', 'BOWLER'), R('Vaibhav Arora', 'BOWLER'),
+      R('Shreyas Iyer', 'BATSMAN'),
+      R('Sunil Narine', 'ALL_ROUNDER'),
+      R('Phil Salt', 'KEEPER'),
+      R('Venkatesh Iyer', 'ALL_ROUNDER'),
+      R('Andre Russell', 'ALL_ROUNDER'),
+      R('Rinku Singh', 'BATSMAN'),
+      R('Varun Chakravarthy', 'BOWLER'),
+      R('Mitchell Starc', 'BOWLER'),
+      R('Harshit Rana', 'BOWLER'),
+      R('Vaibhav Arora', 'BOWLER'),
       R('Ramandeep Singh', 'ALL_ROUNDER'),
     ],
   },
   {
-    name: 'Sunrisers Hyderabad', shortName: 'SRH', primaryColor: '#f26522',
+    name: 'Sunrisers Hyderabad',
+    shortName: 'SRH',
+    primaryColor: '#f26522',
     players: [
-      R('Pat Cummins', 'BOWLER'), R('Travis Head', 'BATSMAN'),
-      R('Abhishek Sharma', 'ALL_ROUNDER'), R('Heinrich Klaasen', 'KEEPER'),
-      R('Aiden Markram', 'BATSMAN'), R('Nitish Kumar Reddy', 'ALL_ROUNDER'),
-      R('Bhuvneshwar Kumar', 'BOWLER'), R('T Natarajan', 'BOWLER'),
-      R('Shahbaz Ahmed', 'ALL_ROUNDER'), R('Jaydev Unadkat', 'BOWLER'),
+      R('Pat Cummins', 'BOWLER'),
+      R('Travis Head', 'BATSMAN'),
+      R('Abhishek Sharma', 'ALL_ROUNDER'),
+      R('Heinrich Klaasen', 'KEEPER'),
+      R('Aiden Markram', 'BATSMAN'),
+      R('Nitish Kumar Reddy', 'ALL_ROUNDER'),
+      R('Bhuvneshwar Kumar', 'BOWLER'),
+      R('T Natarajan', 'BOWLER'),
+      R('Shahbaz Ahmed', 'ALL_ROUNDER'),
+      R('Jaydev Unadkat', 'BOWLER'),
       R('Rahul Tripathi', 'BATSMAN'),
     ],
   },
   {
-    name: 'Delhi Capitals', shortName: 'DC', primaryColor: '#17449b',
+    name: 'Delhi Capitals',
+    shortName: 'DC',
+    primaryColor: '#17449b',
     players: [
-      R('Rishabh Pant', 'KEEPER'), R('David Warner', 'BATSMAN'),
-      R('Prithvi Shaw', 'BATSMAN'), R('Mitchell Marsh', 'ALL_ROUNDER'),
-      R('Axar Patel', 'ALL_ROUNDER'), R('Abishek Porel', 'BATSMAN'),
-      R('Kuldeep Yadav', 'BOWLER'), R('Anrich Nortje', 'BOWLER'),
-      R('Khaleel Ahmed', 'BOWLER'), R('Ishant Sharma', 'BOWLER'),
+      R('Rishabh Pant', 'KEEPER'),
+      R('David Warner', 'BATSMAN'),
+      R('Prithvi Shaw', 'BATSMAN'),
+      R('Mitchell Marsh', 'ALL_ROUNDER'),
+      R('Axar Patel', 'ALL_ROUNDER'),
+      R('Abishek Porel', 'BATSMAN'),
+      R('Kuldeep Yadav', 'BOWLER'),
+      R('Anrich Nortje', 'BOWLER'),
+      R('Khaleel Ahmed', 'BOWLER'),
+      R('Ishant Sharma', 'BOWLER'),
       R('Tristan Stubbs', 'BATSMAN'),
     ],
   },
   {
-    name: 'Rajasthan Royals', shortName: 'RR', primaryColor: '#e6338c',
+    name: 'Rajasthan Royals',
+    shortName: 'RR',
+    primaryColor: '#e6338c',
     players: [
-      R('Sanju Samson', 'KEEPER'), R('Yashasvi Jaiswal', 'BATSMAN'),
-      R('Jos Buttler', 'BATSMAN'), R('Riyan Parag', 'ALL_ROUNDER'),
-      R('Shimron Hetmyer', 'BATSMAN'), R('Ravichandran Ashwin', 'BOWLER'),
-      R('Yuzvendra Chahal', 'BOWLER'), R('Trent Copeland', 'BOWLER'),
-      R('Avesh Khan', 'BOWLER'), R('Sandeep Sharma', 'BOWLER'),
+      R('Sanju Samson', 'KEEPER'),
+      R('Yashasvi Jaiswal', 'BATSMAN'),
+      R('Jos Buttler', 'BATSMAN'),
+      R('Riyan Parag', 'ALL_ROUNDER'),
+      R('Shimron Hetmyer', 'BATSMAN'),
+      R('Ravichandran Ashwin', 'BOWLER'),
+      R('Yuzvendra Chahal', 'BOWLER'),
+      R('Trent Copeland', 'BOWLER'),
+      R('Avesh Khan', 'BOWLER'),
+      R('Sandeep Sharma', 'BOWLER'),
       R('Dhruv Jurel', 'KEEPER'),
     ],
   },
   {
-    name: 'Punjab Kings', shortName: 'PBKS', primaryColor: '#dd1f2d',
+    name: 'Punjab Kings',
+    shortName: 'PBKS',
+    primaryColor: '#dd1f2d',
     players: [
-      R('Shikhar Dhawan', 'BATSMAN'), R('Jonny Bairstow', 'KEEPER'),
-      R('Liam Livingstone', 'ALL_ROUNDER'), R('Sam Curran', 'ALL_ROUNDER'),
-      R('Jitesh Sharma', 'KEEPER'), R('Shashank Singh', 'BATSMAN'),
-      R('Arshdeep Singh', 'BOWLER'), R('Kagiso Rabada', 'BOWLER'),
-      R('Harpreet Brar', 'BOWLER'), R('Rahul Chahar', 'BOWLER'),
+      R('Shikhar Dhawan', 'BATSMAN'),
+      R('Jonny Bairstow', 'KEEPER'),
+      R('Liam Livingstone', 'ALL_ROUNDER'),
+      R('Sam Curran', 'ALL_ROUNDER'),
+      R('Jitesh Sharma', 'KEEPER'),
+      R('Shashank Singh', 'BATSMAN'),
+      R('Arshdeep Singh', 'BOWLER'),
+      R('Kagiso Rabada', 'BOWLER'),
+      R('Harpreet Brar', 'BOWLER'),
+      R('Rahul Chahar', 'BOWLER'),
       R('Prabhsimran Singh', 'BATSMAN'),
     ],
   },
   {
-    name: 'Gujarat Titans', shortName: 'GT', primaryColor: '#1b2133',
+    name: 'Gujarat Titans',
+    shortName: 'GT',
+    primaryColor: '#1b2133',
     players: [
-      R('Shubman Gill', 'BATSMAN'), R('Wriddhiman Saha', 'KEEPER'),
-      R('Sai Sudharsan', 'BATSMAN'), R('David Miller', 'BATSMAN'),
-      R('Rahul Tewatia', 'ALL_ROUNDER'), R('Rashid Khan', 'BOWLER'),
-      R('Mohammed Shami', 'BOWLER'), R('Mohit Sharma', 'BOWLER'),
-      R('Noor Ahmad', 'BOWLER'), R('Vijay Shankar', 'ALL_ROUNDER'),
+      R('Shubman Gill', 'BATSMAN'),
+      R('Wriddhiman Saha', 'KEEPER'),
+      R('Sai Sudharsan', 'BATSMAN'),
+      R('David Miller', 'BATSMAN'),
+      R('Rahul Tewatia', 'ALL_ROUNDER'),
+      R('Rashid Khan', 'BOWLER'),
+      R('Mohammed Shami', 'BOWLER'),
+      R('Mohit Sharma', 'BOWLER'),
+      R('Noor Ahmad', 'BOWLER'),
+      R('Vijay Shankar', 'ALL_ROUNDER'),
       R('Matthew Wade', 'KEEPER'),
     ],
   },
   {
-    name: 'Lucknow Super Giants', shortName: 'LSG', primaryColor: '#0057e2',
+    name: 'Lucknow Super Giants',
+    shortName: 'LSG',
+    primaryColor: '#0057e2',
     players: [
-      R('KL Rahul', 'KEEPER'), R('Quinton de Kock', 'KEEPER'),
-      R('Marcus Stoinis', 'ALL_ROUNDER'), R('Nicholas Pooran', 'BATSMAN'),
-      R('Deepak Hooda', 'ALL_ROUNDER'), R('Krunal Pandya', 'ALL_ROUNDER'),
-      R('Ravi Bishnoi', 'BOWLER'), R('Mohsin Khan', 'BOWLER'),
-      R('Naveen-ul-Haq', 'BOWLER'), R('Yash Thakur', 'BOWLER'),
+      R('KL Rahul', 'KEEPER'),
+      R('Quinton de Kock', 'KEEPER'),
+      R('Marcus Stoinis', 'ALL_ROUNDER'),
+      R('Nicholas Pooran', 'BATSMAN'),
+      R('Deepak Hooda', 'ALL_ROUNDER'),
+      R('Krunal Pandya', 'ALL_ROUNDER'),
+      R('Ravi Bishnoi', 'BOWLER'),
+      R('Mohsin Khan', 'BOWLER'),
+      R('Naveen-ul-Haq', 'BOWLER'),
+      R('Yash Thakur', 'BOWLER'),
       R('Ayush Badoni', 'BATSMAN'),
     ],
   },
@@ -176,10 +234,6 @@ const IPL_TEAMS: Array<{
 async function upsertUser(spec: { email: string; username: string; name: string }) {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
-  // Seeded accounts skip the emailed code — there is no inbox behind a .local
-  // address to receive one. Verification is set on update as well as create,
-  // so re-seeding a database that predates passwords repairs those accounts
-  // instead of leaving them permanently unable to sign in.
   const verified = { passwordHash, emailVerifiedAt: new Date() };
 
   return prisma.user.upsert({
@@ -191,11 +245,6 @@ async function upsertUser(spec: { email: string; username: string; name: string 
 
 const guestUsername = () => `${GUEST_USERNAME_PREFIX}${crypto.randomBytes(4).toString('hex')}`;
 
-/**
- * `linkedUserIds` attaches real accounts to the first few squad slots, so the
- * seeded data exercises both kinds of player: a handful with profiles that
- * accumulate stats, and the rest as guests, which is the realistic ratio.
- */
 async function upsertTeamWithSquad(
   tournamentId: string,
   spec: { name: string; shortName: string; primaryColor: string },
@@ -227,12 +276,6 @@ async function upsertTeamWithSquad(
   return team;
 }
 
-/**
- * Points the first few squad slots at real accounts. Kept separate from squad
- * creation so it also repairs a database seeded before accounts existed —
- * otherwise the "already has players" guard above would skip it forever and
- * the demo data would never have a single registered player in it.
- */
 async function linkAccountsToSquad(
   teamId: string,
   users: Array<{ id: string; username: string; name: string }>,
@@ -249,8 +292,6 @@ async function linkAccountsToSquad(
     const slot = players[index];
     if (!slot || slot.userId === user.id) continue;
 
-    // Someone else already holds this slot — leave it rather than reassign a
-    // row that may already carry match history.
     if (slot.userId !== null) continue;
 
     await prisma.player.update({
@@ -260,11 +301,6 @@ async function linkAccountsToSquad(
   }
 }
 
-/**
- * Generates fixtures with the same circle-method function the API uses, so the
- * seed cannot drift from production behaviour. Skipped entirely if any match
- * already exists — the seed must never destroy scoring data.
- */
 async function ensureFixtures(
   tournament: { id: string; oversPerInnings: number; format: string; doubleRoundRobin: boolean },
   teamIds: string[],
@@ -332,13 +368,10 @@ async function assignScorerToAll(tournamentId: string, scorerId: string, assigne
 }
 
 async function main() {
-  // No roles here — these are just three accounts. Which of them ends up an
-  // organizer or a scorer is decided below by what they are given to do.
   const organizer = await upsertUser(ORGANIZER);
   const demoScorer = await upsertUser(DEMO_SCORER);
   const defaultScorer = await upsertUser(DEFAULT_SCORER);
 
-  // ── Sunday League: the small sandbox ──────────────────────────────
   let sunday = await prisma.tournament.findFirst({
     where: { organizerId: organizer.id, name: 'Sunday League 2026' },
   });
@@ -356,8 +389,6 @@ async function main() {
   }
 
   for (const [index, spec] of SUNDAY_TEAMS.entries()) {
-    // The first team carries the three demo accounts as registered players, so
-    // there is something to search for and a profile to look at.
     await upsertTeamWithSquad(
       sunday.id,
       spec,
@@ -367,7 +398,6 @@ async function main() {
     );
   }
 
-  // ── IPL 2026: the real thing, ready to score ──────────────────────
   let ipl = await prisma.tournament.findFirst({
     where: { organizerId: organizer.id, name: 'IPL 2026' },
   });
@@ -380,8 +410,6 @@ async function main() {
         format: 'LEAGUE_PLAYOFFS',
         teamsCount: IPL_TEAMS.length,
         oversPerInnings: 20,
-        // Single round-robin: 45 league matches rather than 90. Flip this to
-        // true and regenerate if you want the full home-and-away season.
         doubleRoundRobin: false,
       },
     });

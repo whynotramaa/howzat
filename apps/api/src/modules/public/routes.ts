@@ -9,14 +9,8 @@ import { getFootballSnapshot } from '../football/snapshot';
 import { getStandings } from '../standings/service';
 import { loadTournamentMatches } from '../tournaments/report';
 
-/**
- * The public surface behind a share link. No auth, no cookies, no organizer
- * data — only what a spectator needs. Matches are addressed by their random
- * publicSlug rather than their id, so nothing here can be enumerated.
- */
 export const publicRouter = Router();
 
-/** slug → id is immutable, so it caches indefinitely and saves a query per hit. */
 async function resolveSlug(slug: string): Promise<string> {
   const cacheKey = `slug:${slug}`;
 
@@ -35,7 +29,6 @@ async function resolveSlug(slug: string): Promise<string> {
   return match.id;
 }
 
-/** Match header: teams, status, toss, result. Enough to render before scoring. */
 publicRouter.get(
   '/matches/:slug',
   asyncHandler(async (req, res) => {
@@ -65,8 +58,6 @@ publicRouter.get(
     res.json({
       id: match.id,
       publicSlug: match.publicSlug,
-      // The share link is one URL for both codes, so the very first thing it
-      // has to answer is which scoreboard to draw.
       sport: match.tournament.sport,
       tournamentId: match.tournament.id,
       tournamentName: match.tournament.name,
@@ -103,11 +94,6 @@ publicRouter.get(
   }),
 );
 
-/**
- * Step one of the mid-match join: current state, instantly, from Redis.
- * A cold cache falls back to folding the event log, so this is always correct
- * — never a replay from ball one, never a miss.
- */
 publicRouter.get(
   '/matches/:slug/snapshot',
   asyncHandler(async (req, res) => {
@@ -121,19 +107,11 @@ publicRouter.get(
       return;
     }
 
-    // Viewers may sit on this for a while; a short cache is fine because the
-    // socket delivers the updates.
     res.setHeader('Cache-Control', 'public, max-age=5');
     res.json(snapshot);
   }),
 );
 
-/**
- * The football twin of the snapshot endpoint. A separate path rather than a
- * union on the cricket one: a spectator page already knows which sport it is
- * rendering by the time it asks, and one endpoint answering two unrelated
- * shapes would make every caller start with a discriminant check.
- */
 publicRouter.get(
   '/matches/:slug/football',
   asyncHandler(async (req, res) => {
@@ -147,25 +125,11 @@ publicRouter.get(
       return;
     }
 
-    // Deliberately uncached at the edge, unlike the cricket snapshot. That one
-    // is a set of numbers that only change when a ball is bowled; this one
-    // carries `serverNow`, which every viewer measures their own clock against,
-    // and a five-second-old copy would put five seconds of skew on the watch.
     res.setHeader('Cache-Control', 'no-store');
     res.json(snapshot);
   }),
 );
 
-/**
- * The whole tournament, shareable without a login like everything else here:
- * the full points table and *every* fixture, each carrying whatever it has
- * produced — a scoreline and a result once it is over, a kick-off time while
- * it is still to come.
- *
- * It used to answer with five fixtures and no scores, which made the public
- * board a teaser for a page that did not exist. A tournament is a season, and
- * the thing people want from a link to one is the season.
- */
 publicRouter.get(
   '/tournaments/:tournamentId/standings',
   asyncHandler(async (req, res) => {
@@ -194,9 +158,7 @@ publicRouter.get(
       loadTournamentMatches(tournamentId, tournament.sport),
     ]);
 
-    const live = matches.filter((match) =>
-      ['LIVE', 'INNINGS_BREAK'].includes(match.status),
-    ).length;
+    const live = matches.filter((match) => ['LIVE', 'INNINGS_BREAK'].includes(match.status)).length;
     const completed = matches.filter((match) =>
       ['COMPLETED', 'ABANDONED'].includes(match.status),
     ).length;
@@ -217,7 +179,6 @@ publicRouter.get(
   }),
 );
 
-/** The full scorecard for every innings played so far. */
 publicRouter.get(
   '/matches/:slug/scorecard',
   asyncHandler(async (req, res) => {
@@ -244,7 +205,6 @@ publicRouter.get(
           wickets: state.wickets,
           overs: formatOvers(state.legalBalls),
           extras: state.extras,
-          // Batting order, with everyone who came to the crease.
           batting: Object.values(state.batsmen)
             .sort((a, b) => a.position - b.position)
             .map((batsman) => ({

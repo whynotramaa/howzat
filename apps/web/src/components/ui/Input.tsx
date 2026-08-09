@@ -10,17 +10,6 @@ import {
 } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Form controls.
- *
- * The label sits above the field in small caps rather than inside it as a
- * placeholder, because a placeholder disappears exactly when you need it — and
- * on a form you fill in once, at a ground, with one hand, that matters.
- *
- * Fields are 48px tall with a hairline that turns to the accent on focus. There is no
- * coloured fill and no inner shadow: the field is a ruled line on paper.
- */
-
 const fieldShell = cn(
   'h-12 w-full rounded-[var(--radius-sm)] border bg-raised px-3.5 text-primary',
   'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
@@ -33,7 +22,6 @@ function stateBorder(hasError: boolean): string {
     : 'border-line hover:border-line-strong focus:border-[var(--accent-strong)]';
 }
 
-/** Label, control, and the one line of help or error underneath it. */
 export function Field({
   label,
   htmlFor,
@@ -84,9 +72,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
   const [revealed, setRevealed] = useState(false);
 
-  // Password fields get a reveal toggle. Typing a password you cannot see, on a
-  // phone, one-handed, is how people end up locked out of an account whose
-  // password they actually knew.
   const isPassword = type === 'password';
   const resolvedType = isPassword && revealed ? 'text' : type;
 
@@ -104,25 +89,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(
-            fieldShell,
-            stateBorder(Boolean(error)),
-            // Room for the toggle, so a long password never runs under it.
-            isPassword && 'pr-12',
-            className,
-          )}
+          className={cn(fieldShell, stateBorder(Boolean(error)), isPassword && 'pr-12', className)}
         />
 
         {isPassword ? (
           <button
             type="button"
             onClick={() => setRevealed((current) => !current)}
-            // The label changes with state rather than relying on the icon, so a
-            // screen reader announces the action, not a picture of an eye.
             aria-label={revealed ? 'Hide password' : 'Show password'}
             aria-pressed={revealed}
-            // Never a tab stop between the password and the submit button — it
-            // would sit in the middle of the one flow that has to stay fast.
             tabIndex={-1}
             className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-[var(--radius-sm)] text-muted transition-colors hover:text-primary"
           >
@@ -150,10 +125,6 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   hint?: ReactNode;
 }
 
-/**
- * A native select, restyled. Native is deliberate: on a phone this opens the
- * platform picker, which is faster and more accessible than anything custom.
- */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, error, hint, className, id, children, ...props },
   ref,
@@ -222,10 +193,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   );
 });
 
-/**
- * A checkbox that is a real checkbox, with a hit area covering its label. The
- * accent colour comes from the token, so it is the accent in both themes.
- */
 export function Checkbox({
   label,
   hint,
@@ -257,11 +224,6 @@ export function Checkbox({
   );
 }
 
-/**
- * A segmented choice. Used for the toss, for extras on the scoring pad, and for
- * anything else where the options are few enough to all be visible — which is
- * always better than a dropdown that hides them.
- */
 export function ChoiceChip({
   selected,
   className,
@@ -278,8 +240,7 @@ export function ChoiceChip({
         'text-sm font-medium transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
         'active:translate-y-px disabled:pointer-events-none disabled:opacity-40',
         selected
-          ? // Accent hairline plus a wash: selected without shouting.
-            'border-[var(--accent-strong)] bg-accent-soft text-accent'
+          ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
           : 'border-line bg-raised text-secondary hover:border-line-strong hover:text-primary',
         className,
       )}

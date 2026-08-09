@@ -16,21 +16,6 @@ import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
 import { useLiveMatch, type ConnectionState } from './useLiveMatch';
 
-/**
- * The public share link — the most-seen screen in the product and the only one
- * most people will ever see.
- *
- * It is built as a broadcast graphic rather than as a page of the app: no login,
- * no navigation, both teams' colours in the light behind it, and the score set
- * large enough to read at arm's length in daylight. Snapshot first, then
- * subscribe, so a viewer who joins at 12.3 overs sees 12.3 overs immediately.
- *
- * The theme toggle is deliberately absent. Every scoreboard anyone has looked at
- * — at the ground, on television — is light on dark, and a scoreboard that
- * follows the reader's OS preference is a scoreboard that sometimes looks like a
- * spreadsheet.
- */
-
 type View = 'live' | 'scorecard' | 'commentary';
 
 export function LiveMatchPage() {
@@ -60,8 +45,6 @@ export function LiveMatchPage() {
             <Wordmark size="sm" />
           </Link>
 
-          {/* The score follows you down the page once the scoreboard itself has
-              scrolled away — the one thing worth keeping pinned. */}
           {snapshot ? (
             <div
               aria-hidden={!condensed}
@@ -152,16 +135,6 @@ export function LiveMatchPage() {
   );
 }
 
-// ───────────────────────────────────────────────────────────  scoreboard ──
-
-/**
- * The scoreboard.
- *
- * Both sides are named, not just the one batting. A spectator arriving cold
- * needs to know who is playing before they can read a score, and the older
- * layout — which put the batting side alone above a large figure — made the
- * second team something you had to go looking for.
- */
 function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
   const { batting, bowling, required, target } = snapshot;
   const quota = batting.oversQuota;
@@ -184,8 +157,6 @@ function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string 
           ) : null}
         </div>
 
-        {/* A word and a dot, not a filled badge — the same mark the specimen on
-            the front page uses, so the two read as one product. */}
         {finished ? (
           <span className="text-[0.6875rem] tracking-[0.16em] text-success uppercase">Result</span>
         ) : (
@@ -204,8 +175,6 @@ function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string 
               <p className="truncate text-[0.9375rem] text-secondary">{batting.name}</p>
             </div>
 
-            {/* The one figure the page exists for. Everything else on this
-                surface is sized in relation to it. */}
             <p className="score-figure mt-4 flex items-baseline text-[4.5rem] text-primary sm:text-[6.5rem]">
               <span key={batting.runs} className="figure-in">
                 {batting.runs}
@@ -254,10 +223,6 @@ function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string 
               {snapshot.resultText}
             </p>
 
-            {/* The card is offered here rather than in the bar, because this is
-                the moment it becomes worth having: the match is over, and what
-                was a live score is now a record. A card printed at 12.3 overs
-                would be a record of nothing. */}
             <PdfButton
               size="md"
               variant="secondary"
@@ -279,14 +244,6 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-/**
- * The chase, as one line and one bar.
- *
- * The bar carries two facts at once: the accent fill is runs made against the
- * target, and the pale marker is balls used against the allotment. A chase is
- * entirely a question of which of those reaches the end first, and drawing them
- * on the same track is what makes that legible without arithmetic.
- */
 function ChaseStrip({
   runs,
   target,
@@ -329,8 +286,6 @@ function ChaseStrip({
   );
 }
 
-// ────────────────────────────────────────────────────────────  live view ──
-
 function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
@@ -346,8 +301,6 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
                   className={cn(
                     'flex items-center gap-3.5 rounded-[var(--radius-md)] border px-4 py-3.5',
                     'transition-colors duration-[var(--dur)]',
-                    // The striker is marked by a stronger hairline and the word
-                    // itself, not by a coloured fill.
                     batsman.onStrike ? 'border-line-strong bg-hover' : 'border-line bg-sunken',
                   )}
                 >
@@ -389,8 +342,6 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
               {snapshot.thisOver.map((ball, index) => (
                 <span
                   key={`${index}-${ball}`}
-                  // Only the newest chip lands; the rest are already there and
-                  // re-animating the whole over on every ball would be noise.
                   className={index === snapshot.thisOver.length - 1 ? 'ball-land' : undefined}
                 >
                   <BallChip display={ball} isWicket={ball.includes('W')} />
@@ -498,8 +449,6 @@ function Figure({
   );
 }
 
-// ────────────────────────────────────────────────────────────  scorecard ──
-
 interface ScorecardResponse {
   matchId: string;
   innings: Array<{
@@ -533,16 +482,10 @@ interface ScorecardResponse {
   }>;
 }
 
-/**
- * The full card, both innings, as a printed scorecard: ruled rows, no fills, the
- * dismissal spelled out under each batter's name the way a book records it.
- */
 function ScorecardView({ slug }: { slug: string }) {
   const { data, isPending, error } = useQuery({
     queryKey: ['public', 'scorecard', slug],
     queryFn: () => apiFetch<ScorecardResponse>(`/public/matches/${slug}/scorecard`),
-    // A viewer flicking to this tab mid-over wants the current card, not a cached
-    // one from three overs ago.
     staleTime: 10_000,
   });
 
@@ -693,12 +636,6 @@ function ScorecardView({ slug }: { slug: string }) {
   );
 }
 
-// ───────────────────────────────────────────────────────────  commentary ──
-
-/**
- * Ball by ball, newest first, as a timeline: the over marks run down a rule so
- * an over reads as a block rather than as six unrelated rows.
- */
 function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
   if (snapshot.recentBalls.length === 0) {
     return <p className="text-sm text-muted">Nothing bowled yet.</p>;
@@ -714,7 +651,6 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
             key={ball.seq}
             className="relative flex items-start gap-3.5 rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3.5"
           >
-            {/* The tick onto the timeline rule to the left. */}
             <span aria-hidden className="absolute top-1/2 -left-6 h-px w-5 bg-line" />
 
             <span className="mono w-9 shrink-0 pt-2 text-[0.6875rem] text-muted">
@@ -814,14 +750,6 @@ function describe(ball: BallSummary): string {
   return `${ball.runs} run${ball.runs === 1 ? '' : 's'}.`;
 }
 
-/**
- * Connection state, shown only when there is something wrong with it.
- *
- * A healthy socket is silent here: the scoreboard already says "Live", and a
- * second badge saying the same word in the same eyeline was the page telling
- * you twice. What a viewer actually needs to know is the opposite — that the
- * number in front of them may have stopped moving.
- */
 function ConnectionBadge({ state }: { state: ConnectionState }) {
   if (state === 'live') return null;
 
@@ -839,11 +767,6 @@ function ConnectionBadge({ state }: { state: ConnectionState }) {
   return <Pill tone={tone}>{label}</Pill>;
 }
 
-/**
- * True once the scoreboard has scrolled out of the way. A plain threshold on
- * scrollY rather than an observer: there is one element, the number is fixed,
- * and state only flips twice per page.
- */
 function useCondensedHeader(threshold = 220): boolean {
   const [condensed, setCondensed] = useState(false);
   const frame = useRef(0);

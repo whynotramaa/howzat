@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { allowedCommands, elapsedAt, readClock, regulationMinutes } from './clock';
 import type { MatchClockDto } from '../types/football';
 
-/**
- * The clock is the one thing in football scoring that cannot be re-derived
- * from a log, so it gets tested against instants rather than against a wait.
- */
-
 const T0 = Date.parse('2026-08-02T10:00:00.000Z');
 
 function clock(overrides: Partial<MatchClockDto> = {}): MatchClockDto {
@@ -57,14 +52,20 @@ describe('readClock', () => {
   });
 
   it('switches to stoppage time past regulation rather than counting on', () => {
-    const reading = readClock(clock({ elapsedMs: minutes(46) + 30_000, status: 'PAUSED', runningSince: null }), T0);
+    const reading = readClock(
+      clock({ elapsedMs: minutes(46) + 30_000, status: 'PAUSED', runningSince: null }),
+      T0,
+    );
     expect(reading.stoppage).toBe(2);
     expect(reading.minuteLabel).toBe("45+2'");
     expect(reading.display).toBe('45+2:30');
   });
 
   it('caps progress at a full period so the ring cannot overfill', () => {
-    const reading = readClock(clock({ elapsedMs: minutes(80), status: 'PAUSED', runningSince: null }), T0);
+    const reading = readClock(
+      clock({ elapsedMs: minutes(80), status: 'PAUSED', runningSince: null }),
+      T0,
+    );
     expect(reading.progress).toBe(1);
   });
 

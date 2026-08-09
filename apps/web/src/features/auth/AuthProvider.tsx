@@ -17,16 +17,13 @@ import type {
 } from '@howzat/shared';
 import { api, refreshAccessToken, setAccessToken } from '@/lib/api';
 
-/** 202 from /register, /resend-verification and /forgot-password. */
 export interface VerificationSentResult {
   status: string;
-  /** Present only in dev with email sending disabled. */
   devCode?: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  /** True until the initial silent refresh settles — gates route rendering. */
   isLoading: boolean;
   register: (input: RegisterInput) => Promise<VerificationSentResult>;
   verifyEmail: (email: string, code: string) => Promise<AuthUser>;
@@ -44,10 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const refreshTimer = useRef<number | null>(null);
 
-  /**
-   * Re-refreshes a minute before the access token expires, so a long session
-   * never breaks mid-action and never depends on catching a 401.
-   */
   const scheduleRefresh = useCallback((expiresIn: number) => {
     if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
 
@@ -70,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [scheduleRefresh],
   );
 
-  // On mount, try the refresh cookie. Success means the tab reopens signed in.
   useEffect(() => {
     let cancelled = false;
 
@@ -110,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  /** Confirming the address also signs the new account in — no second step. */
   const verifyEmail = useCallback(
     async (email: string, code: string) => {
       const session = await api.post<AuthSession>('/auth/verify-email', { email, code });
@@ -134,7 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  /** A completed reset signs them straight in — they just proved who they are. */
   const resetPassword = useCallback(
     async (input: ResetPasswordInput) => {
       const session = await api.post<AuthSession>('/auth/reset-password', input);

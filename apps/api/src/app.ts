@@ -27,8 +27,6 @@ import { statsRouter } from './modules/stats/routes';
 export function createApp() {
   const app = express();
 
-  // Behind Render/Railway/Fly there is always a proxy; without this, req.ip is
-  // the proxy's address and every rate limit collapses into one bucket.
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
@@ -44,16 +42,10 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
-      // Health checks would otherwise drown the log at one line per second.
       autoLogging: { ignore: (req) => req.url === '/health' || req.url === '/health/live' },
     }),
   );
 
-  /**
-   * Liveness vs readiness are different questions. /health/live says the
-   * process is up; /health says its dependencies answer, and returns 503 if
-   * they don't — which is what a load balancer should act on.
-   */
   app.get('/health/live', (_req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
   });
@@ -78,13 +70,9 @@ export function createApp() {
     }),
   );
 
-  // Public share links: no auth, addressed by random slug.
   app.use('/public', publicRouter);
 
   app.use('/auth', authRouter);
-  // Fixtures mount on the same prefix as tournaments and must come first:
-  // tournamentsRouter has a catch-all /:tournamentId that would otherwise
-  // swallow /:tournamentId/fixtures.
   app.use('/tournaments', fixturesRouter);
   app.use('/tournaments', standingsRouter);
   app.use('/tournaments', statsRouter);

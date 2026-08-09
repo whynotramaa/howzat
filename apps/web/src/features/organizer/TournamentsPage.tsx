@@ -43,12 +43,6 @@ const SPORTS: Array<{ value: Sport; label: string; blurb: string }> = [
   },
 ];
 
-/**
- * The organizer's shelf. Each tournament is a plate showing the one thing that
- * decides what can happen next: how many sides are registered, and how many of
- * them have a full squad. Fixtures are blocked until those two numbers agree, so
- * putting them on the card means nobody has to open a tournament to find out why.
- */
 export function TournamentsPage() {
   const { data, isPending, error } = useTournaments();
   const [creating, setCreating] = useState(false);
@@ -106,10 +100,6 @@ function TournamentCard({ tournament }: { tournament: TournamentDto }) {
       )}
     >
       <div>
-        {/* Sport and format read as one caption above the name, the same way
-            every other section in the product opens. Two coloured badges
-            floated to the right of a title was two pieces of furniture doing
-            the job of one line of text. */}
         <SportEyebrow sport={tournament.sport} detail={FORMAT_LABELS[tournament.format]} />
 
         <h3 className="serif mt-3 text-[1.625rem] text-primary">{tournament.name}</h3>
@@ -187,7 +177,6 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
   const [teamsCount, setTeamsCount] = useState(4);
   const [oversPerInnings, setOversPerInnings] = useState(DEFAULT_OVERS_PER_INNINGS);
   const [doubleRoundRobin, setDoubleRoundRobin] = useState(false);
-  // Football only. Cricket's side is eleven and is never asked for.
   const [playersPerTeam, setPlayersPerTeam] = useState(PLAYERS_PER_TEAM);
   const [periods, setPeriods] = useState(DEFAULT_PERIODS);
   const [periodMinutes, setPeriodMinutes] = useState(DEFAULT_PERIOD_MINUTES);
@@ -202,8 +191,6 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       sport,
       format,
       teamsCount,
-      // The API rejects a cricket side that is not eleven, so this is sent
-      // as the fixed value rather than whatever the football dial was left on.
       playersPerTeam: isFootball ? playersPerTeam : PLAYERS_PER_TEAM,
       oversPerInnings,
       doubleRoundRobin,
@@ -233,8 +220,6 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       }
     >
       <form id="create-tournament" onSubmit={handleSubmit} className="grid gap-7 sm:grid-cols-2">
-        {/* The sport is the first decision and the only one that changes what
-            the rest of this form is even asking. */}
         <div className="flex flex-col gap-2.5 sm:col-span-2">
           <span className="eyebrow text-secondary">Sport</span>
 

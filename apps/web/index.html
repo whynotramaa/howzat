@@ -14,13 +14,6 @@
     <meta name="theme-color" content="#f5f6f7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)" />
 
-    <!--
-      Newsreader for display, Instrument Sans for interface, DM Mono for figures
-      in columns. Newsreader is requested across its full optical-size axis so
-      the browser can cut a 48px title differently from a 20px heading.
-      Preconnected because the wordmark is the first thing painted, and that is
-      the one place a font swap is actually visible.
-    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -29,7 +22,6 @@
     />
 
     <script>
-      // Applied before first paint, so a dark-theme user never sees bone flash.
       (function () {
         try {
           var stored = localStorage.getItem('howzat-theme');

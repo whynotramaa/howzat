@@ -11,10 +11,6 @@ import type {
 } from '@howzat/shared';
 import { api } from '@/lib/api';
 
-/**
- * One place for every organizer query key, so an invalidation after a write
- * cannot silently miss a list that shows the same data.
- */
 export const keys = {
   tournaments: ['tournaments'] as const,
   tournament: (id: string) => ['tournaments', id] as const,
@@ -57,18 +53,12 @@ export function useTeam(teamId: string) {
   });
 }
 
-/**
- * Finds registered players by handle or name, for adding someone to a squad or
- * assigning them a match — the same lookup either way, because an account is
- * not one kind of user or the other.
- */
 export function useUserSearch(query: string) {
   const q = query.trim();
 
   return useQuery({
     queryKey: keys.userSearch(q),
     queryFn: () => api.get<{ items: UserRef[] }>(`/users/search?q=${encodeURIComponent(q)}`),
-    // The API rejects anything shorter, so don't spend a request finding out.
     enabled: q.length >= 2,
     staleTime: 15_000,
   });
@@ -83,11 +73,6 @@ export function useCreateTournament() {
   });
 }
 
-/**
- * Deleting a tournament takes its teams, squads, fixtures and every ball or
- * goal recorded in it. The API refuses while matches are under way, which is
- * the one case where the cascade would destroy something nobody could rebuild.
- */
 export function useDeleteTournament() {
   const queryClient = useQueryClient();
 
@@ -151,7 +136,6 @@ export function useDeletePlayer(teamId: string, tournamentId: string) {
   });
 }
 
-/** A squad change moves the 11/11 counter on three different screens. */
 function invalidateSquad(
   queryClient: ReturnType<typeof useQueryClient>,
   teamId: string,

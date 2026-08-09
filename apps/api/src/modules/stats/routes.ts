@@ -15,7 +15,6 @@ statsRouter.get(
     const tournamentId = requireParam(req, 'tournamentId');
     const tournament = await loadOwnedTournament(tournamentId, req.user!.id);
 
-    // One route, two shapes, discriminated by `sport` — see AnyTournamentStatsDto.
     res.json(
       tournament.sport === 'FOOTBALL'
         ? await getFootballTournamentStats(tournamentId)

@@ -2,22 +2,6 @@ import { BALLS_PER_OVER } from '../constants';
 import type { InningsEndReason } from '../types/enums';
 import { ballsToOvers, round2 } from '../scoring/format';
 
-/**
- * Points table and Net Run Rate. Pure — it takes finished innings and returns
- * rows, so the whole thing is testable without a database.
- *
- *   NRR = (runs scored / overs faced) − (runs conceded / overs bowled)
- *
- * aggregated across the tournament, not averaged per match. The two traps:
- *
- *   1. **The bowled-out rule.** A side dismissed inside its quota is charged
- *      the FULL quota of overs, not the balls it actually faced. Skipping this
- *      flatters a team that collapsed and is the single most common NRR bug.
- *   2. **Overs are base-6.** 98 balls is 16.333… overs, never 16.5 and never
- *      "16.2" fed into arithmetic. Everything here is stored and summed in
- *      balls, and converted only at the end.
- */
-
 export const POINTS_WIN = 2;
 export const POINTS_TIE = 1;
 export const POINTS_NO_RESULT = 1;
@@ -27,7 +11,6 @@ export interface InningsResult {
   battingTeamId: string;
   bowlingTeamId: string;
   runs: number;
-  /** Legal deliveries actually bowled in the innings. */
   legalBalls: number;
   oversQuota: number;
   endReason: InningsEndReason | null;
@@ -37,7 +20,6 @@ export interface MatchResult {
   matchId: string;
   teamIds: [string, string];
   innings: InningsResult[];
-  /** Null for a tie, or for an abandoned match (which is also noResult). */
   winnerTeamId: string | null;
   noResult: boolean;
 }
@@ -57,18 +39,11 @@ export interface TeamTotals {
   nrr: number;
 }
 
-/**
- * The rule, isolated so it is impossible to apply inconsistently: a side that
- * is all out is charged its full quota; a side that chases successfully is
- * charged only the balls it used.
- */
 export function chargeableBalls(innings: InningsResult): number {
   if (innings.endReason === 'ALL_OUT') {
     return innings.oversQuota * BALLS_PER_OVER;
   }
 
-  // A completed chase, or an innings that ran out of overs, counts what it
-  // actually faced. (For OVERS_COMPLETE the two are the same number anyway.)
   return innings.legalBalls;
 }
 
@@ -89,11 +64,6 @@ function emptyTotals(teamId: string): TeamTotals {
   };
 }
 
-/**
- * Folds every completed match into per-team totals. Recomputed from scratch on
- * each match completion rather than incremented, so it is idempotent and
- * self-healing: a bad write cannot accumulate.
- */
 export function aggregateStandings(teamIds: string[], matches: MatchResult[]): TeamTotals[] {
   const totals = new Map(teamIds.map((id) => [id, emptyTotals(id)]));
 
@@ -102,7 +72,6 @@ export function aggregateStandings(teamIds: string[], matches: MatchResult[]): T
     const rowA = totals.get(teamA);
     const rowB = totals.get(teamB);
 
-    // A match involving a team outside this tournament is not ours to count.
     if (!rowA || !rowB) continue;
 
     rowA.played += 1;
@@ -113,8 +82,6 @@ export function aggregateStandings(teamIds: string[], matches: MatchResult[]): T
       rowB.noResult += 1;
       rowA.points += POINTS_NO_RESULT;
       rowB.points += POINTS_NO_RESULT;
-      // An abandoned match contributes nothing to NRR — there is no
-      // meaningful run rate in an innings that never finished.
       continue;
     }
 
@@ -143,7 +110,6 @@ export function aggregateStandings(teamIds: string[], matches: MatchResult[]): T
       batting.runsScored += innings.runs;
       batting.ballsFaced += balls;
 
-      // Symmetric by construction: what one side faced, the other bowled.
       bowling.runsConceded += innings.runs;
       bowling.ballsBowled += balls;
     }
@@ -168,16 +134,9 @@ export function netRunRate(totals: {
   const concedingRate =
     totals.ballsBowled > 0 ? totals.runsConceded / ballsToOvers(totals.ballsBowled) : 0;
 
-  // Three decimals is the conventional precision; rounding later would let
-  // presentation drift from the stored value.
   return Math.round((scoringRate - concedingRate) * 1000) / 1000;
 }
 
-/**
- * Points, then NRR, then head-to-head, then name — in that order. Head-to-head
- * only makes sense between exactly two tied teams; with three or more the
- * mini-table is ambiguous, so it is skipped rather than guessed at.
- */
 export function sortStandings(
   rows: TeamTotals[],
   matches: MatchResult[],
@@ -203,7 +162,6 @@ export function sortStandings(
   });
 }
 
-/** Negative when `a` ranks ahead of `b`, positive when behind, 0 when level. */
 export function headToHead(a: string, b: string, matches: MatchResult[]): number {
   let aWins = 0;
   let bWins = 0;
@@ -219,7 +177,6 @@ export function headToHead(a: string, b: string, matches: MatchResult[]): number
   return bWins - aWins;
 }
 
-/** Display form of the overs behind an NRR figure: 98 balls → "16.2". */
 export function ballsAsOversText(balls: number): string {
   const completed = Math.floor(balls / BALLS_PER_OVER);
   return `${completed}.${balls % BALLS_PER_OVER}`;

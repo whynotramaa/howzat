@@ -2,22 +2,6 @@ import type { LineupPlayer, TeamLineup } from '@howzat/shared';
 import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { cn } from '@/lib/cn';
 
-/*
- * The formation, on the grass.
- *
- * Drawn as a plan of a pitch rather than as two lists side by side, because a
- * formation is a spatial fact and a list of eleven names is not. Both sides are
- * on one pitch facing each other, which is the only arrangement in which
- * "4-4-2 against 3-5-2" tells you anything you could not have read off a
- * team sheet.
- *
- * The pitch itself is drawn in hairlines on the sunken surface — the same
- * hairline-and-paper vocabulary as every other panel here — and not in green.
- * A green rectangle would be the single most saturated thing in the product,
- * sitting behind twenty-two shirts that each carry a team's own colour, and the
- * shirts are what has to be legible.
- */
-
 const VIEW_W = 100;
 const VIEW_H = 64;
 
@@ -30,7 +14,6 @@ export function Pitch({
 }: {
   home: TeamLineup | null;
   away: TeamLineup | null;
-  /** When given, every shirt becomes a target — used by the team-sheet editor. */
   onSelectPlayer?: (player: LineupPlayer, side: 'HOME' | 'AWAY') => void;
   selectedPlayerId?: string | null;
   className?: string;
@@ -67,7 +50,6 @@ export function Pitch({
         />
       ))}
 
-      {/* The formations, in the corners they belong to. */}
       {home ? (
         <FormationTag formation={home.formation} short={home.team.shortName} side="HOME" />
       ) : null}
@@ -78,7 +60,6 @@ export function Pitch({
   );
 }
 
-/** Touchlines, halfway, centre circle, both boxes. Nothing else. */
 function PitchMarkings() {
   return (
     <svg
@@ -90,9 +71,6 @@ function PitchMarkings() {
       <g fill="none" stroke="var(--line-strong)" strokeWidth={0.3} opacity={0.85}>
         <rect x={2} y={2} width={VIEW_W - 4} height={VIEW_H - 4} rx={0.6} />
         <line x1={VIEW_W / 2} y1={2} x2={VIEW_W / 2} y2={VIEW_H - 2} />
-        {/* preserveAspectRatio="none" stretches the viewBox, so a circle would
-            arrive on screen as an ellipse. An ellipse drawn to compensate lands
-            as a circle — the pitch is wider than it is tall in both spaces. */}
         <ellipse cx={VIEW_W / 2} cy={VIEW_H / 2} rx={6} ry={9} />
         <circle cx={VIEW_W / 2} cy={VIEW_H / 2} r={0.5} fill="var(--line-strong)" />
 
@@ -106,14 +84,6 @@ function PitchMarkings() {
   );
 }
 
-/**
- * One shirt.
- *
- * Formation coordinates describe a side's own half from its goal line to
- * halfway, so the home team maps straight onto the left half and the away team
- * is mirrored onto the right. Neither side is a special case in the geometry —
- * only in the sign.
- */
 function Shirt({
   player,
   color,
@@ -129,7 +99,6 @@ function Shirt({
 }) {
   const left = side === 'HOME' ? player.x * 50 : 100 - player.x * 50;
   const top = side === 'HOME' ? player.y * 100 : (1 - player.y) * 100;
-  // Substitutes have no slot; the shirt falls back to their place on the bench.
   const number = player.shirtNumber ?? (player.slot === null ? null : player.slot + 1);
 
   const interactive = Boolean(onSelect);
@@ -137,9 +106,7 @@ function Shirt({
 
   return (
     <Tag
-      {...(interactive
-        ? { type: 'button' as const, onClick: () => onSelect!(player, side) }
-        : {})}
+      {...(interactive ? { type: 'button' as const, onClick: () => onSelect!(player, side) } : {})}
       style={{ left: `${left}%`, top: `${top}%` }}
       className={cn(
         'absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1',
@@ -148,9 +115,6 @@ function Shirt({
         selected && 'z-20 scale-110',
       )}
     >
-      {/* Keyed on the player, not the slot: when a change puts somebody new in
-          this position the node remounts and plays the swap, while the position
-          itself stays exactly where it was. */}
       <span
         key={player.id}
         className={cn(
@@ -186,7 +150,6 @@ function Shirt({
   );
 }
 
-/** Came on. Sits opposite the goals badge so the two never collide. */
 function SubArrow() {
   return (
     <span
@@ -200,7 +163,6 @@ function SubArrow() {
   );
 }
 
-/** Goals scored, on the shoulder of the shirt. */
 function Badge({ tone, children }: { tone: 'accent'; children: number }) {
   return (
     <span
@@ -215,7 +177,6 @@ function Badge({ tone, children }: { tone: 'accent'; children: number }) {
   );
 }
 
-/** The card itself, drawn as a card — nobody needs a legend for this one. */
 function CardMark({ tone, count }: { tone: 'yellow' | 'red'; count?: number }) {
   return (
     <span
@@ -250,16 +211,11 @@ function FormationTag({
   );
 }
 
-/**
- * The name on the back of the shirt. A full name does not fit on a phone at
- * this size, and the surname is what a commentator says anyway.
- */
 function surname(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts.length > 1 ? parts[parts.length - 1]! : name;
 }
 
-/** Fallback for a shirt with no number: two letters beat an empty disc. */
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts
@@ -268,21 +224,7 @@ function initials(name: string): string {
     .join('');
 }
 
-/**
- * The bench, under the pitch.
- *
- * Substitutes are on the team sheet and can score or be booked, so they need a
- * place to be shown — but not on the grass, where they are not standing. A
- * strip of smaller marks says "named, not playing" without inventing a position
- * for them.
- */
-export function Bench({
-  lineup,
-  className,
-}: {
-  lineup: TeamLineup | null;
-  className?: string;
-}) {
+export function Bench({ lineup, className }: { lineup: TeamLineup | null; className?: string }) {
   if (!lineup || lineup.substitutes.length === 0) return null;
 
   return (
@@ -306,14 +248,11 @@ export function Bench({
             size="xs"
           />
           {player.name}
-          {/* Why they are not on the pitch, in the words a team sheet uses. */}
           {player.wentOffAt ? (
             <span className="mono text-[0.625rem] text-muted">↓{player.wentOffAt}</span>
           ) : null}
           {player.goals > 0 ? (
-            <span className="mono text-accent">
-              {player.goals > 1 ? `${player.goals}⚬` : '⚬'}
-            </span>
+            <span className="mono text-accent">{player.goals > 1 ? `${player.goals}⚬` : '⚬'}</span>
           ) : null}
           {player.redCards > 0 || player.yellowCards > 0 ? (
             <span

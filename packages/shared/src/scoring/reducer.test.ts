@@ -3,12 +3,6 @@ import { applyBall, buildState, createInitialState, materializeEvents } from './
 import { formatOvers } from './format';
 import type { BallEvent, InningsContext } from '../types/scoring';
 
-/**
- * These cover the rules that are silently wrong in most amateur scoring apps:
- * which deliveries count towards the over, who gets charged for what, and when
- * the strike rotates.
- */
-
 const batting = Array.from({ length: 11 }, (_, index) => ({
   id: `bat${index + 1}`,
   name: `Batter ${index + 1}`,
@@ -79,7 +73,6 @@ describe('applyBall — deliveries and the over', () => {
 
     expect(state.legalBalls).toBe(4);
     expect(formatOvers(state.legalBalls)).toBe('0.4');
-    // 1 + 0 + wide 1 + no-ball 1 + 4 + 0
     expect(state.runs).toBe(7);
     expect(state.extras).toMatchObject({ wides: 1, noBalls: 1, total: 2 });
   });
@@ -87,18 +80,17 @@ describe('applyBall — deliveries and the over', () => {
   it('rotates strike on odd runs and again at the end of the over', () => {
     reset();
     const deliveries = [
-      ball({ runsOffBat: 1 }), // strike rotates to bat2
+      ball({ runsOffBat: 1 }),
       ball({ runsOffBat: 0, strikerId: 'bat2', nonStrikerId: 'bat1' }),
       ball({ runsOffBat: 0, strikerId: 'bat2', nonStrikerId: 'bat1' }),
-      ball({ runsOffBat: 2, strikerId: 'bat2', nonStrikerId: 'bat1' }), // even, no rotation
+      ball({ runsOffBat: 2, strikerId: 'bat2', nonStrikerId: 'bat1' }),
       ball({ runsOffBat: 0, strikerId: 'bat2', nonStrikerId: 'bat1' }),
-      ball({ runsOffBat: 0, strikerId: 'bat2', nonStrikerId: 'bat1' }), // over ends
+      ball({ runsOffBat: 0, strikerId: 'bat2', nonStrikerId: 'bat1' }),
     ];
 
     const state = buildState(context, deliveries);
 
     expect(state.legalBalls).toBe(6);
-    // bat2 was on strike; the over ending swaps the ends back to bat1.
     expect(state.strikerId).toBe('bat1');
     expect(state.needsNewBowler).toBe(true);
     expect(state.thisOver).toHaveLength(0);
@@ -110,7 +102,6 @@ describe('applyBall — deliveries and the over', () => {
 
     expect(state.strikerId).toBe('bat1');
     expect(state.runs).toBe(1);
-    // A wide is not a ball faced.
     expect(state.batsmen.bat1?.balls).toBe(0);
   });
 
@@ -137,10 +128,8 @@ describe('applyBall — who is charged for what', () => {
       ball({ runsOffBat: 3 }),
     ]);
 
-    // Team: 2 + 4 + 2 + 3 = 11. Bowler: wide 2 + off the bat 3 = 5.
     expect(state.runs).toBe(11);
     expect(state.bowlers.bowl1?.runs).toBe(5);
-    // Byes and leg-byes go to the team, never to the batsman.
     expect(state.batsmen.bat1?.runs).toBe(3);
   });
 
@@ -178,7 +167,6 @@ describe('applyBall — who is charged for what', () => {
     expect(maiden.bowlers.bowl1?.maidens).toBe(1);
 
     reset();
-    // A leg-bye is not the bowler's run, so the over is still a maiden.
     const withLegBye = buildState(context, [
       ball({ extraType: 'LEG_BYE', extraRuns: 1 }),
       ...Array.from({ length: 5 }, () => ball({ runsOffBat: 0 })),
@@ -265,7 +253,6 @@ describe('materializeEvents — corrections and undo', () => {
 
     const state = buildState(context, [original, later, correction]);
     expect(state.runs).toBe(7);
-    // lastEventSeq follows the raw log so a client sees the correction arrive.
     expect(state.lastEventSeq).toBe(correction.seq);
   });
 
@@ -298,9 +285,6 @@ describe('buildState — the property the whole architecture rests on', () => {
       }),
     ];
 
-    // This is exactly what the scorer's client does (applyBall on each tap)
-    // versus what the server does on a cold cache (buildState over the log).
-    // If these ever diverge, the optimistic UI lies.
     const incremental = deliveries.reduce(
       (state, delivery) => applyBall(state, delivery, context),
       createInitialState(context),

@@ -1,17 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Buttons in this system are ink, outline, or quiet — the accent is never a button
- * fill, because a page with four gold buttons has no accent left.
- *
- * The primary is a solid ink slab in light and a bone slab in dark: the highest
- * contrast pair available, which is what makes it read as the one action worth
- * taking. Labels are sentence case with a hair of positive tracking, and the
- * press state is a 1px settle rather than a scale — the button feels like it has
- * mass instead of bouncing.
- */
-
 type Variant = 'primary' | 'secondary' | 'quiet' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
@@ -37,8 +26,6 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  // Generous horizontal padding is most of what makes these feel considered.
-  // 44px minimum height on md and lg — this app gets used one-handed, at a ground.
   sm: 'h-9 px-3.5 text-[0.8125rem] gap-1.5',
   md: 'h-11 px-5 text-sm gap-2',
   lg: 'h-[3.25rem] px-7 text-[0.9375rem] gap-2.5',
@@ -81,10 +68,6 @@ export function Button({
   );
 }
 
-/**
- * A text link that behaves like an action. Used for the third-priority thing on
- * a page, where even a quiet button would be too much furniture.
- */
 export function TextAction({
   className,
   children,

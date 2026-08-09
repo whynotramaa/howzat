@@ -15,23 +15,6 @@ import { onMatchEvent } from '../../realtime/bus';
 const STATS_CACHE_TTL_SECONDS = 60;
 const statsCacheKey = (tournamentId: string) => `stats:tournament:${tournamentId}`;
 
-/**
- * Career stats, built the same way the points table is: recomputed from the
- * ball log when a match finishes, never incremented in place.
- *
- * The reason is the same too. A correction to a ball in a finished match has
- * to move the batsman's average, and the only way that happens reliably is if
- * the average is a function of the log rather than a running total somebody
- * has to remember to adjust. Replaying `match:completed` twice produces the
- * same rows; so does repairing a bad one and replaying.
- *
- * One row is written per player in the XI, including players who neither
- * batted nor bowled — appearing in a match is itself a fact worth recording,
- * and it is what makes "matches played" correct for a specialist who wasn't
- * needed that day.
- */
-
-/** The event fields this projection needs; deliberately narrower than the row. */
 const EVENT_FIELDS = {
   id: true,
   inningsId: true,
@@ -88,11 +71,6 @@ function emptyAccumulator(): Accumulator {
   };
 }
 
-/**
- * Applies the same supersede semantics as the reducer: a corrected ball is
- * replaced in place, an undone ball disappears, and neither the CORRECTION nor
- * the UNDO is itself a delivery.
- */
 function materialize(events: ScoredEvent[]): ScoredEvent[] {
   const replacements = new Map<string, ScoredEvent>();
   const removed = new Set<string>();
@@ -107,8 +85,6 @@ function materialize(events: ScoredEvent[]): ScoredEvent[] {
     .filter((event) => event.eventType === 'BALL' && !removed.has(event.id))
     .map((event) => {
       const replacement = replacements.get(event.id);
-      // The correction supplies the outcome; the original supplies its place
-      // in the over, which is what keeps maiden detection correct.
       return replacement ? { ...replacement, overNumber: event.overNumber } : event;
     });
 }
@@ -121,9 +97,6 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
 
   if (!match) return 0;
 
-  // A football match has a team sheet and no ball events, so this would happily
-  // write a row of zeroes for all twenty-two players — inflating "matches
-  // played" on a cricket career profile with matches that were not cricket.
   if (match.tournament.sport !== 'CRICKET') return 0;
 
   const [xi, rawEvents] = await Promise.all([
@@ -151,7 +124,6 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
 
   for (const entry of xi) of(entry.playerId);
 
-  // Keyed by innings + over + bowler, so a maiden is judged over by over.
   const overs = new Map<string, { bowlerId: string; runs: number; legalBalls: number }>();
 
   for (const event of materialize(rawEvents)) {
@@ -159,18 +131,15 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
     const isNoBall = event.extraType === 'NO_BALL';
     const isLegal = !isWide && !isNoBall;
 
-    // Byes and leg-byes go to the batting side but are not the bowler's fault.
     const bowlerRuns = event.runsOffBat + (isWide || isNoBall ? event.extraRuns : 0);
 
     const striker = of(event.strikerId);
     striker.batted = true;
     striker.runs += event.runsOffBat;
-    // A batsman is credited with facing a no-ball, but never a wide.
     if (!isWide) striker.ballsFaced += 1;
     if (event.runsOffBat === 4) striker.fours += 1;
     if (event.runsOffBat === 6) striker.sixes += 1;
 
-    // Being at the other end still counts as having batted, even off zero balls.
     of(event.nonStrikerId).batted = true;
 
     const bowler = of(event.bowlerId);
@@ -201,8 +170,6 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
     }
   }
 
-  // A maiden is a *completed* over off which nothing was scored. An over cut
-  // short by the end of an innings is not one, however tidy it looked.
   for (const over of overs.values()) {
     if (over.runs === 0 && over.legalBalls >= BALLS_PER_OVER) {
       of(over.bowlerId).maidens += 1;
@@ -212,9 +179,6 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
   const teamByPlayer = new Map(xi.map((entry) => [entry.playerId, entry.teamId]));
 
   const rows = [...totals.entries()]
-    // A player can appear in the log without being in the stored XI only if
-    // the XI was edited after the fact; their team is unknown, so skip rather
-    // than invent one.
     .filter(([playerId]) => teamByPlayer.has(playerId))
     .map(([playerId, stats]) => ({
       matchId,
@@ -241,12 +205,6 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
   return rows.length;
 }
 
-/**
- * Tournament leaderboards are a read projection over PlayerMatchStats. They
- * are deliberately cached separately from career profiles: an organizer can
- * open this page repeatedly while a tournament is being run, and the cache is
- * invalidated when a completed match rebuilds its player rows.
- */
 export async function getTournamentStats(tournamentId: string): Promise<TournamentStatsDto> {
   const cached = await redis.get(statsCacheKey(tournamentId)).catch(() => null);
   if (cached) return JSON.parse(cached) as TournamentStatsDto;
@@ -256,8 +214,6 @@ export async function getTournamentStats(tournamentId: string): Promise<Tourname
     include: {
       player: { select: { id: true, name: true, username: true } },
       match: { select: { id: true } },
-      // team is reached through the player relation below in the second query;
-      // the denormalized teamId keeps aggregation cheap and stable.
     },
   });
 
@@ -363,7 +319,10 @@ export async function getTournamentStats(tournamentId: string): Promise<Tourname
         stumpings: row.stumpings,
       } satisfies TournamentPlayerStatsDto;
     })
-    .sort((a, b) => b.runs - a.runs || b.wickets - a.wickets || a.playerName.localeCompare(b.playerName));
+    .sort(
+      (a, b) =>
+        b.runs - a.runs || b.wickets - a.wickets || a.playerName.localeCompare(b.playerName),
+    );
 
   const result: TournamentStatsDto = {
     sport: 'CRICKET',
@@ -386,10 +345,6 @@ export async function getTournamentStats(tournamentId: string): Promise<Tourname
   return result;
 }
 
-/**
- * Subscribes once, at import time — the same trigger the points table uses, so
- * a finished match updates the table and everyone's profile from one event.
- */
 export function registerPlayerStatsSubscriber(): void {
   onMatchEvent('match:completed', async ({ matchId }) => {
     await recomputePlayerStatsForMatch(matchId);

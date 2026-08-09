@@ -1,24 +1,12 @@
 import { BALLS_PER_OVER } from '../constants';
 import type { BallInput, InningsContext, MatchState } from '../types/scoring';
 
-/**
- * The legal-state guard. Runs before any write, on the server, inside the
- * per-match lock — and again on the scorer's client so an impossible tap is
- * refused before it costs a round-trip.
- *
- * Every rule here is one that, if broken, produces a scorecard nobody can
- * reconcile afterwards. The event log is immutable, so a bad ball is expensive
- * to live with: it is cheaper to refuse it.
- */
-
 export interface ValidationIssue {
   code: string;
   message: string;
 }
 
-export type ValidationResult =
-  | { ok: true }
-  | { ok: false; issues: ValidationIssue[] };
+export type ValidationResult = { ok: true } | { ok: false; issues: ValidationIssue[] };
 
 export function validateBall(
   state: MatchState,
@@ -31,7 +19,6 @@ export function validateBall(
   const issues: ValidationIssue[] = [];
   const fail = (code: string, message: string) => issues.push({ code, message });
 
-  // ── lifecycle ───────────────────────────────────────────────────────
   if (options.matchStatus !== 'LIVE') {
     fail('MATCH_NOT_LIVE', `The match is ${options.matchStatus.toLowerCase()}, not live`);
   }
@@ -40,7 +27,6 @@ export function validateBall(
     fail('INNINGS_COMPLETE', 'This innings has already ended');
   }
 
-  // ── the players ─────────────────────────────────────────────────────
   const battingIds = new Set(context.battingXI.map((player) => player.id));
   const bowlingIds = new Set(context.bowlingXI.map((player) => player.id));
 
@@ -70,8 +56,6 @@ export function validateBall(
     fail('NON_STRIKER_ALREADY_OUT', `${nonStriker.name} is already out`);
   }
 
-  // A bowler may not bowl consecutive overs. Only checked at the start of an
-  // over — mid-over the bowler is fixed by the over already in progress.
   if (
     state.thisOver.length === 0 &&
     options.previousOverBowlerId &&
@@ -80,7 +64,6 @@ export function validateBall(
     fail('CONSECUTIVE_OVERS', 'A bowler cannot bowl two overs in a row');
   }
 
-  // ── the numbers ─────────────────────────────────────────────────────
   if (!Number.isInteger(input.runsOffBat) || input.runsOffBat < 0 || input.runsOffBat > 6) {
     fail('INVALID_RUNS', 'Runs off the bat must be a whole number between 0 and 6');
   }
@@ -92,8 +75,6 @@ export function validateBall(
   const isWide = input.extraType === 'WIDE';
   const isNoBall = input.extraType === 'NO_BALL';
 
-  // The penalty run is part of extraRuns, so a wide or no-ball can never
-  // carry fewer than one.
   if ((isWide || isNoBall) && input.extraRuns < 1) {
     fail('MISSING_PENALTY', 'A wide or no-ball always carries at least 1 run');
   }
@@ -110,7 +91,6 @@ export function validateBall(
     fail('EXTRAS_WITHOUT_TYPE', 'Extra runs need an extra type');
   }
 
-  // ── the over ────────────────────────────────────────────────────────
   const legalThisOver = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
 
   if (legalThisOver >= BALLS_PER_OVER) {
@@ -121,7 +101,6 @@ export function validateBall(
     fail('QUOTA_EXHAUSTED', `The innings quota of ${context.oversQuota} overs is used up`);
   }
 
-  // ── the wicket ──────────────────────────────────────────────────────
   if (input.isWicket) {
     if (!input.wicketType) {
       fail('MISSING_WICKET_TYPE', 'A wicket needs a dismissal type');
@@ -145,8 +124,6 @@ export function validateBall(
       fail('FIELDER_NOT_IN_XI', 'The fielder is not in the fielding XI');
     }
 
-    // Off a wide only a run-out or stumping is possible; off a no-ball, only
-    // a run-out. Bowled or lbw off a no-ball is not a dismissal at all.
     if (isWide && !['RUN_OUT', 'STUMPED', 'OBSTRUCTING_FIELD'].includes(input.wicketType ?? '')) {
       fail('IMPOSSIBLE_WICKET', 'Only a run-out or stumping can happen off a wide');
     }
@@ -161,7 +138,6 @@ export function validateBall(
   return issues.length === 0 ? { ok: true } : { ok: false, issues };
 }
 
-/** Whether the ball counts towards the over. Derived, never client-supplied. */
 export function isLegalDelivery(extraType: BallInput['extraType']): boolean {
   return extraType !== 'WIDE' && extraType !== 'NO_BALL';
 }

@@ -3,7 +3,6 @@ import { hexColorSchema, nameSchema } from './common';
 
 export const createTeamSchema = z.object({
   name: nameSchema,
-  /** Broadcast-style abbreviation: CSK, MI. Uppercased by the API. */
   shortName: z
     .string()
     .trim()

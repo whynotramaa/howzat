@@ -1,55 +1,25 @@
-/*
- * ─────────────────────────────────────────────────────────────────────────────
- *  HOWZAT — design tokens
- * ─────────────────────────────────────────────────────────────────────────────
- *
- *  The palette is neutral and blue: a truly monochrome ground — greys mixed
- *  from a single neutral axis, no warmth and no tint — with one saturated
- *  cricinfo blue laid over it. The ground carries no opinion so that the blue
- *  and the state colours are the only things on screen that mean anything.
- *
- *  Blue is an accent, never a background: it marks the live thing, the active
- *  thing, the number that matters. The state colours — red for a wicket, green
- *  for a result, amber for a caution — are untouched, because they are read as
- *  meaning rather than as brand.
- *
- *  Components reference these variables and never a raw colour, and never a
- *  `dark:` class. Light and dark are two value sets for one contract.
- *
- *  Resolution order:
- *    1. :root                          → light
- *    2. @media (prefers-color-scheme)  → follow the OS
- *    3. :root[data-theme="…"]          → a manual toggle wins in both directions
- */
-
 :root {
-  /* ── Surfaces ─────────────────────────────────────────────────────────── */
   --surface: #f5f6f7;
-  --surface-raised: #ffffff; /* a sheet laid on the ground */
-  --surface-sunken: #eceef0; /* a recess: table heads, chips, wells */
+  --surface-raised: #ffffff;
+  --surface-sunken: #eceef0;
   --surface-hover: #e4e7ea;
-  --surface-inverse: #14161a; /* primary buttons, the score block */
+  --surface-inverse: #14161a;
 
-  /* ── Lines ────────────────────────────────────────────────────────────── */
-  /* Hairlines do the structural work here, not shadows. */
   --line: #dfe2e6;
   --line-strong: #c2c7cd;
   --line-inverse: #2c3037;
 
-  /* ── Text ─────────────────────────────────────────────────────────────── */
   --text-primary: #14161a;
   --text-secondary: #4d5259;
-  --text-muted: #6b7178; /* held at 4.5:1 on --surface; muted is not faint */
+  --text-muted: #6b7178;
   --text-on-inverse: #f2f4f6;
   --text-muted-on-inverse: #9aa1aa;
 
-  /* ── Blue ─────────────────────────────────────────────────────────────── */
-  --accent: #0a5ca8; /* legible as small text on the ground — 6.2:1 */
-  --accent-strong: #1268bd; /* strokes, gauges, rules — graphic weight */
-  --accent-soft: #e4edf7; /* a flat wash, not a gradient */
+  --accent: #0a5ca8;
+  --accent-strong: #1268bd;
+  --accent-soft: #e4edf7;
   --accent-line: #aac9e7;
 
-  /* ── State ────────────────────────────────────────────────────────────── */
   --live: #a8322a;
   --live-soft: #f7e4e0;
   --alert: #8c2f26;
@@ -61,19 +31,13 @@
 
   --focus: #1268bd;
 
-  /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Neutral-tinted and low: a panel does not float, it rests. */
   --shadow-xs: 0 1px 1px rgb(15 20 28 / 0.04);
   --shadow-sm: 0 1px 2px rgb(15 20 28 / 0.05), 0 1px 1px rgb(15 20 28 / 0.03);
   --shadow-md: 0 8px 24px -12px rgb(15 20 28 / 0.16), 0 2px 6px -2px rgb(15 20 28 / 0.06);
   --shadow-lg: 0 28px 60px -28px rgb(15 20 28 / 0.28), 0 6px 16px -8px rgb(15 20 28 / 0.1);
 
-  /* ── Scrim ────────────────────────────────────────────────────────────── */
-  /* One value for every overlay, so a sheet and a menu dim the page alike. */
   --scrim: rgb(10 13 18 / 0.5);
 
-  /* ── Radii ────────────────────────────────────────────────────────────── */
-  /* Restrained. Anything softer starts to read as a consumer app. */
   --radius-xs: 3px;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -81,8 +45,6 @@
   --radius-xl: 20px;
   --radius-full: 999px;
 
-  /* ── Motion ───────────────────────────────────────────────────────────── */
-  /* One easing for almost everything, so the whole system moves alike. */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 140ms;
@@ -93,11 +55,6 @@
   color-scheme: light;
 }
 
-/*
- * Dark is not the light palette inverted — the blue has to lift well above its
- * print value to hold legibility on a dark ground, and the darks stay neutral
- * greys rather than blacks so nothing in the interface reads as pure #000.
- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --surface: #121417;
@@ -143,7 +100,6 @@
   }
 }
 
-/* Manual override — same values, higher specificity than the media query. */
 :root[data-theme='dark'] {
   --surface: #121417;
   --surface-raised: #191c20;

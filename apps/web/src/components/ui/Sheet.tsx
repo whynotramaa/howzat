@@ -1,18 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * The one overlay in the system.
- *
- * On a phone it is anchored to the bottom edge, in the thumb zone, because the
- * things that open it — a wicket, a dismissal type — are things a scorer taps
- * one-handed between deliveries. On a desktop it centres.
- *
- * It rises 14px into place on a soft ease and never hard-fades. Escape closes
- * it, a click on the scrim closes it, and while it is open the page behind it
- * cannot scroll.
- */
-
 export function Sheet({
   open,
   onClose,
@@ -39,7 +27,6 @@ export function Sheet({
       if (event.key === 'Escape') onClose();
     }
 
-    // Focus moves into the panel so the keyboard is not left behind the scrim.
     panelRef.current?.focus();
 
     const { overflow } = document.body.style;
@@ -71,7 +58,6 @@ export function Sheet({
         className={cn(
           'sheet-in relative flex max-h-[92dvh] w-full flex-col outline-none',
           'border border-line bg-raised shadow-[var(--shadow-lg)]',
-          // Rounded at the top only on a phone: it is attached to the bottom edge.
           'rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-lg)]',
           size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-md',
         )}
@@ -102,7 +88,6 @@ export function Sheet({
           <footer
             className={cn(
               'flex flex-wrap items-center gap-3 border-t border-line px-6 py-4',
-              // Clear of the home indicator on a phone.
               'pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4',
             )}
           >

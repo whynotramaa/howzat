@@ -8,15 +8,6 @@ import { LeaderRow } from '@/components/ui/Score';
 import { Reveal } from '@/components/ui/Reveal';
 import { useAuth } from '@/features/auth/AuthProvider';
 
-/**
- * A career, assembled from every match this account has played across every
- * tournament. The rows behind it are written when a match completes, so a profile
- * is always exactly as current as the last result — and a correction to an old
- * match moves these numbers too.
- *
- * Laid out as an honours board: the three disciplines side by side, each led by the
- * single figure that defines it, then the match log underneath.
- */
 export function PlayerProfilePage() {
   const { username = '' } = useParams();
   const { user } = useAuth();
@@ -64,8 +55,6 @@ export function PlayerProfilePage() {
             </div>
           </div>
 
-          {/* Both sides of what an account does here, side by side — neither is a
-              role, both are just counts of things this person has done. */}
           <dl className="flex gap-10">
             <Tally label="Matches" value={career.matches} />
             <Tally label="Organized" value={data.tournamentsOrganized} />
@@ -120,7 +109,6 @@ function BattingCard({ batting }: { batting: CareerStatsDto['batting'] }) {
     <StatCard title="Batting" headline={batting.runs} headlineLabel="runs">
       <LeaderRow label="Innings" value={batting.innings} />
       <LeaderRow label="Not out" value={batting.notOuts} />
-      {/* A dash, not a zero: never having been dismissed is not an average. */}
       <LeaderRow label="Average" value={batting.average ?? '—'} emphasis />
       <LeaderRow label="Strike rate" value={batting.strikeRate ?? '—'} />
       <LeaderRow
@@ -197,7 +185,6 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
     <section className="flex flex-col gap-7">
       <SectionHeading eyebrow="Match log" title="Recent matches" />
 
-      {/* Scrolls inside itself rather than making the page scroll sideways. */}
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
         <table className="w-full min-w-[40rem] text-sm">
           <thead>

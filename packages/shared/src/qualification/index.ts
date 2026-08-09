@@ -1,13 +1,3 @@
-/**
- * Bounded qualification scenarios.
- *
- * This is deliberately pure: the API can provide current standings and the
- * remaining fixtures, while the browser or a worker can run the same engine.
- * Only fixtures that can change the target team's qualification group are
- * enumerated. NRR is used as the deterministic tie-breaker until a scenario
- * needs exact margin projections, which the caller can flag for review.
- */
-
 export interface QualificationTeam {
   teamId: string;
   points: number;
@@ -64,15 +54,13 @@ export function qualificationScenarios(input: QualificationInput): Qualification
     input.teams
       .filter(
         (team) =>
-          team.teamId === target.teamId ||
-          team.points + team.remainingMatches * 2 >= target.points,
+          team.teamId === target.teamId || team.points + team.remainingMatches * 2 >= target.points,
       )
       .map((team) => team.teamId),
   );
 
   const relevant = input.remainingFixtures.filter(
-    (fixture) =>
-      contenders.has(fixture.homeTeamId) && contenders.has(fixture.awayTeamId),
+    (fixture) => contenders.has(fixture.homeTeamId) && contenders.has(fixture.awayTeamId),
   );
 
   if (relevant.length > maxRelevantFixtures) {

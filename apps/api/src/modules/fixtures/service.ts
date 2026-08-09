@@ -11,12 +11,6 @@ import { unprocessable } from '../../lib/errors';
 import { generateSlugs } from '../../lib/slug';
 import { assertTournamentTeamsEligible } from '../teams/eligibility';
 
-/**
- * Fixture generation, Phase 3. The scheduling itself is pure and lives in
- * @howzat/shared; this module is the part that talks to the database —
- * eligibility gating, the regeneration guard, and the write.
- */
-
 export function toTeamRef(team: Team): MatchTeamRef {
   return {
     id: team.id,
@@ -26,11 +20,6 @@ export function toTeamRef(team: Team): MatchTeamRef {
   };
 }
 
-/**
- * Every team must be registered and hold exactly eleven players before any
- * fixture exists. Checked here so the failure names all the offending teams at
- * once rather than one per attempt.
- */
 async function assertReadyForFixtures(tournament: Tournament): Promise<Team[]> {
   const teams = await prisma.team.findMany({
     where: { tournamentId: tournament.id },
@@ -61,7 +50,6 @@ async function assertReadyForFixtures(tournament: Tournament): Promise<Team[]> {
   return teams;
 }
 
-/** What generation *would* produce — no writes, so the UI can show it first. */
 export async function previewFixtures(tournament: Tournament): Promise<FixturePreviewDto> {
   const teams = await assertReadyForFixtures(tournament);
   const byId = new Map(teams.map((team) => [team.id, team]));
@@ -91,8 +79,8 @@ export async function previewFixtures(tournament: Tournament): Promise<FixturePr
   return {
     rounds: leagueRounds,
     playoffs,
-    totalMatches: leagueRounds.reduce((sum, round) => sum + round.matches.length, 0) +
-      playoffs.length,
+    totalMatches:
+      leagueRounds.reduce((sum, round) => sum + round.matches.length, 0) + playoffs.length,
   };
 }
 
@@ -111,11 +99,6 @@ function describeSlot(slot: (typeof PLAYOFF_BRACKET)[number]): string {
   return `${describe(slot.home)} v ${describe(slot.away)}`;
 }
 
-/**
- * Writes the schedule. Destructive when regenerating, and therefore guarded:
- * if any match has moved past SCHEDULED there is scoring data hanging off it,
- * and silently deleting that would be indefensible.
- */
 export async function generateFixtures(
   tournament: Tournament,
   options: { regenerate: boolean },
@@ -161,7 +144,6 @@ export async function generateFixtures(
     })),
   );
 
-  // Bracket slots are created with null teams and filled as feeders finish.
   const playoffRound = rounds.length + 1;
   const playoffMatches =
     tournament.format === 'LEAGUE_PLAYOFFS'

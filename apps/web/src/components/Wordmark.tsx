@@ -1,12 +1,5 @@
 import { cn } from '@/lib/cn';
 
-/*
- * The mark.
- *
- * The wordmark is intentionally just the name. The former edge/mark is kept as
- * a standalone favicon so the product header stays quiet and typographic.
- */
-
 export function Wordmark({
   size = 'md',
   tone = 'default',

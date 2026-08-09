@@ -25,12 +25,6 @@ import {
   type SquadSide,
 } from './queries';
 
-/**
- * Everything that happens before the first ball, in the order it happens: toss →
- * playing XI → start. Each step unlocks the next and states plainly why it is not
- * available yet, because a match is started once, under time pressure, by someone
- * standing at a ground.
- */
 export function MatchPage() {
   const { matchId = '' } = useParams();
   const navigate = useNavigate();
@@ -232,11 +226,6 @@ function Banner({ title, body, action }: { title: string; body: string; action: 
   );
 }
 
-/**
- * One step of the pre-match sequence. The number is doing real work: it tells a
- * scorer how far through a fixed, short process they are, which is the difference
- * between a form and a checklist.
- */
 function StepCard({
   number,
   title,
@@ -273,8 +262,6 @@ function StepCard({
     </Card>
   );
 }
-
-// ────────────────────────────────────────────────────────────────── toss ──
 
 function TossCard({ match }: { match: MatchWithInningsDto }) {
   const recordToss = useRecordToss(match.id);
@@ -346,19 +333,12 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────── playing XI ──
-
 interface XiSelection {
   order: string[];
   captainId: string | null;
   keeperId: string | null;
 }
 
-/**
- * Both XIs are submitted in one call, so both are edited here. Batting order is
- * the order of selection — tapping names in the order they will bat is the fastest
- * way to enter it, and it can be corrected by deselecting.
- */
 function PlayingXiCard({
   matchId,
   sides,
@@ -393,7 +373,6 @@ function PlayingXiCard({
           ...current,
           [sideId]: {
             order: selection.order.filter((id) => id !== playerId),
-            // A player no longer in the XI cannot captain or keep for it.
             captainId: selection.captainId === playerId ? null : selection.captainId,
             keeperId: selection.keeperId === playerId ? null : selection.keeperId,
           },
@@ -413,7 +392,6 @@ function PlayingXiCard({
 
       return {
         ...current,
-        // Tapping the current holder clears it — the only way to un-name a keeper.
         [sideId]: { ...selection, [role]: selection[role] === playerId ? null : playerId },
       };
     });
@@ -553,7 +531,6 @@ function PlayingXiCard({
   );
 }
 
-/** Seeds from whatever was saved before, so a re-edit is not a re-entry. */
 function initialSelection(side: SquadSide): XiSelection {
   const picked = side.players
     .filter((player) => player.selected)
@@ -597,13 +574,6 @@ function RoleToggle({
   );
 }
 
-// ─────────────────────────────────────────────────────────────── scorers ──
-
-/**
- * Only the organizer can assign a scorer, and only the organizer can read the
- * tournament — so a failed tournament read is exactly the signal that this viewer
- * is an assigned scorer rather than the owner, and the card is hidden.
- */
 function ScorersCard({ match }: { match: MatchWithInningsDto }) {
   const tournament = useTournament(match.tournamentId);
   const assign = useAssignScorer(match.tournamentId, match.id);

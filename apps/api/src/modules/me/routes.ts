@@ -13,24 +13,12 @@ import { requireAuth } from '../../middleware/auth';
 import { toTeamRef } from '../fixtures/service';
 import { toTournamentDto } from '../tournaments/serialize';
 
-/**
- * The signed-in account's own view of itself.
- *
- * A player who has just been added to a squad has no way in from anywhere else:
- * they do not own the tournament, so /tournaments is empty for them, and the
- * public share link needs a slug they were never sent. This is the screen that
- * closes that loop — it is reachable from the notification, and it answers the
- * two questions the notification raises: which team, and when do I play.
- */
 export const meRouter = Router();
 
 meRouter.use(requireAuth);
 
-/** Matches that have not started; the point of the screen. */
 const UPCOMING_LIMIT = 8;
-/** Enough to see the last few results without turning this into an archive. */
 const RECENT_LIMIT = 5;
-/** A way back into what you were running, not a second tournaments page. */
 const ORGANIZING_LIMIT = 2;
 
 meRouter.get(
@@ -44,9 +32,6 @@ meRouter.get(
     });
     if (!user) throw notFound('User');
 
-    // Every squad slot this account holds, newest first — someone added to a
-    // tournament this morning should see it at the top, not buried under a
-    // league they played in two seasons ago.
     const players = await prisma.player.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -85,10 +70,7 @@ meRouter.get(
         ? Promise.resolve([])
         : prisma.match.findMany({
             where: {
-              OR: [
-                { team1Id: { in: [...myTeamIds] } },
-                { team2Id: { in: [...myTeamIds] } },
-              ],
+              OR: [{ team1Id: { in: [...myTeamIds] } }, { team2Id: { in: [...myTeamIds] } }],
             },
             include: {
               team1: true,
@@ -109,8 +91,6 @@ meRouter.get(
         },
       }),
       prisma.tournament.count({ where: { organizerId: userId } }),
-      // The same shape the tournaments page uses, so the card on the dashboard
-      // can show setup progress rather than being a bare name and a link.
       prisma.tournament.findMany({
         where: { organizerId: userId },
         orderBy: { createdAt: 'desc' },
@@ -119,9 +99,6 @@ meRouter.get(
       }),
     ]);
 
-    // One match can reach this list twice — a scorer who is also in one of the
-    // squads is a normal Sunday. Merge on id so the card carries both roles
-    // rather than appearing as two fixtures.
     const byId = new Map<string, DashboardMatchDto>();
 
     for (const match of playingMatches) {
@@ -148,9 +125,6 @@ meRouter.get(
 
     const upcoming = all
       .filter((match) => match.status === 'SCHEDULED' || match.status === 'TOSS')
-      // Undated fixtures sort last: a generated fixture list has no calendar
-      // until the organizer gives it one, and "TBC" below "Saturday 3pm" is the
-      // order someone reads them in.
       .sort(bySchedule('asc'))
       .slice(0, UPCOMING_LIMIT);
 
@@ -181,7 +155,8 @@ meRouter.get(
       ),
       tournamentsOrganized: organizedCount,
       matchesToScore: scoringAssignments.filter(
-        (assignment) => assignment.match.status !== 'COMPLETED' && assignment.match.status !== 'ABANDONED',
+        (assignment) =>
+          assignment.match.status !== 'COMPLETED' && assignment.match.status !== 'ABANDONED',
       ).length,
       unreadNotifications,
     };
@@ -208,7 +183,8 @@ function toDashboardMatch(
         ? match.team2
         : null;
 
-  const other = mine && match.team1?.id === mine.id ? match.team2 : mine ? match.team1 : match.team2;
+  const other =
+    mine && match.team1?.id === mine.id ? match.team2 : mine ? match.team1 : match.team2;
 
   return {
     id: match.id,
@@ -222,8 +198,6 @@ function toDashboardMatch(
     oversPerInnings: match.oversPerInnings,
     tournament: match.tournament,
     myTeam: mine ? toTeamRef(mine) : null,
-    // With no squad in this match the pairing is just the fixture, so the
-    // "opponent" slot carries team2 and myTeam stays null rather than lying.
     opponent: other ? toTeamRef(other) : null,
     isScorer: roles.isScorer,
     isPlayer: roles.isPlayer,
@@ -232,7 +206,6 @@ function toDashboardMatch(
   };
 }
 
-/** Undated fixtures always sort to the end, whichever way the dated ones go. */
 function bySchedule(direction: 'asc' | 'desc') {
   return (a: DashboardMatchDto, b: DashboardMatchDto): number => {
     if (!a.scheduledAt && !b.scheduledAt) return a.round - b.round;

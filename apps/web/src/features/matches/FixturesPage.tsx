@@ -13,13 +13,6 @@ import { useTournament } from '@/features/organizer/queries';
 import { cn } from '@/lib/cn';
 import { useFixtures, useGenerateFixtures, usePreviewFixtures } from './queries';
 
-/**
- * The schedule.
- *
- * Generation is a two-step — preview, then write — because the write is
- * destructive on a regenerate, and an organizer should see the pairings before
- * committing a league to them.
- */
 export function FixturesPage() {
   const { tournamentId = '' } = useParams();
 
@@ -101,7 +94,6 @@ export function FixturesPage() {
       {preview.error ? <ErrorText error={preview.error} /> : null}
       {generate.error ? <ErrorText error={generate.error} /> : null}
 
-      {/* The dry run, discarded the moment fixtures are written. */}
       {preview.data && !hasFixtures ? (
         <Card>
           <CardHeader className="flex flex-wrap items-center justify-between gap-4">
@@ -245,7 +237,6 @@ function MatchRow({ match }: { match: MatchDto }) {
       className={cn(
         'flex flex-col gap-5 rounded-[var(--radius-lg)] border border-line bg-raised p-6 sm:p-7',
         'transition-colors duration-[var(--dur)] hover:border-line-strong',
-        // A live match gets an accent edge — the one row you are looking for.
         match.status === 'LIVE' && 'border-[var(--accent-line)]',
       )}
     >

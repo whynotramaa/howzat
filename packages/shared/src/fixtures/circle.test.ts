@@ -29,7 +29,6 @@ describe('generateRoundRobin', () => {
     const teams = ['a', 'b', 'c', 'd', 'e'];
     const rounds = generateRoundRobin(teams);
 
-    // Five teams still need five rounds; one team sits out each time.
     expect(rounds).toHaveLength(5);
     for (const round of rounds) expect(round.matches).toHaveLength(2);
 
@@ -38,7 +37,6 @@ describe('generateRoundRobin', () => {
     );
     expect(new Set(seen).size).toBe(10);
 
-    // The BYE sentinel must never reach a fixture.
     const ids = rounds.flatMap((round) =>
       round.matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]),
     );
@@ -62,7 +60,6 @@ describe('generateRoundRobin', () => {
     expect(double).toHaveLength(single.length * 2);
     expect(double.map((round) => round.round)).toEqual([1, 2, 3, 4, 5, 6]);
 
-    // Each pair now meets exactly twice, once at each "venue".
     const counts = new Map<string, number>();
     for (const round of double) {
       for (const match of round.matches) {

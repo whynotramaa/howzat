@@ -1,41 +1,10 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * A control with mass.
- *
- * The rest of the system is flat on purpose — a scorecard is a document, and
- * documents do not have buttons that stick out of them. Exactly one control in
- * the product is the exception: the goal key on the scoring console. Not the
- * transport, not the three occasional actions beside it, not anything on any
- * other screen. The reason is not decoration:
- *
- *   • It is pressed one-handed, at a ground, in daylight, by somebody whose
- *     eyes are on the pitch rather than the phone. A flat rectangle gives a
- *     thumb nothing to aim at; an extrusion does.
- *   • The most expensive mistake on this screen is a goal recorded a minute
- *     late because the scorer was not sure the tap had registered. A control
- *     that visibly travels is the confirmation, and it costs no time.
- *
- * A second raised control would spend that hierarchy for nothing, which is why
- * this component has one caller.
- *
- * The travel is real rather than a scale: the face moves down, the side wall it
- * was riding on is consumed, and the cast shadow tightens. Press is 34ms and
- * release is 220ms with a little overshoot, because that asymmetry is what a
- * physical key does and it is most of why this feels like hardware.
- *
- * `tone` is a colour, not a variant name — the button's whole surface, wall and
- * shadow are mixed from it, so a new one is one hex value rather than a new
- * branch.
- */
-
 export interface PushButtonProps {
   tone: string;
-  /** Height of the extrusion. The hero control gets more travel than the rest. */
   depth?: number;
   radius?: string;
-  /** Text laid over the face. White on a saturated tone, ink on a pale one. */
   faceClassName?: string;
   className?: string;
   disabled?: boolean;
@@ -55,9 +24,6 @@ export function PushButton({
   ariaLabel,
   children,
 }: PushButtonProps) {
-  // Keyed remount rather than a class toggle: a scorer tapping twice in quick
-  // succession has to see two presses, and a CSS animation that is already
-  // running will not restart on its own.
   const [presses, setPresses] = useState(0);
 
   return (

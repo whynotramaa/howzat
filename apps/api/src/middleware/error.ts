@@ -14,10 +14,6 @@ export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json(body);
 };
 
-/**
- * The single place an error becomes a response. Anything not already an
- * AppError is normalized here so clients never see a Prisma or Zod internal.
- */
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const appError = normalize(err);
 
@@ -81,7 +77,6 @@ function normalize(err: unknown): AppError {
     }
   }
 
-  // Unknown — log the detail, tell the client nothing useful to an attacker.
   return new AppError(
     500,
     'INTERNAL_ERROR',

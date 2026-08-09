@@ -7,13 +7,6 @@ import { notFound } from '../../lib/errors';
 import { requireAuth } from '../../middleware/auth';
 import { toNotificationDto } from './service';
 
-/**
- * The bell.
- *
- * Every route here is scoped to `req.user.id` in the where clause rather than
- * loaded-then-checked. There is no such thing as reading someone else's notice
- * and then being refused: the query cannot see it in the first place.
- */
 export const notificationsRouter = Router();
 
 notificationsRouter.use(requireAuth);
@@ -52,8 +45,6 @@ notificationsRouter.post(
   asyncHandler(async (req, res) => {
     const notificationId = requireParam(req, 'notificationId');
 
-    // updateMany, not update: a composite where lets ownership and the update
-    // be one statement, and a miss is a 404 rather than a leaked existence.
     const { count } = await prisma.notification.updateMany({
       where: { id: notificationId, userId: req.user!.id, readAt: null },
       data: { readAt: new Date() },

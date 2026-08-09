@@ -31,15 +31,6 @@ import {
   signAccessToken,
 } from './tokens';
 
-/**
- * Sign up once with a username and password, confirm the email with a code,
- * then log in with the username and password forever after.
- *
- * The previous design mailed a code on every single sign-in. It reads as
- * frictionless and is the opposite in the one place this app is used: a ground
- * with bad signal, where the scorer's email is on a different device and the
- * match is waiting on them.
- */
 export const authRouter = Router();
 
 authRouter.post(
@@ -64,10 +55,6 @@ authRouter.post(
 
     const passwordHash = await hashPassword(password);
 
-    // An unverified signup is not an account yet, so re-registering the same
-    // address simply replaces it. Otherwise a typo in the email — or a code
-    // that never arrived — would permanently squat on both the address and
-    // whatever username was chosen with it.
     if (byEmail) {
       await prisma.user.update({
         where: { id: byEmail.id },
@@ -83,13 +70,11 @@ authRouter.post(
     res.status(202).json({
       status: 'verification_sent',
       email,
-      /** Dev convenience only — never returned once emails actually send. */
       devCode: !emailEnabled && isDevelopment ? code : undefined,
     });
   }),
 );
 
-/** Confirms the address and signs the new account straight in. */
 authRouter.post(
   '/verify-email',
   asyncHandler(async (req, res) => {
@@ -123,8 +108,6 @@ authRouter.post(
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // Always the same response. Whether an address has a pending signup is
-    // not something an unauthenticated caller gets to find out.
     if (user && !user.emailVerifiedAt) {
       const code = await issueOtp(email);
       await sendVerificationEmail(email, code);
@@ -150,7 +133,6 @@ authRouter.post(
       : await prisma.user.findUnique({ where: { username: identifier } });
 
     if (!user) {
-      // Spend the time a real comparison would have, then fail identically.
       await burnPasswordComparison();
       throw unauthorized('Incorrect username or password');
     }
@@ -158,9 +140,6 @@ authRouter.post(
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) throw unauthorized('Incorrect username or password');
 
-    // Distinct from a wrong password on purpose: the caller already proved
-    // they hold this account's password, so there is nothing left to leak,
-    // and "your code is waiting in your inbox" is the only useful thing to say.
     if (!user.emailVerifiedAt) {
       throw unprocessable(
         'EMAIL_UNVERIFIED',
@@ -192,10 +171,6 @@ authRouter.post(
       await sendPasswordResetEmail(email, code);
     }
 
-    // Identical response either way. "No account for that address" is exactly
-    // the answer someone probing for registered emails is looking for, and the
-    // person who genuinely mistyped theirs is no worse off — they get no code
-    // and try again.
     res.status(202).json({
       status: 'reset_sent',
       devCode: code && !emailEnabled && isDevelopment ? code : undefined,
@@ -203,12 +178,6 @@ authRouter.post(
   }),
 );
 
-/**
- * Completing a reset proves control of the inbox, which is strictly more than
- * email verification asks for — so it confirms the address too. That is what
- * lets an account created before passwords existed recover on its own instead
- * of needing someone to run a script against the database.
- */
 authRouter.post(
   '/reset-password',
   asyncHandler(async (req, res) => {
@@ -229,8 +198,6 @@ authRouter.post(
           emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
         },
       }),
-      // Whoever knew the old password loses every session. If the reset was
-      // prompted by someone else having got in, this is the part that matters.
       prisma.refreshToken.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -244,7 +211,6 @@ authRouter.post(
   }),
 );
 
-/** Rotates the refresh cookie and mints a new access token. */
 authRouter.post(
   '/refresh',
   asyncHandler(async (req, res) => {
@@ -275,7 +241,6 @@ authRouter.post(
   }),
 );
 
-/** Signup-form check, so a taken handle is caught before the form is submitted. */
 authRouter.get(
   '/username-available',
   asyncHandler(async (req, res) => {
@@ -319,9 +284,6 @@ authRouter.patch(
       },
     });
 
-    // Squad slots carry a denormalized copy of the handle so the scoring UI
-    // never needs the join; a rename has to reach them or a squad list will
-    // show a handle that no longer resolves.
     if (input.username) {
       await prisma.player.updateMany({
         where: { userId: user.id },
@@ -350,8 +312,6 @@ authRouter.post(
         where: { id: user.id },
         data: { passwordHash: await hashPassword(newPassword) },
       }),
-      // Changing a password is how someone responds to losing a device. It
-      // would be worth very little if the old sessions kept working.
       prisma.refreshToken.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -362,8 +322,6 @@ authRouter.post(
     res.status(204).end();
   }),
 );
-
-// ───────────────────────────────────────────────────── serializers ──
 
 type UserRecord = {
   id: string;
@@ -391,7 +349,6 @@ function sessionFor(user: UserRecord): AuthSession {
   };
 }
 
-/** Normalizes IPv6-mapped IPv4 so rate-limit keys are stable. */
 function clientIp(ip: string | undefined): string {
   if (!ip) return 'unknown';
   return ip.startsWith('::ffff:') ? ip.slice(7) : ip;

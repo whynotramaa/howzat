@@ -15,25 +15,12 @@ import { Reveal } from '@/components/ui/Reveal';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { cn } from '@/lib/cn';
 
-/**
- * The player's home.
- *
- * Everything else in the signed-in app is addressed from the organizer's side —
- * you own a tournament, you open it, you work on it. Someone who was added to a
- * squad owns nothing, and until this screen existed the notification telling
- * them so pointed at a page that was empty for them.
- *
- * The order is deliberate: what is on right now, what is next, then who you are
- * playing for, then what you have already done. That is the order the questions
- * actually arrive in on a Saturday morning.
- */
 export function DashboardPage() {
   const { user } = useAuth();
 
   const { data, isPending, error } = useQuery({
     queryKey: ['me', 'dashboard'],
     queryFn: () => api.get<PlayerDashboardDto>('/me/dashboard'),
-    // A live match on this page should not be three minutes stale.
     staleTime: 20_000,
     refetchInterval: 60_000,
   });
@@ -75,10 +62,6 @@ export function DashboardPage() {
             </section>
           ) : null}
 
-          {/* Between what is on now and what is next, because running a
-              tournament is a thing you do between matches, not instead of
-              them. The full shelf is one click away rather than a tab you had
-              to know about. */}
           {data.organizing.length > 0 ? (
             <section className="flex flex-col gap-5">
               <SectionHeading
@@ -209,16 +192,10 @@ export function DashboardPage() {
   );
 }
 
-/**
- * A fixture from the reader's side. Their team is named first and marked, which
- * is not how a fixture list is written but is how a player reads one.
- */
 function MatchCard({ match, accent = false }: { match: DashboardMatchDto; accent?: boolean }) {
   const isLive = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
 
-  // Live and finished matches have something to show on the public card; a
-  // fixture that has not started has nothing there yet, so it links to nothing.
   const destination = isLive || finished ? `/live/${match.publicSlug}` : null;
 
   const body = (
@@ -290,12 +267,6 @@ function MatchCard({ match, accent = false }: { match: DashboardMatchDto; accent
   );
 }
 
-/**
- * A tournament you run, reduced to the one thing that decides what can happen
- * next: how many sides are registered, and how many of those have a full XI.
- * Fixtures are blocked until those two agree, so the card says which of the two
- * is missing rather than making you open it to find out.
- */
 function OrganizingCard({ tournament }: { tournament: TournamentDto }) {
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
@@ -389,7 +360,6 @@ function greeting(name?: string): string {
   return `${part}, ${first}`;
 }
 
-/** An undated fixture says so; a generated fixture list has no calendar yet. */
 function formatWhen(iso: string | null): string {
   if (!iso) return 'Date to be confirmed';
 

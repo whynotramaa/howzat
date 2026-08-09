@@ -7,11 +7,6 @@ type MatchWithRelations = Match & {
   team2: Team | null;
   scorerAssignments?: Array<{ scorer: Pick<User, 'id' | 'username' | 'name'> }>;
   innings?: Array<{ number: number; status: string }>;
-  /**
-   * Optional because most callers already know the sport from context. When it
-   * is absent the DTO says CRICKET, which is what every match in the database
-   * was before football existed — a safe default rather than a guess.
-   */
   tournament?: { sport: Sport };
 };
 

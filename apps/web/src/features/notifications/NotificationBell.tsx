@@ -4,14 +4,6 @@ import type { NotificationDto } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 
-/**
- * The bell in the app bar.
- *
- * A panel rather than a page: the whole point of a notice is that it is read on
- * the way to something else. Clicking one marks it and navigates, because a
- * notification you have to dismiss separately from acting on it is a chore
- * dressed as a feature.
- */
 export function NotificationBell() {
   const { data } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -23,8 +15,6 @@ export function NotificationBell() {
   const unread = data?.unread ?? 0;
   const items = data?.items ?? [];
 
-  // A panel anchored to a button has to close on an outside click and on Escape,
-  // or it becomes something you have to click the button again to get rid of.
   useEffect(() => {
     if (!open) return;
 
@@ -85,8 +75,6 @@ export function NotificationBell() {
           role="menu"
           className={cn(
             'sheet-in absolute right-0 z-40 mt-2.5 w-[min(22rem,calc(100vw-2.5rem))]',
-            // The one shadow left in the redesign, and it is doing a job: this
-            // floats over the page, and a hairline alone does not say so.
             'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-[var(--shadow-md)]',
           )}
         >
@@ -121,8 +109,6 @@ export function NotificationBell() {
                       notification.readAt ? 'opacity-70' : null,
                     )}
                   >
-                    {/* An unread mark, not a filled row: a list where most rows
-                        are tinted stops the tint from meaning anything. */}
                     <span
                       aria-hidden
                       className={cn(
@@ -170,10 +156,6 @@ function BellGlyph({ ringing }: { ringing: boolean }) {
   );
 }
 
-/**
- * "3 hours ago" beats a timestamp here: a notification is read in relation to
- * now, and nobody converts 14:07 into "this morning" without pausing.
- */
 function relativeTime(iso: string): string {
   const seconds = Math.round((Date.now() - Date.parse(iso)) / 1000);
 

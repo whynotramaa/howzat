@@ -2,45 +2,14 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { FOOTBALL_EVENT_LABELS, type FootballEventKind } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
-/*
- * The receipt.
- *
- * A scorer on a touchline is not looking at the screen when they tap — they are
- * looking at the pitch. Before this, the only feedback that a goal had been
- * recorded was a number changing somewhere they were not looking, which is
- * exactly why the console felt inert: the tap and the consequence were in
- * different places.
- *
- * So the confirmation goes over the middle of the screen, at a size that is
- * catchable in peripheral vision, and says the two things the scorer needs to
- * verify without stopping: what was recorded, and for whom.
- *
- * It is built out of four things happening on one beat:
- *
- *   the aura   a wash of the incident's colour thrown onto the page and let go
- *   the card   arriving through the plane, overshooting a hair, settling
- *   the sheen  one specular sweep, so the surface reads as lit rather than painted
- *   the word   landing letter-spaced and closing up into something read
- *
- * All of it is one keyframe each and none of it loops. This is the only piece of
- * theatre in the product, and it is theatre that does a job: it is the receipt.
- *
- * It is fired from the mutation's success, not from its optimistic start. A
- * flash that appears before the write lands would be a receipt for something
- * that had not happened, and the one moment it mattered — a failed submission
- * at the far end of a bad connection — is the one moment it would lie.
- */
-
 export interface FlashPayload {
   kind: FootballEventKind;
   teamShort: string;
   teamColor: string;
   playerName: string | null;
-  /** The minute it was stamped with, as it will read on the timeline. */
   minuteLabel: string;
 }
 
-/** One colour per incident. Everything else on the card is mixed from it. */
 const TONE: Record<FootballEventKind, string> = {
   GOAL: 'var(--accent-strong)',
   OWN_GOAL: 'var(--text-muted)',
@@ -54,8 +23,6 @@ const HOLD_MS = 1_900;
 
 export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
   const [shown, setShown] = useState<FlashPayload | null>(null);
-  // Bumped on every flash so React remounts the node and the animation
-  // restarts — two goals in a minute must produce two flashes, not one.
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
@@ -74,8 +41,6 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
 
   return (
     <div
-      // Announced politely rather than assertively: a scorer using a screen
-      // reader is mid-task, and this is a confirmation, not an alert.
       role="status"
       aria-live="polite"
       key={nonce}
@@ -97,8 +62,6 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
       >
         <span aria-hidden className="incident-sheen" />
 
-        {/* The tone as a 3px bar down the leading edge — the same device the
-            timeline uses, so the receipt and the log read as one system. */}
         <span
           aria-hidden
           className="absolute inset-y-0 left-0 w-[3px]"
@@ -130,7 +93,6 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
   );
 }
 
-/** The same marks the timeline uses, at the size this needs. */
 function Glyph({ kind, tone }: { kind: FootballEventKind; tone: string }) {
   const shell = 'incident-glyph grid size-12 shrink-0 place-items-center rounded-full';
 
@@ -146,12 +108,19 @@ function Glyph({ kind, tone }: { kind: FootballEventKind; tone: string }) {
 
   if (kind === 'SUBSTITUTION') {
     return (
-      <span
-        aria-hidden
-        className={cn(shell, 'border-2 border-line-strong text-secondary')}
-      >
-        <svg viewBox="0 0 16 16" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.5}>
-          <path d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2" strokeLinecap="round" strokeLinejoin="round" />
+      <span aria-hidden className={cn(shell, 'border-2 border-line-strong text-secondary')}>
+        <svg
+          viewBox="0 0 16 16"
+          className="size-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
     );

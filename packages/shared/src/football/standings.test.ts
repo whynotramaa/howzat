@@ -65,8 +65,6 @@ describe('aggregateFootballStandings', () => {
 
 describe('sortFootballStandings', () => {
   it('ranks on goal difference before goals scored', () => {
-    // Both on three points: 'a' wins 1-0 (GD +1), 'b' wins 4-3 (GD +1, more
-    // goals). Level on GD, so the higher scorer goes ahead.
     const matches = [result('a', 'c', 1, 0), result('b', 'c', 4, 3)];
     const rows = aggregateFootballStandings(teams, matches);
     const sorted = sortFootballStandings(rows, matches);

@@ -42,8 +42,10 @@ export async function getQualificationScenarios(
   const remainingByTeam = new Map<string, number>();
   for (const row of standings) remainingByTeam.set(row.team.id, 0);
   for (const match of matches) {
-    if (match.team1Id) remainingByTeam.set(match.team1Id, (remainingByTeam.get(match.team1Id) ?? 0) + 1);
-    if (match.team2Id) remainingByTeam.set(match.team2Id, (remainingByTeam.get(match.team2Id) ?? 0) + 1);
+    if (match.team1Id)
+      remainingByTeam.set(match.team1Id, (remainingByTeam.get(match.team1Id) ?? 0) + 1);
+    if (match.team2Id)
+      remainingByTeam.set(match.team2Id, (remainingByTeam.get(match.team2Id) ?? 0) + 1);
   }
 
   const result = qualificationScenarios({

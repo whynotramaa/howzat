@@ -4,14 +4,6 @@ import { logger } from '../../lib/logger';
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
-/**
- * Sent once, at signup, to prove the address belongs to whoever typed it.
- * Everyday sign-in is username and password and never touches this.
- *
- * With no RESEND_API_KEY the code is logged instead of sent. That is the
- * intended development path, not a degraded one — it keeps signup working
- * offline and on a machine with no verified sending domain.
- */
 export async function sendVerificationEmail(email: string, code: string): Promise<void> {
   if (!resend || !emailEnabled) {
     logger.info(
@@ -30,19 +22,11 @@ export async function sendVerificationEmail(email: string, code: string): Promis
   });
 
   if (error) {
-    // Surfacing the provider error to the caller would leak infrastructure
-    // detail; the log has it, the user gets a generic failure.
     logger.error({ err: error, email }, 'Resend failed to send the verification code');
     throw new Error('Could not send the verification code');
   }
 }
 
-/**
- * The way back in when the password is gone. Worded to be unambiguous about
- * what it does, because this is the one email an attacker would love a target
- * to skim past — "someone asked to reset your password" has to be the thing
- * you read even if you read nothing else.
- */
 export async function sendPasswordResetEmail(email: string, code: string): Promise<void> {
   if (!resend || !emailEnabled) {
     logger.info(
@@ -72,23 +56,13 @@ export async function sendPasswordResetEmail(email: string, code: string): Promi
 
 interface SquadAdditionEmail {
   to: string;
-  /** The recipient's own name — the greeting, not the organizer's. */
   name: string;
   teamName: string;
   tournamentName: string;
   organizerName: string;
-  /** Absolute link into the web app; where the squad now shows up. */
   dashboardUrl: string;
 }
 
-/**
- * Sent when an organizer adds a registered handle to a squad.
- *
- * Best-effort by construction: the caller never awaits this in a way that can
- * fail the write. Being in a squad is a fact in the database and the in-app
- * notice is already there — a bounced email must not undo either, and must
- * certainly not fail the organizer's paste of eleven names.
- */
 export async function sendSquadAdditionEmail(input: SquadAdditionEmail): Promise<void> {
   const subject = `You've been added to ${input.teamName}`;
   const lead =
@@ -151,7 +125,6 @@ function squadAdditionHtml(input: SquadAdditionEmail, heading: string, lead: str
 </html>`;
 }
 
-/** Names and team names are user input and go into an HTML document. */
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')

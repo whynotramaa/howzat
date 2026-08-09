@@ -15,22 +15,10 @@ import { redis } from '../../lib/redis';
 import { logger } from '../../lib/logger';
 import { notFound } from '../../lib/errors';
 
-/**
- * Redis holds a derived projection; Postgres holds the truth.
- *
- * The two are written in sequence, not atomically, and pretending otherwise
- * would be dishonest. If the process dies between them the snapshot is stale
- * or missing, and the next read rebuilds it by folding the log again. That is
- * why every read goes through getSnapshot rather than trusting the cache.
- */
-
 const SNAPSHOT_TTL_SECONDS = 60 * 60 * 6;
 
 export const snapshotKey = (matchId: string) => `match:${matchId}`;
 
-// ────────────────────────────────────────────── loading the context ──
-
-/** The XI, teams and quota that the reducer needs but the log does not carry. */
 export async function loadInningsContext(inningsId: string): Promise<InningsContext> {
   const innings = await prisma.innings.findUnique({
     where: { id: inningsId },
@@ -135,7 +123,6 @@ export function toBallEvent(row: {
   };
 }
 
-/** Fold the log. The one recovery path for a cold or evicted cache. */
 export async function rebuildState(
   inningsId: string,
 ): Promise<{ state: MatchState; context: InningsContext }> {
@@ -143,8 +130,6 @@ export async function rebuildState(
   const events = await loadEvents(inningsId);
   return { state: buildState(context, events), context };
 }
-
-// ─────────────────────────────────────────── projecting a snapshot ──
 
 export function buildSnapshot(
   match: {
@@ -235,13 +220,6 @@ export function buildSnapshot(
   };
 }
 
-// ────────────────────────────────────────────── cache read / write ──
-
-/**
- * Guarded by lastEventSeq: a slow write that lost a race can never overwrite a
- * newer snapshot with an older score. Without this, two concurrent balls could
- * leave Redis showing the earlier of the two.
- */
 export async function writeSnapshot(snapshot: MatchSnapshot): Promise<void> {
   const key = snapshotKey(snapshot.matchId);
 
@@ -250,7 +228,11 @@ export async function writeSnapshot(snapshot: MatchSnapshot): Promise<void> {
 
     if (existing && existing.lastEventSeq > snapshot.lastEventSeq) {
       logger.debug(
-        { matchId: snapshot.matchId, cached: existing.lastEventSeq, incoming: snapshot.lastEventSeq },
+        {
+          matchId: snapshot.matchId,
+          cached: existing.lastEventSeq,
+          incoming: snapshot.lastEventSeq,
+        },
         'Skipped stale snapshot write',
       );
       return;
@@ -258,8 +240,6 @@ export async function writeSnapshot(snapshot: MatchSnapshot): Promise<void> {
 
     await redis.set(key, JSON.stringify(snapshot), 'EX', SNAPSHOT_TTL_SECONDS);
   } catch (err) {
-    // Postgres already has the ball. A cache write failure degrades reads to
-    // a rebuild; it must not fail the request.
     logger.error({ err, matchId: snapshot.matchId }, 'Snapshot write failed');
   }
 }
@@ -275,10 +255,6 @@ export async function readCachedSnapshot(matchId: string): Promise<MatchSnapshot
   }
 }
 
-/**
- * The read path for every viewer. Cache first; on a miss, fold the log and
- * repopulate. A cold Redis is a latency problem, never a correctness one.
- */
 export async function getSnapshot(matchId: string): Promise<MatchSnapshot | null> {
   const cached = await readCachedSnapshot(matchId);
   if (cached) return cached;
@@ -294,16 +270,14 @@ export async function rebuildSnapshot(matchId: string): Promise<MatchSnapshot | 
 
   if (!match) throw notFound('Match');
 
-  // Prefer the innings in progress — but only once it has a ball. At an
-  // innings break the second innings exists with an empty log, and showing
-  // 0/0 there would wipe the first innings score off every viewer's screen.
   const live = match.innings.find((entry) => entry.status === 'IN_PROGRESS');
 
   const liveHasEvents =
-    live !== undefined &&
-    (await prisma.ballEvent.count({ where: { inningsId: live.id } })) > 0;
+    live !== undefined && (await prisma.ballEvent.count({ where: { inningsId: live.id } })) > 0;
 
-  const innings = liveHasEvents ? live : (match.innings.find((entry) => entry.status === 'COMPLETED') ?? live);
+  const innings = liveHasEvents
+    ? live
+    : (match.innings.find((entry) => entry.status === 'COMPLETED') ?? live);
 
   if (!innings) return null;
 

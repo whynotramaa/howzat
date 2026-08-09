@@ -10,17 +10,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
 
-/**
- * A tournament behind a share link.
- *
- * This used to be a points table and five fixtures with no scores on them,
- * which meant the one thing a link to a tournament is sent for — what happened
- * — was the one thing it did not say. It now carries the season: the full
- * table, every result with its scoreline, whatever is being played right now,
- * and everything still to come, each in its own band so a reader can go
- * straight to the question they arrived with.
- */
-
 export function PublicTournamentPage() {
   const { tournamentId = '' } = useParams();
   const { data, isPending, error } = useQuery({
@@ -82,11 +71,10 @@ export function PublicTournamentPage() {
                     matchLabel={data.tournament.name}
                     variant="quiet"
                   />
-                  {/* The table and every result, as one document. Offered
-                      whatever state the tournament is in — a league half played
-                      is exactly the thing people want to circulate. */}
                   <PdfButton
-                    build={() => import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))}
+                    build={() =>
+                      import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))
+                    }
                   />
                 </div>
               </div>
@@ -136,15 +124,7 @@ export function PublicTournamentPage() {
   );
 }
 
-function Figure({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone?: 'live';
-}) {
+function Figure({ label, value, tone }: { label: string; value: string | number; tone?: 'live' }) {
   return (
     <div>
       <dd
@@ -160,14 +140,6 @@ function Figure({
   );
 }
 
-// ────────────────────────────────────────────────────────────  standings ──
-
-/**
- * The whole table, not the abbreviated one this page used to show. The
- * tie-breaker's inputs sit beside it on the wide layout for the same reason
- * they do on the organizer's: every disputed table is a disputed tie-breaker,
- * and the argument ends when the number and its inputs are on one screen.
- */
 function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball: boolean }) {
   if (items.length === 0) return null;
 
@@ -259,8 +231,6 @@ function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball
   );
 }
 
-// ──────────────────────────────────────────────────────────────  matches ──
-
 function MatchBand({
   eyebrow,
   title,
@@ -327,9 +297,6 @@ function PublicMatchCard({
         </span>
       </div>
 
-      {/* Each side on its own line with its figure beside it, rather than the
-          two names either side of a "v". A scoreline is read down, not across,
-          and cricket's is far too wide to sit on one row. */}
       <div className="mt-5 flex flex-col gap-2.5">
         <SideRow
           team={match.team1}
@@ -369,8 +336,6 @@ function PublicMatchCard({
           {isLive ? 'Open live match' : isCompleted ? 'Open result' : 'Open match'}
         </Link>
 
-        {/* One press, straight from the board — nobody should have to open a
-            match to keep a record of it. */}
         {isCompleted ? (
           <PdfButton
             variant="quiet"
@@ -406,7 +371,10 @@ function SideRow({
       {team ? (
         <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
       ) : (
-        <span aria-hidden className="size-7 rounded-[var(--radius-xs)] border border-dashed border-line-strong" />
+        <span
+          aria-hidden
+          className="size-7 rounded-[var(--radius-xs)] border border-dashed border-line-strong"
+        />
       )}
 
       <span

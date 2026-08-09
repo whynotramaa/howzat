@@ -8,7 +8,6 @@ import { toPlayerDto } from '../teams/serialize';
 
 export const playersRouter = Router();
 
-/** Ownership is enforced per player by loadOwnedPlayer, not by a role. */
 playersRouter.use(requireAuth);
 
 playersRouter.patch(

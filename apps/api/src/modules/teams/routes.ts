@@ -21,12 +21,6 @@ import { notifySquadAdditions } from '../notifications/service';
 import { evaluateEligibility, maxSquadSizeFor } from './eligibility';
 import { toPlayerDto, toTeamDto } from './serialize';
 
-/**
- * Signed in is the only blanket requirement. Whether this particular team is
- * yours to touch is settled by loadOwnedTeam on every route below — which is
- * the check that actually matters, and the one a role gate would have made
- * look redundant while protecting nothing extra.
- */
 export const teamsRouter = Router();
 
 teamsRouter.use(requireAuth);
@@ -106,8 +100,6 @@ teamsRouter.delete(
   }),
 );
 
-// ─────────────────────────────────────────── players within a team ──
-
 teamsRouter.get(
   '/:teamId/players',
   asyncHandler(async (req, res) => {
@@ -158,10 +150,6 @@ teamsRouter.post(
   }),
 );
 
-/**
- * Bulk add — the realistic path to a full XI. All-or-nothing inside one
- * transaction so a squad never lands half-populated.
- */
 teamsRouter.post(
   '/:teamId/players/bulk',
   asyncHandler(async (req, res) => {
@@ -179,9 +167,7 @@ teamsRouter.post(
     const identities = await resolvePlayerIdentities(players, teamId);
 
     await prisma.player.createMany({
-      data: players.map((player, index) =>
-        toPlayerCreateData(teamId, identities[index]!, player),
-      ),
+      data: players.map((player, index) => toPlayerCreateData(teamId, identities[index]!, player)),
     });
 
     await notifyAddedAccounts(identities, team);
@@ -206,23 +192,12 @@ teamsRouter.post(
 
 type OwnedTeam = Awaited<ReturnType<typeof loadOwnedTeam>>;
 
-/**
- * Tell the registered accounts among a batch that they are now in this squad.
- *
- * Guests are skipped because there is nobody to tell — a placeholder has no
- * account and no address. So is the organizer adding themselves, which is the
- * one case where the notice would be telling someone what they just did.
- *
- * Failure here is logged, never propagated: the players are already in the
- * team, and a notification problem must not report the squad as unsaved.
- */
-async function notifyAddedAccounts(
-  identities: ResolvedPlayer[],
-  team: OwnedTeam,
-): Promise<void> {
+async function notifyAddedAccounts(identities: ResolvedPlayer[], team: OwnedTeam): Promise<void> {
   const userIds = identities
     .map((identity) => identity.userId)
-    .filter((userId): userId is string => userId !== null && userId !== team.tournament.organizerId);
+    .filter(
+      (userId): userId is string => userId !== null && userId !== team.tournament.organizerId,
+    );
 
   if (userIds.length === 0) return;
 
@@ -250,12 +225,6 @@ async function notifyAddedAccounts(
   }
 }
 
-/**
- * A squad may not exceed its maximum — the starting side in cricket, that plus
- * the bench in football. Capping on the way in means the eligibility check only
- * ever has to report "too few", and the organizer finds out at the moment they
- * overfill rather than at fixture generation.
- */
 async function assertRoomInSquad(teamId: string, adding: number, maxSquad: number): Promise<void> {
   const current = await prisma.player.count({ where: { teamId } });
 

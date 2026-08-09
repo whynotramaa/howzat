@@ -1,13 +1,6 @@
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
-/*
- * Loading, failure, and progress.
- *
- * Skeletons rather than spinners: the layout must not jump when data lands. The
- * one spinner left in the product is inside a button, where it replaces nothing.
- */
-
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
@@ -20,7 +13,6 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-/** A skeleton that mimics the shape of a card with a heading and rows. */
 export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-6 sm:p-8">
@@ -39,13 +31,6 @@ export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   );
 }
 
-/**
- * Renders whatever the API actually said.
- *
- * A 422 from the domain layer ("Needs 2 more players") is far more useful than a
- * generic failure, and the details array carries the per-team breakdown. Errors
- * are direct and specific here — never a pun, never "oops".
- */
 export function ErrorText({ error }: { error: unknown }) {
   if (!error) return null;
 
@@ -86,13 +71,6 @@ export function ErrorText({ error }: { error: unknown }) {
   );
 }
 
-/**
- * Compact squad copy; a progress gauge made incomplete squads look broken.
- *
- * The denominator is passed in rather than read from a constant: a cricket side
- * is eleven, but a football tournament may be five, seven or nine a side, and
- * "9 on 11" under a full seven-a-side squad is simply wrong.
- */
 export function SquadProgress({
   count,
   squadSize,

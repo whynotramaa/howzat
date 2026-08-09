@@ -25,11 +25,6 @@ import {
   useTournament,
 } from './queries';
 
-/**
- * One tournament: what is registered, what is missing, and the way through to
- * fixtures. The readiness line states the blocker in the same words the API uses
- * to refuse, so the reason a button is disabled is never a mystery.
- */
 export function TournamentDetailPage() {
   const { tournamentId = '' } = useParams();
   const navigate = useNavigate();
@@ -54,8 +49,6 @@ export function TournamentDetailPage() {
   const readyForFixtures = full && eligible === registered;
   const fixtureCount = fixtures.data?.total ?? 0;
   const played = fixtures.data?.items.filter((match) => match.status === 'COMPLETED').length ?? 0;
-  // The leaders board counts anything that has kicked off, so it is offered as
-  // soon as there is a match under way rather than only after a final whistle.
   const started =
     fixtures.data?.items.filter((match) =>
       ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
@@ -104,18 +97,12 @@ export function TournamentDetailPage() {
               {full ? 'All sides registered' : 'Register a side'}
             </Button>
 
-            {/* Reachable before the squads are complete, because the page it leads
-                to is where the reason it is blocked gets explained. */}
             <Link to={`/tournaments/${tournamentId}/fixtures`}>
               <Button disabled={!readyForFixtures && fixtureCount === 0}>
                 {fixtureCount > 0 ? `Fixtures (${fixtureCount})` : 'Generate fixtures'}
               </Button>
             </Link>
 
-            {/* Last in the row and quiet, because it is the one action here
-                that cannot be undone. The API refuses outright once matches
-                are under way, so this says so rather than offering a button
-                that only fails when pressed. */}
             <Button
               variant="quiet"
               onClick={() => setDeleting(true)}
@@ -221,7 +208,6 @@ export function TournamentDetailPage() {
         {deleteTeam.error ? <ErrorText error={deleteTeam.error} /> : null}
       </section>
 
-      {/* The table only exists once a match has produced a result. */}
       {played > 0 ? (
         <section className="flex flex-col gap-7">
           <SectionHeading
@@ -267,7 +253,6 @@ export function TournamentDetailPage() {
               onClick={async () => {
                 await deleteTournament.mutateAsync(tournamentId);
                 setDeleting(false);
-                // Nothing left to look at, so leave rather than render a 404.
                 void navigate('/tournaments');
               }}
             >
@@ -281,8 +266,8 @@ export function TournamentDetailPage() {
       >
         {tournament.data.status === 'IN_PROGRESS' ? (
           <p className="text-secondary">
-            Matches are under way. A tournament being played cannot be deleted — abandon
-            or finish the remaining fixtures first.
+            Matches are under way. A tournament being played cannot be deleted — abandon or finish
+            the remaining fixtures first.
           </p>
         ) : (
           <div className="flex flex-col gap-4">
@@ -339,8 +324,6 @@ function AddTeamSheet({
 
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
-  // The house blue as a default, so a side that never picks a colour still
-  // looks deliberate rather than unset.
   const [primaryColor, setPrimaryColor] = useState('#1268bd');
 
   async function handleSubmit(event: FormEvent) {
@@ -376,7 +359,6 @@ function AddTeamSheet({
           placeholder="Riverside XI"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          // Auto-fill the abbreviation from initials; still editable.
           onBlur={() => {
             if (!shortName && name.trim()) {
               setShortName(

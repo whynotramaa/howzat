@@ -15,16 +15,6 @@ import { IncidentTimeline } from './IncidentTimeline';
 import { Bench, Pitch } from './Pitch';
 import { useLiveFootball } from './useLiveFootball';
 
-/**
- * The public share link for a football match — built as a broadcast graphic,
- * exactly like the cricket one: no login, no navigation, both teams' colours in
- * the light behind it, and the score set large enough to read at arm's length.
- *
- * The clock sits between the two teams rather than beside the scoreline,
- * because on a football scoreboard the minute is the second thing anyone looks
- * at and putting it anywhere else makes people hunt.
- */
-
 type View = 'live' | 'lineups' | 'timeline';
 
 export function LiveFootballPage({ slug }: { slug: string }) {
@@ -56,8 +46,6 @@ export function LiveFootballPage({ slug }: { slug: string }) {
                 {snapshot.home.short} {snapshot.home.goals}–{snapshot.away.goals}{' '}
                 {snapshot.away.short}
               </p>
-              {/* The minute travels with the score, so someone who has scrolled
-                  past the scoreboard still knows how late it is. */}
               <InlineClock clock={snapshot.clock} className="text-[0.8125rem] text-secondary" />
             </div>
           ) : null}
@@ -170,8 +158,6 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
 
         <div className="flex flex-col items-center gap-4 sm:gap-5">
           <p
-            // Keyed on the scoreline so the figures re-mount, and the bump runs,
-            // on the goal that changed them and on nothing else.
             key={`${snapshot.home.goals}-${snapshot.away.goals}`}
             className="score-bump score-figure text-[3.5rem] text-primary sm:text-[4.5rem]"
           >
@@ -197,8 +183,6 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
             <p className="text-sm text-success">{snapshot.resultText}</p>
           ) : null}
 
-          {/* Offered at full time and not before: a report of a match still
-              being played is a report of half a match. */}
           {finished ? (
             <PdfButton
               variant="secondary"
@@ -211,13 +195,7 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
   );
 }
 
-function TeamBlock({
-  side,
-  align,
-}: {
-  side: FootballSnapshot['home'];
-  align: 'left' | 'right';
-}) {
+function TeamBlock({ side, align }: { side: FootballSnapshot['home']; align: 'left' | 'right' }) {
   return (
     <div
       className={cn(
@@ -232,14 +210,9 @@ function TeamBlock({
 
         {side.yellowCards > 0 || side.redCards > 0 ? (
           <div
-            className={cn(
-              'mt-2 flex items-center gap-2',
-              align === 'right' && 'sm:justify-end',
-            )}
+            className={cn('mt-2 flex items-center gap-2', align === 'right' && 'sm:justify-end')}
           >
-            {side.yellowCards > 0 ? (
-              <CardTally tone="yellow" count={side.yellowCards} />
-            ) : null}
+            {side.yellowCards > 0 ? <CardTally tone="yellow" count={side.yellowCards} /> : null}
             {side.redCards > 0 ? <CardTally tone="red" count={side.redCards} /> : null}
           </div>
         ) : null}
@@ -263,11 +236,6 @@ function CardTally({ tone, count }: { tone: 'yellow' | 'red'; count: number }) {
   );
 }
 
-/**
- * The default tab: the shape both sides are in, and the two most recent things
- * that happened. Someone opening the link mid-match wants the picture and the
- * last goal, not a full report.
- */
 function LiveView({ snapshot }: { snapshot: FootballSnapshot }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">

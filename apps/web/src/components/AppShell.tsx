@@ -6,22 +6,6 @@ import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
 
-/*
- * The signed-in frame.
- *
- * The bar is a hairline and a measure of quiet space — no fill, no blur, no
- * shadow. It is 72px tall so the wordmark has room to breathe, and it does not
- * stick: on a scorecard, a bar that follows you down the page is a bar that
- * covers the numbers you are reading.
- *
- * Navigation is marked by an accent rule under the active item, the same indicator
- * the tabs use, so the whole product has one way of saying "you are here".
- *
- * Below `md` there is not room for three links, an identity and two controls at
- * a legible size, so everything but the bell collapses into a menu. The bell
- * stays out: an unread count is the one thing worth seeing without a tap.
- */
-
 const NAV = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/tournaments', label: 'Tournaments' },
@@ -35,13 +19,10 @@ export function AppShell() {
 
   const navHref = (to: string) => (to === '/profile' ? `/players/${user?.username ?? ''}` : to);
 
-  // Arriving somewhere new is the end of navigating: the menu has done its job.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Escape closes it, and the page behind it cannot scroll — the same contract
-  // the sheet keeps, so an overlay always behaves the one way.
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -59,8 +40,6 @@ export function AppShell() {
     };
   }, [menuOpen]);
 
-  // Growing past the breakpoint reveals the real nav; a menu left open behind it
-  // would trap the scroll lock on a page that no longer has a way to close it.
   useEffect(() => {
     const query = window.matchMedia('(min-width: 48rem)');
     const handleChange = () => {
@@ -118,8 +97,6 @@ export function AppShell() {
             <div className="hidden items-center gap-4 md:flex">
               <ThemeToggle />
 
-              {/* The handle, not a role: it is what another organizer searches for
-                  to add this person to a squad or assign them a match. */}
               <div className="text-right leading-tight">
                 <p className="text-[0.8125rem] font-medium text-primary">{user?.name}</p>
                 <p className="mono text-[0.6875rem] text-muted">@{user?.username}</p>
@@ -163,7 +140,6 @@ export function AppShell() {
                 >
                   {({ isActive }) => (
                     <>
-                      {/* The rule turns vertical, but it is the same indicator. */}
                       <span
                         aria-hidden
                         className={cn(
@@ -226,17 +202,6 @@ export function AppShell() {
   );
 }
 
-/**
- * Three rules that fold into a cross.
- *
- * The bars never change their `top`/`bottom` — they are moved onto the centre
- * line by transform alone, because that is the only thing the compositor can
- * actually animate. The outer two travel 7.25px to meet in the middle and
- * rotate as they arrive, so the mark closes in one motion instead of jumping.
- *
- * The middle bar scales out from the centre rather than fading, so nothing is
- * ever left half-visible under the cross.
- */
 function MenuButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const bar = 'absolute left-0 h-[1.5px] w-full rounded-full bg-current';
   const timing = 'transition-transform duration-[var(--dur)] ease-[var(--ease)]';

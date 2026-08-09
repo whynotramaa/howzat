@@ -20,24 +20,8 @@ import {
   type Rgb,
 } from './theme';
 
-/**
- * The document primitives every Howzat report is built from.
- *
- * A report is a vertical run of blocks with one shared cursor, which is the
- * only model that survives content of unknown length: a scorecard is two
- * innings or one, a league is four fixtures or forty, and none of it can be
- * laid out on a fixed grid decided in advance. Each block asks for the room it
- * needs, takes a new page if the room is not there, and leaves the cursor under
- * itself.
- *
- * Everything chrome-like — the masthead band, the running head, the footer
- * rule and the page numbers — is painted by this class rather than by the
- * reports, so that a scorecard, a match report and a league table are visibly
- * the same document with different contents.
- */
 export class ReportDoc {
   readonly pdf: jsPDF;
-  /** The running head on pages two and after. */
   private readonly runningHead: string;
   private y: number;
 
@@ -54,8 +38,6 @@ export class ReportDoc {
     this.y = MARGIN.top;
   }
 
-  // ────────────────────────────────────────────────────────  geometry ──
-
   get cursor(): number {
     return this.y;
   }
@@ -68,48 +50,25 @@ export class ReportDoc {
     return PAGE.height - MARGIN.bottom - 26;
   }
 
-  /** Vertical air. Never applied at the top of a fresh page. */
   space(amount: number): void {
     if (this.y > MARGIN.top) this.y += amount;
   }
 
-  /**
-   * Guarantees `height` points of room below the cursor, breaking the page if
-   * there is not. Blocks call this before drawing rather than after, so nothing
-   * is ever half-drawn across a fold.
-   */
   need(height: number): void {
     if (this.y + height <= this.floor) return;
     this.newPage();
   }
 
-  /**
-   * A new sheet. The running head is *not* painted here — autoTable breaks its
-   * own pages without going through this method, so the chrome is applied to
-   * every page in one pass at the end, where it can be applied exactly once.
-   */
   newPage(): void {
     this.pdf.addPage();
     this.y = MARGIN.top + 12;
   }
 
-  // ────────────────────────────────────────────────────────  masthead ──
-
-  /**
-   * The cover band: a full-bleed slab of ink at the head of page one carrying
-   * the wordmark, what this document is, and what it is about.
-   *
-   * It runs to the paper's edge on purpose. A framed panel would read as a
-   * component on a page; a band that leaves the page reads as the head of a
-   * printed document, which is what this is.
-   */
   masthead(options: {
     kicker: string;
     title: string;
     subtitle?: string;
-    /** Right-aligned in the band's top line — "RESULT", "LIVE", "FIXTURE". */
     status?: string;
-    /** Up to three short facts printed along the band's foot. */
     facts?: string[];
   }): void {
     const { pdf } = this;
@@ -138,9 +97,6 @@ export class ReportDoc {
       });
     }
 
-    // The one line the reader is looking for. Set to shrink rather than wrap:
-    // two long club names should still be one line, because a title that folds
-    // stops looking like a title.
     pdf.setFont(SERIF, 'normal');
     pdf.setTextColor(...ON_BAND);
     const size = this.fitFontSize(options.title, CONTENT_WIDTH, 30, 17, SERIF, 'normal');
@@ -163,10 +119,6 @@ export class ReportDoc {
       pdf.setFontSize(7.5);
       pdf.setTextColor(...ON_BAND_MUTED);
 
-      // Flowed rather than dropped into equal columns: a venue name and a toss
-      // line are nothing like the same length, and a fixed grid made the long
-      // one run straight through its neighbour. Anything that will not fit on
-      // the line is left out, because a truncated fact is worse than no fact.
       let x = MARGIN.left;
 
       for (const fact of options.facts) {
@@ -183,16 +135,10 @@ export class ReportDoc {
     this.y = height + 34;
   }
 
-  /**
-   * How wide a run of letter-spaced text actually is. jsPDF's getTextWidth
-   * ignores charSpace, which is fine until something is positioned after it —
-   * and then everything downstream lands on top of it.
-   */
   private spacedTextWidth(text: string, charSpace: number): number {
     return this.pdf.getTextWidth(text) + Math.max(0, text.length - 1) * charSpace;
   }
 
-  /** Largest size at or below `max` that keeps `text` on one line. */
   private fitFontSize(
     text: string,
     width: number,
@@ -212,17 +158,6 @@ export class ReportDoc {
     return min;
   }
 
-  // ─────────────────────────────────────────────────────────  blocks ──
-
-  /**
-   * A section's label and name, over a hairline.
-   *
-   * It reserves far more room than it occupies, and deliberately: a heading
-   * stranded at the foot of a page with its table overleaf is the single most
-   * common way a generated document looks generated. The reserve is roughly a
-   * heading plus a table head plus two rows, which is the least that reads as
-   * a section having started.
-   */
   heading(eyebrow: string, title: string, note?: string, reserve = 120): void {
     this.space(26);
     this.need(reserve);
@@ -272,11 +207,6 @@ export class ReportDoc {
     this.y += lines.length * (size + 3.5);
   }
 
-  /**
-   * A row of figures under their labels — the report's equivalent of the stat
-   * tiles on screen. Ruled off rather than boxed, because four boxes in a row
-   * is a dashboard and this is a document.
-   */
   metrics(items: Array<{ label: string; value: string; tone?: Rgb }>): void {
     if (items.length === 0) return;
 
@@ -305,17 +235,11 @@ export class ReportDoc {
     this.y += 2;
   }
 
-  /**
-   * One side's scoreline: colour swatch, name, figure. Two of these stacked is
-   * the whole result of a match, in either code, and it is the block a reader
-   * looks at before anything else on the page.
-   */
   scoreLine(options: {
     color: Rgb;
     name: string;
     detail?: string;
     figure: string;
-    /** The winning side is set in ink; the other in grey. */
     won?: boolean;
   }): void {
     this.need(40);
@@ -346,18 +270,10 @@ export class ReportDoc {
     this.y = top + (options.detail ? 40 : 34);
   }
 
-  /**
-   * The house table: a ruled ledger, not a striped grid. Hairlines under every
-   * row, a sunken head, figures right-aligned, and no vertical rules at all —
-   * the columns are held apart by their alignment, which is how a printed
-   * scorecard has always done it.
-   */
   table(options: {
     head: RowInput[];
     body: RowInput[];
-    /** Per-column overrides, keyed by column index. */
     columnStyles?: Record<string, Partial<Styles>>;
-    /** A last row set apart by a heavier rule above it — totals, extras. */
     foot?: RowInput[];
     didParseCell?: UserOptions['didParseCell'];
   }): void {
@@ -368,12 +284,14 @@ export class ReportDoc {
       body: options.body,
       foot: options.foot,
       startY: this.y,
-      margin: { left: MARGIN.left, right: MARGIN.right, top: MARGIN.top + 12, bottom: MARGIN.bottom + 26 },
+      margin: {
+        left: MARGIN.left,
+        right: MARGIN.right,
+        top: MARGIN.top + 12,
+        bottom: MARGIN.bottom + 26,
+      },
       theme: 'plain',
       tableLineWidth: 0,
-      // A fixture whose two club names wrap must not be cut in half by a page
-      // break — half a row at the foot of one page and half at the head of the
-      // next reads as a rendering fault, which is exactly what it is.
       rowPageBreak: 'avoid',
       styles: {
         font: SANS,
@@ -409,25 +327,17 @@ export class ReportDoc {
       showFoot: 'lastPage',
     });
 
-    // autoTable stashes where it finished on the document it drew into.
     const finalY = (this.pdf as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable
       ?.finalY;
     this.y = finalY ?? this.y;
   }
 
-  /**
-   * A short aside under a table — fall of wickets, a scorers list, a note about
-   * what a column means. Set small and italic so it never competes with the
-   * figures above it.
-   */
   caption(label: string, text: string): void {
     this.space(10);
 
     const { pdf } = this;
     const labelText = label.toUpperCase();
 
-    // Measured before anything is drawn, so a caption that will not fit takes
-    // its label with it to the next page rather than leaving it behind.
     pdf.setFont(SANS, 'bold');
     pdf.setFontSize(6.8);
     const indent = this.spacedTextWidth(labelText, 0.9) + 12;
@@ -450,17 +360,6 @@ export class ReportDoc {
     this.y += lines.length * 11;
   }
 
-  // ────────────────────────────────────────────────────────  finishing ──
-
-  /**
-   * Running heads and footers, painted last in one pass over every page.
-   *
-   * It has to be last for two reasons. A footer that guessed the page count
-   * would get it wrong on the one document long enough for anyone to check;
-   * and autoTable starts pages of its own without going through `newPage`, so
-   * a head drawn as pages are created would simply be missing from most of
-   * them. Walking the finished document is the only place both are knowable.
-   */
   private paintChrome(generatedAt: Date): void {
     const { pdf } = this;
     const pages = pdf.getNumberOfPages();
@@ -470,8 +369,6 @@ export class ReportDoc {
     for (let page = 1; page <= pages; page += 1) {
       pdf.setPage(page);
 
-      // Page one has the masthead; a running head above it would be saying the
-      // same thing twice, smaller.
       if (page > 1) {
         pdf.setFont(SANS, 'normal');
         pdf.setFontSize(7.5);
@@ -506,17 +403,13 @@ export class ReportDoc {
   }
 }
 
-/** What a report builder hands back: the file, and how to introduce it. */
 export interface BuiltPdf {
   blob: Blob;
   fileName: string;
-  /** The share sheet's title, and what the file is called in conversation. */
   title: string;
-  /** One sentence of accompanying text when it is shared rather than saved. */
   text: string;
 }
 
-/** A filename that sorts by date and survives every filesystem. */
 export function pdfFileName(parts: string[], date = new Date()): string {
   const slug = parts
     .join(' ')

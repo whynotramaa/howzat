@@ -7,12 +7,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Wordmark, WordmarkMark } from '@/components/Wordmark';
 import { useAuth } from './AuthProvider';
 
-/**
- * Five steps, in the order people actually meet them: sign in, or sign up and
- * confirm your email once. Nobody is asked what kind of user they are — you
- * become an organizer by creating a tournament and a scorer by being assigned to
- * a match, so the question has no answer at this point and never did.
- */
 type Step = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
 export function LoginPage() {
@@ -46,8 +40,6 @@ export function LoginPage() {
 
   const codeInputRef = useRef<HTMLInputElement>(null);
 
-  // A resend cooldown the server would enforce anyway, surfaced up front so the
-  // button explains itself rather than failing with a 429.
   useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
@@ -79,8 +71,6 @@ export function LoginPage() {
       await login({ identifier, password });
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      // An account that never confirmed its email is not a failed login — it is a
-      // signup that stopped one step short, so pick it back up there.
       if (err instanceof ApiError && err.code === 'EMAIL_UNVERIFIED') {
         const pendingEmail = (err.details as { email?: string } | undefined)?.email;
         if (pendingEmail) setEmail(pendingEmail);
@@ -131,8 +121,6 @@ export function LoginPage() {
 
   async function sendAnotherCode(target: string) {
     try {
-      // On the reset step it is a reset code that needs resending, not a
-      // verification one — different codes for different purposes.
       const result =
         step === 'reset' ? await forgotPassword(target) : await resendVerification(target);
       setDevCode(result.devCode ?? null);
@@ -212,8 +200,6 @@ export function LoginPage() {
               <TextAction
                 className="self-end"
                 onClick={() => {
-                  // Carry across whatever they typed, if it was an email —
-                  // retyping it on the next screen is pure friction.
                   if (identifier.includes('@')) setEmail(identifier);
                   goTo('forgot');
                 }}
@@ -447,11 +433,6 @@ export function LoginPage() {
   );
 }
 
-/*
- * The layout is a two-page spread: an ink leaf carrying the argument, a bone leaf
- * carrying the form. On a phone the ink leaf would only push the form below the
- * fold, so it is not rendered at all rather than stacked.
- */
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1.05fr]">
@@ -533,10 +514,6 @@ function FormFooter({
   );
 }
 
-/**
- * The six digits, set as six digits: mono, spaced, centred. A code field that
- * looks like a name field is a code field people mistype.
- */
 function CodeInput({
   value,
   onChange,
@@ -587,10 +564,6 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-/**
- * Shown while the initial silent refresh decides whether there is a session. It
- * is the brand plate and a hairline — not a spinner in the middle of nothing.
- */
 export function FullPageSpinner() {
   return (
     <div className="grid min-h-dvh place-items-center">

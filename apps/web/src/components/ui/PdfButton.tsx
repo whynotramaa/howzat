@@ -3,21 +3,6 @@ import { Button } from './Button';
 import { cn } from '@/lib/cn';
 import type { BuiltPdf } from '@/lib/pdf/doc';
 
-/**
- * Taking the record away with you.
- *
- * The label is the platform's, not ours: on a phone that can hand a file to a
- * share sheet this says "Share PDF", because sending the card into the group
- * chat is the actual task; on a desktop it says "Download PDF", because there
- * is nowhere for it to go but the disk. Naming the action after what will
- * happen is the difference between a button someone trusts and one they press
- * to find out.
- *
- * jsPDF and the report builders are a large dependency that almost nobody
- * needs on first paint, so nothing is imported until the button is pressed —
- * the whole PDF layer is a chunk that arrives on demand.
- */
-
 type State = 'idle' | 'working' | 'shared' | 'downloaded' | 'error';
 
 export function PdfButton({
@@ -29,9 +14,7 @@ export function PdfButton({
   disabledReason,
   className,
 }: {
-  /** Fetches whatever the report needs and renders it. Called on press. */
   build: () => Promise<BuiltPdf>;
-  /** Overrides the platform-derived wording, when a page needs to be specific. */
   label?: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'secondary' | 'quiet';
@@ -41,7 +24,6 @@ export function PdfButton({
 }) {
   const [state, setState] = useState<State>('idle');
   const [canShare, setCanShare] = useState(false);
-  // A press that resolves after the page has moved on must not set state.
   const alive = useRef(true);
 
   useEffect(() => {
@@ -51,9 +33,6 @@ export function PdfButton({
     };
   }, []);
 
-  // Probed rather than assumed: the answer depends on the browser *and* on
-  // whether the document is in a secure context, and getting it wrong means
-  // the label promises a share sheet that never opens.
   useEffect(() => {
     let cancelled = false;
 
@@ -85,16 +64,13 @@ export function PdfButton({
 
       if (alive.current) setState(delivery);
     } catch {
-      // The reason is almost always a failed fetch, and the recovery is the
-      // same either way: press it again once the connection is back.
       if (alive.current) setState('error');
     }
   }
 
   const wording = label ?? (canShare ? 'Share PDF' : 'Download PDF');
 
-  const confirmation =
-    state === 'shared' ? 'Shared' : state === 'downloaded' ? 'Saved' : null;
+  const confirmation = state === 'shared' ? 'Shared' : state === 'downloaded' ? 'Saved' : null;
 
   return (
     <Button

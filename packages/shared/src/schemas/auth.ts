@@ -8,13 +8,6 @@ import {
   usernameSchema,
 } from './common';
 
-/**
- * Signup is one step with one confirmation: pick a username and password, then
- * prove the email is yours with a code. After that the code never appears
- * again — sign-in is username and password, which is what people expect and
- * what works when they are standing at a ground with no signal on the phone
- * their email is on.
- */
 export const registerSchema = z.object({
   email: emailSchema,
   username: claimableUsernameSchema,
@@ -28,7 +21,6 @@ const otpCodeSchema = z
   .trim()
   .regex(/^\d{6}$/, 'Enter the 6-digit code');
 
-/** Confirms the address and signs the new account straight in. */
 export const verifyEmailSchema = z.object({
   email: emailSchema,
   code: otpCodeSchema,
@@ -41,7 +33,6 @@ export const resendVerificationSchema = z.object({
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 
 export const loginSchema = z.object({
-  /** Username or email — the server works out which. */
   identifier: loginIdentifierSchema,
   password: z.string().min(1, 'Enter your password'),
 });
@@ -53,11 +44,6 @@ export const updateProfileSchema = z.object({
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
-/**
- * Forgetting a password is the one case where the emailed code comes back, and
- * for the right reason this time: it is the only proof of identity someone
- * locked out can still offer.
- */
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
@@ -76,7 +62,6 @@ export const changePasswordSchema = z.object({
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
-/** Signup-form availability check, so a taken handle is caught before submit. */
 export const usernameAvailabilitySchema = z.object({
   username: usernameSchema,
 });

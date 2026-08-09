@@ -9,15 +9,6 @@ import type {
 } from '@howzat/shared';
 import { apiFetch } from '@/lib/api';
 
-/**
- * What a report reads from.
- *
- * Every one of these is a public endpoint, which is the point: a PDF of a match
- * is a thing people forward, and it must be buildable by whoever has the link
- * rather than only by the organizer who owns the tournament.
- */
-
-/** `/public/matches/:slug` — the header both codes share. */
 export interface PublicMatchHeader {
   id: string;
   publicSlug: string;
@@ -77,7 +68,6 @@ export interface ScorecardInnings {
   partnerships?: Array<{ runs: number; balls: number; batsmanIds: [string, string] }>;
 }
 
-/** `/public/matches/:slug/scorecard` */
 export interface ScorecardResponse {
   matchId: string;
   innings: ScorecardInnings[];
@@ -91,7 +81,6 @@ export function fetchScorecard(slug: string): Promise<ScorecardResponse> {
   return apiFetch<ScorecardResponse>(`/public/matches/${slug}/scorecard`);
 }
 
-/** Null before a ball is bowled, which the endpoint signals with a null field. */
 export async function fetchCricketSnapshot(slug: string): Promise<MatchSnapshot | null> {
   const payload = await apiFetch<MatchSnapshot | { snapshot: null }>(
     `/public/matches/${slug}/snapshot`,
@@ -111,8 +100,6 @@ export async function fetchFootballSnapshot(slug: string): Promise<FootballSnaps
 export function fetchTournamentReport(tournamentId: string): Promise<TournamentReportDto> {
   return apiFetch<TournamentReportDto>(`/public/tournaments/${tournamentId}/standings`);
 }
-
-// ──────────────────────────────────────────────────────────  wording ──
 
 export function stageLabel(stage: MatchStage, round: number): string {
   return stage === 'LEAGUE' ? `Round ${round}` : stage.replace(/_/g, ' ');

@@ -5,16 +5,6 @@ import {
 } from '@howzat/shared';
 import { cn } from '@/lib/cn';
 
-/*
- * The story of the match, as a column.
- *
- * Both sides run down one line rather than two, with the minute as the spine
- * and each incident set against the side it belongs to. Two parallel columns
- * would have read as two matches; one column with a lean is how a match report
- * actually goes — 12', 34', 45+2' — and it stays readable at phone width, which
- * two columns do not.
- */
-
 export function IncidentTimeline({
   incidents,
   homeTeamId,
@@ -22,7 +12,6 @@ export function IncidentTimeline({
   awayShort,
   emptyMessage = 'Nothing has happened yet. Goals and cards appear here as they are recorded.',
 }: {
-  /** Newest first. */
   incidents: FootballIncident[];
   homeTeamId: string;
   homeShort: string;
@@ -41,10 +30,7 @@ export function IncidentTimeline({
         return (
           <li
             key={incident.id}
-            className={cn(
-              'flex items-center gap-3.5 py-3',
-              index > 0 && 'border-t border-line',
-            )}
+            className={cn('flex items-center gap-3.5 py-3', index > 0 && 'border-t border-line')}
           >
             <span className="mono w-14 shrink-0 text-right text-[0.8125rem] text-muted tabular-nums">
               {incident.minuteLabel}
@@ -68,8 +54,7 @@ export function IncidentTimeline({
 
               {incident.kind === 'SUBSTITUTION' ? (
                 <p className="truncate text-[0.75rem] text-muted">
-                  <span className="text-alert">↓</span>{' '}
-                  {incident.playerOffName ?? 'Player off'}
+                  <span className="text-alert">↓</span> {incident.playerOffName ?? 'Player off'}
                 </p>
               ) : incident.assistPlayerName ? (
                 <p className="truncate text-[0.75rem] text-muted">
@@ -95,10 +80,6 @@ export function IncidentTimeline({
   );
 }
 
-/**
- * The icon. A card is drawn as a card and a goal as a filled disc — the two
- * things a football graphic can assume everyone already reads without a key.
- */
 function Mark({ kind }: { kind: FootballEventKind }) {
   if (kind === 'YELLOW_CARD' || kind === 'RED_CARD') {
     return (
@@ -115,15 +96,23 @@ function Mark({ kind }: { kind: FootballEventKind }) {
   if (kind === 'SUBSTITUTION') {
     return (
       <span aria-hidden className="grid size-4 shrink-0 place-items-center text-secondary">
-        <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.5}>
-          <path d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          viewBox="0 0 16 16"
+          className="size-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
+          <path
+            d="M2 5h9M9 3l2 2-2 2M14 11H5m2-2-2 2 2 2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
     );
   }
 
-  // A save is a shot kept out, so it is drawn as an outlined ring against the
-  // goal's filled disc — the two read as opposites at a glance.
   if (kind === 'SAVE') {
     return (
       <span

@@ -3,16 +3,6 @@ import { ReportDoc, pdfFileName, type BuiltPdf } from './doc';
 import { ACCENT, ALERT, INK, MUTED, SECONDARY, SUCCESS } from './theme';
 import { fetchTournamentReport, formatWhen, stageLabel } from './sources';
 
-/**
- * A tournament as a printed record: the table, every result, and everything
- * still to be played.
- *
- * The three sections are deliberately separate rather than one fixture list
- * sorted by date. A league is read for three different reasons — where we
- * finished, what happened, and when we play next — and interleaving them makes
- * a reader scan the whole document to answer any one of them.
- */
-
 export async function buildTournamentPdf(tournamentId: string): Promise<BuiltPdf> {
   return renderTournamentPdf(await fetchTournamentReport(tournamentId));
 }
@@ -68,15 +58,6 @@ export function renderTournamentPdf(report: TournamentReportDto): BuiltPdf {
   };
 }
 
-// ───────────────────────────────────────────────────────────  standings ──
-
-/**
- * The whole table, both codes' columns included rather than the reduced
- * five-column version the public board used to show. The tie-breaker's inputs
- * are printed alongside it on purpose: every disputed table in club sport is a
- * disputed tie-breaker, and the argument ends when the runs and overs, or the
- * goals for and against, are on the same page as the number they produced.
- */
 function renderStandings(doc: ReportDoc, items: StandingsRowDto[], isFootball: boolean): void {
   doc.heading('Standings', 'Points table', `${items.length} sides`);
 
@@ -159,8 +140,6 @@ function renderStandings(doc: ReportDoc, items: StandingsRowDto[], isFootball: b
       const row = items[data.row.index];
       if (!row) return;
 
-      // The signed tie-breaker keeps its sign *and* its colour: a −0.42 and a
-      // +0.42 are the difference between qualifying and going home.
       if (data.column.index === marginColumn) {
         const margin = isFootball ? row.goalDifference : row.nrr;
         data.cell.styles.textColor = margin > 0 ? SUCCESS : margin < 0 ? ALERT : SECONDARY;
@@ -178,16 +157,8 @@ function renderStandings(doc: ReportDoc, items: StandingsRowDto[], isFootball: b
   );
 }
 
-// ─────────────────────────────────────────────────────────────  results ──
-
-function renderResults(
-  doc: ReportDoc,
-  matches: TournamentMatchDto[],
-  isFootball: boolean,
-): void {
-  const played = matches.filter((match) =>
-    ['COMPLETED', 'ABANDONED'].includes(match.status),
-  );
+function renderResults(doc: ReportDoc, matches: TournamentMatchDto[], isFootball: boolean): void {
+  const played = matches.filter((match) => ['COMPLETED', 'ABANDONED'].includes(match.status));
 
   doc.heading('Results', 'Matches played', `${played.length} played`);
 
@@ -221,8 +192,6 @@ function renderResults(
   });
 }
 
-// ────────────────────────────────────────────────────────────────  live ──
-
 function renderLive(doc: ReportDoc, matches: TournamentMatchDto[], isFootball: boolean): void {
   const live = matches.filter((match) => ['LIVE', 'INNINGS_BREAK'].includes(match.status));
   if (live.length === 0) return;
@@ -250,8 +219,6 @@ function renderLive(doc: ReportDoc, matches: TournamentMatchDto[], isFootball: b
     'These scores were correct when this report was generated and will have moved on since.',
   );
 }
-
-// ────────────────────────────────────────────────────────────  upcoming ──
 
 function renderUpcoming(doc: ReportDoc, matches: TournamentMatchDto[]): void {
   const upcoming = matches.filter((match) => ['SCHEDULED', 'TOSS'].includes(match.status));
@@ -283,17 +250,10 @@ function renderUpcoming(doc: ReportDoc, matches: TournamentMatchDto[]): void {
   });
 }
 
-// ────────────────────────────────────────────────────────────  wording ──
-
 function fixtureLine(match: TournamentMatchDto): string {
   return `${match.team1?.name ?? 'TBD'} v ${match.team2?.name ?? 'TBD'}`;
 }
 
-/**
- * "165/6 (20.0) — 142/9 (20.0)" in cricket, "2 – 1" in football. A fixture with
- * no score at all says so rather than printing a pair of dashes that look like
- * a nil-nil.
- */
 function scoreLine(match: TournamentMatchDto, isFootball: boolean): string {
   if (!match.score) return 'Not scored';
 

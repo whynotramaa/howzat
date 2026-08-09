@@ -17,9 +17,6 @@ import { toTournamentDto } from './serialize';
 
 export const tournamentsRouter = Router();
 
-// Any signed-in account may create a tournament — doing so is what makes them
-// its organizer. Every read and write below is scoped to the caller's own
-// data, either by organizerId or by loadOwnedTournament.
 tournamentsRouter.use(requireAuth);
 
 tournamentsRouter.get(
@@ -101,8 +98,6 @@ tournamentsRouter.patch(
       }
     }
 
-    // Changing overs or format after fixtures exist would silently invalidate
-    // matches that already carry a copy of oversPerInnings.
     if (
       existing.status !== 'DRAFT' &&
       (input.format !== undefined ||
@@ -142,8 +137,6 @@ tournamentsRouter.delete(
   }),
 );
 
-// ────────────────────────────────────────────── teams within one ──
-
 tournamentsRouter.get(
   '/:tournamentId/teams',
   asyncHandler(async (req, res) => {
@@ -156,8 +149,6 @@ tournamentsRouter.get(
       include: { _count: { select: { players: true } } },
     });
 
-    // playerCount + isEligible travel with every team so the UI can show
-    // "9/11 players" as progress instead of failing at submit time.
     const items: TeamDto[] = teams.map((team) =>
       toTeamDto(
         team,
@@ -204,12 +195,14 @@ tournamentsRouter.post(
       },
     });
 
-    res.status(201).json(
-      toTeamDto(
-        team,
-        evaluateEligibility(team.id, 0, tournament.playersPerTeam, tournament.sport),
-        tournament.sport,
-      ),
-    );
+    res
+      .status(201)
+      .json(
+        toTeamDto(
+          team,
+          evaluateEligibility(team.id, 0, tournament.playersPerTeam, tournament.sport),
+          tournament.sport,
+        ),
+      );
   }),
 );
