@@ -124,6 +124,18 @@ immediately, rather than a replay from ball one.
 - **The bowled-out rule.** A side dismissed inside its quota is charged the
   **full quota** of overs for NRR, not the balls it actually faced. There is a
   regression test proving the rule changes the answer.
+- **DLS is derived, never stored.** The scorer records stoppages — overs left,
+  wickets down, overs left on resumption — and the allotments, the par score
+  and the revised target are recomputed from that list every time it changes.
+  A stoppage typed wrong can be deleted and the match returns to exactly where
+  it would have been. The resource table is the ICC's published Standard
+  Edition; the Professional Edition is a licensed program nobody outside the
+  licence can reimplement, and the Standard Edition is what the playing
+  conditions themselves fall back to when it is not at the ground.
+- **A DLS result changes NRR, not just the scoreboard.** The side batting first
+  is deemed to have scored the par score off the chasing side's overs, per the
+  ICC rule — charging it the runs it happened to make off the overs it happened
+  to face would punish it for a chase that never ran its course.
 - **The points table is recomputed, never incremented.** Every
   `match:completed` rebuilds the tournament from the event log in one
   transaction. Costlier than an increment, and it buys idempotency: replaying
@@ -335,6 +347,8 @@ packages/shared/   types, zod schemas, constants — one contract for both apps
   src/fixtures/circle.ts   round-robin by the circle method (pure, no DB)
   src/fixtures/knockout.ts the four-slot playoff bracket, filled as feeders end
   src/nrr/index.ts         points + NRR, incl. the bowled-out quota rule (pure)
+  src/dls/table.ts         the ICC Standard Edition resource table, unabridged
+  src/dls/index.ts         resources, par and revised targets (pure)
   src/qualification/       bounded "can we still qualify" scenarios (pure)
   src/stats/career.ts      career totals from per-match rows (pure)
 

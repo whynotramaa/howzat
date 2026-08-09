@@ -24,6 +24,7 @@ import {
   writeSnapshot,
 } from '../snapshot';
 import { closeInnings } from '../matches/lifecycle';
+import { dlsSnapshotFor } from '../dls/service';
 
 export interface BallResult {
   snapshot: MatchSnapshot;
@@ -163,7 +164,7 @@ export async function recordBall(
     }
 
     const nextState = buildState(context, [...events, toBallEvent(created)]);
-    const snapshot = buildSnapshot(match, nextState, context);
+    const snapshot = buildSnapshot(match, nextState, context, await dlsSnapshotFor(matchId));
 
     let matchCompleted = false;
 
@@ -180,6 +181,10 @@ export async function recordBall(
         snapshot.status = refreshed.status;
         snapshot.resultText = refreshed.resultText;
       }
+
+      // Closing the first innings creates the chase, which is the moment the
+      // revised target exists — so the snapshot has to be told again.
+      snapshot.dls = await dlsSnapshotFor(matchId);
 
       void publishMatchEvent('innings:complete', {
         matchId,
@@ -371,5 +376,9 @@ async function project(
   const events = await loadEvents(inningsId);
   const state = buildState(context, events);
 
-  return { state, context, snapshot: buildSnapshot(match, state, context) };
+  return {
+    state,
+    context,
+    snapshot: buildSnapshot(match, state, context, await dlsSnapshotFor(match.id)),
+  };
 }

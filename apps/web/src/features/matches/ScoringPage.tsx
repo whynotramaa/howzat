@@ -4,11 +4,13 @@ import {
   formatOvers,
   applyBall,
   isLegalDelivery,
+  quotaBalls,
   validateBall,
   WICKET_TYPES,
   type BallRequestInput,
   type BallEvent,
   type BallSummary,
+  type DlsParPosition,
   type ExtraType,
   type InningsContext,
   type MatchState,
@@ -25,7 +27,14 @@ import { BallChip, LeaderRow, OversFigure, OverStrip, ScoreFigure } from '@/comp
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { cn } from '@/lib/cn';
-import { useRecordBall, useResumeInnings, useScorerState, useUndoBall } from './queries';
+import { DlsSheet } from './DlsSheet';
+import {
+  useDlsState,
+  useRecordBall,
+  useResumeInnings,
+  useScorerState,
+  useUndoBall,
+} from './queries';
 import { useOfflineBallQueue } from './useOfflineBallQueue';
 
 export function ScoringPage() {
@@ -40,12 +49,17 @@ export function ScoringPage() {
     [recordBall.mutateAsync],
   );
   const queue = useOfflineBallQueue(matchId, submitBall);
+  const dls = useDlsState(matchId);
+  const [dlsOpen, setDlsOpen] = useState(false);
 
   if (scorer.isPending) return <SkeletonCard rows={6} />;
   if (scorer.error) return <ErrorText error={scorer.error} />;
   if (!scorer.data) return null;
 
   const { match, state, context, innings, previousOverBowlerId } = scorer.data;
+
+  const dlsApplied = dls.data?.applied ?? false;
+  const matchClosed = match.status === 'COMPLETED' || match.status === 'ABANDONED';
 
   const header = (
     <div className="flex flex-col gap-6">
@@ -55,7 +69,19 @@ export function ScoringPage() {
         </BackLink>
 
         <div className="flex items-center gap-2.5">
+          {dlsApplied ? <Pill tone="warning">DLS</Pill> : null}
           <Pill tone="accent">Scoring console</Pill>
+
+          {matchClosed ? null : (
+            <button
+              type="button"
+              onClick={() => setDlsOpen(true)}
+              className="text-[0.6875rem] tracking-[0.08em] text-muted uppercase transition-colors hover:text-primary"
+            >
+              {dlsApplied ? 'Rain' : 'DLS'}
+            </button>
+          )}
+
           <ShareLink
             slug={match.publicSlug}
             variant="quiet"
@@ -64,6 +90,15 @@ export function ScoringPage() {
         </div>
       </div>
       <div className="rule" />
+
+      <DlsSheet
+        open={dlsOpen}
+        onClose={() => setDlsOpen(false)}
+        matchId={matchId}
+        state={state}
+        context={context}
+        inningsNumber={innings?.number ?? 1}
+      />
     </div>
   );
 
@@ -88,7 +123,9 @@ export function ScoringPage() {
     return (
       <div className="flex flex-col gap-8">
         {header}
-        {state && context ? <ScorePanel state={state} context={context} /> : null}
+        {state && context ? (
+          <ScorePanel state={state} context={context} par={dls.data?.par ?? null} />
+        ) : null}
 
         <Card>
           <CardBody className="flex flex-col items-center gap-5 py-14 text-center">
@@ -147,6 +184,7 @@ export function ScoringPage() {
         key={context.inningsId}
         optimisticState={optimistic.state}
         context={context}
+        par={dls.data?.par ?? null}
         matchStatus={match.status}
         previousOverBowlerId={optimistic.previousOverBowlerId}
         isSaving={recordBall.isPending || undo.isPending}
@@ -171,6 +209,7 @@ interface Crease {
 interface ConsoleProps {
   optimisticState: MatchState;
   context: InningsContext;
+  par: DlsParPosition | null;
   matchStatus: string;
   previousOverBowlerId: string | null;
   isSaving: boolean;
@@ -230,6 +269,7 @@ function foldQueuedBalls(
 function Console({
   optimisticState,
   context,
+  par,
   matchStatus,
   previousOverBowlerId,
   isSaving,
@@ -380,7 +420,7 @@ function Console({
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)_17rem]">
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-        <ScorePanel state={displayState} context={context} isSaving={isSaving} />
+        <ScorePanel state={displayState} context={context} isSaving={isSaving} par={par} />
         <CreaseCard
           state={displayState}
           context={context}
@@ -550,12 +590,15 @@ function ScorePanel({
   state,
   context,
   isSaving = false,
+  par = null,
 }: {
   state: MatchState;
   context: InningsContext;
   isSaving?: boolean;
+  par?: DlsParPosition | null;
 }) {
-  const ballsRemaining = context.oversQuota * 6 - state.legalBalls;
+  const quota = quotaBalls(context);
+  const ballsRemaining = quota - state.legalBalls;
   const runsNeeded = context.targetRuns !== null ? context.targetRuns - state.runs : null;
   const runRate = state.legalBalls > 0 ? (state.runs * 6) / state.legalBalls : 0;
 
@@ -588,7 +631,7 @@ function ScorePanel({
           <div className="text-right">
             <OversFigure
               overs={formatOvers(state.legalBalls)}
-              quota={context.oversQuota}
+              quotaLabel={formatOvers(quota)}
               tone="inverse"
             />
             <p className="eyebrow mt-2 text-muted-on-inverse">Overs</p>
@@ -606,6 +649,17 @@ function ScorePanel({
           <p className="mt-5 rounded-[var(--radius-sm)] border border-[var(--accent)]/40 px-4 py-3 text-[0.9375rem] text-on-inverse">
             Need <span className="mono">{runsNeeded}</span> from{' '}
             <span className="mono">{ballsRemaining}</span> balls
+          </p>
+        ) : null}
+
+        {par ? (
+          <p className="mono mt-3 text-[0.8125rem] text-muted-on-inverse">
+            DLS par <span className="text-on-inverse">{par.parScore}</span> ·{' '}
+            {par.difference === 0
+              ? 'level'
+              : par.difference > 0
+                ? `${par.difference} ahead`
+                : `${Math.abs(par.difference)} behind`}
           </p>
         ) : null}
       </div>

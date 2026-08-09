@@ -13,6 +13,8 @@ export interface InningsResult {
   runs: number;
   legalBalls: number;
   oversQuota: number;
+  /** The allotment to the ball where DLS revised it. Falls back to the overs. */
+  ballsQuota?: number | null;
   endReason: InningsEndReason | null;
 }
 
@@ -22,6 +24,31 @@ export interface MatchResult {
   innings: InningsResult[];
   winnerTeamId: string | null;
   noResult: boolean;
+  /** Set only where DLS decided the match — see `nrrInnings`. */
+  dls?: { parScore: number } | null;
+}
+
+/**
+ * The innings figures a DLS-decided match contributes to net run rate.
+ *
+ * Charging the side batting first with the runs it happened to make off the
+ * overs it happened to face would punish it for a chase that never ran its
+ * course, so the ICC substitutes the par score: the side batting first is
+ * deemed to have scored par off the same overs the chasing side is charged
+ * with. Par is by construction the score that ties over exactly those overs,
+ * which is what makes the two rows comparable.
+ *
+ * Every other match is returned untouched.
+ */
+export function nrrInnings(match: MatchResult): InningsResult[] {
+  const par = match.dls?.parScore;
+  const [first, second] = match.innings;
+
+  if (par === undefined || par === null || !first || !second) return match.innings;
+
+  const balls = chargeableBalls(second);
+
+  return [{ ...first, runs: par, legalBalls: balls, endReason: null }, second];
 }
 
 export interface TeamTotals {
@@ -41,7 +68,7 @@ export interface TeamTotals {
 
 export function chargeableBalls(innings: InningsResult): number {
   if (innings.endReason === 'ALL_OUT') {
-    return innings.oversQuota * BALLS_PER_OVER;
+    return innings.ballsQuota ?? innings.oversQuota * BALLS_PER_OVER;
   }
 
   return innings.legalBalls;
@@ -100,7 +127,7 @@ export function aggregateStandings(teamIds: string[], matches: MatchResult[]): T
       loser.points += POINTS_LOSS;
     }
 
-    for (const innings of match.innings) {
+    for (const innings of nrrInnings(match)) {
       const batting = totals.get(innings.battingTeamId);
       const bowling = totals.get(innings.bowlingTeamId);
       if (!batting || !bowling) continue;

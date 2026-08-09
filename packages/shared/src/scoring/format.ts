@@ -10,6 +10,15 @@ export function ballsToOvers(balls: number): number {
   return balls / BALLS_PER_OVER;
 }
 
+/**
+ * The ball count an innings runs to. DLS can leave an innings owing a part-over
+ * — 40.3, not 40 — so a revised `ballsQuota` wins over the whole-over figure
+ * wherever one has been set.
+ */
+export function quotaBalls(innings: { oversQuota: number; ballsQuota?: number | null }): number {
+  return innings.ballsQuota ?? innings.oversQuota * BALLS_PER_OVER;
+}
+
 export function runRate(runs: number, balls: number): number {
   if (balls === 0) return 0;
   return round2(runs / ballsToOvers(balls));

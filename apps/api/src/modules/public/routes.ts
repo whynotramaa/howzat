@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { buildState, formatOvers, bowlingFigures } from '@howzat/shared';
+import { buildState, formatOvers, bowlingFigures, quotaBalls } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
 import { redis } from '../../lib/redis';
 import { asyncHandler, requireParam } from '../../lib/http';
@@ -204,6 +204,10 @@ publicRouter.get(
           runs: state.runs,
           wickets: state.wickets,
           overs: formatOvers(state.legalBalls),
+          // The allotment this innings actually ran to, which DLS may have cut
+          // below the scheduled figure on the match header.
+          quotaOvers: formatOvers(quotaBalls(context)),
+          targetRuns: context.targetRuns,
           extras: state.extras,
           batting: Object.values(state.batsmen)
             .sort((a, b) => a.position - b.position)

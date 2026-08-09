@@ -2,10 +2,12 @@ import {
   buildState,
   economy,
   formatOvers,
+  quotaBalls,
   requiredRunRate,
   runRate,
   strikeRate,
   type BallEvent,
+  type DlsSnapshot,
   type InningsContext,
   type MatchState,
   type MatchSnapshot,
@@ -18,6 +20,22 @@ import { notFound } from '../../lib/errors';
 const SNAPSHOT_TTL_SECONDS = 60 * 60 * 6;
 
 export const snapshotKey = (matchId: string) => `match:${matchId}`;
+
+/**
+ * How a rebuilt snapshot finds its DLS block.
+ *
+ * The DLS module reads snapshots, so it cannot be imported from here without
+ * tying the two together in a knot. It registers itself at startup instead —
+ * the same trick the realtime bus uses for its publisher — and a build with no
+ * DLS module attached simply reports no DLS, which is the truth.
+ */
+type DlsSnapshotResolver = (matchId: string) => Promise<DlsSnapshot | null>;
+
+let resolveDlsSnapshot: DlsSnapshotResolver = async () => null;
+
+export function setDlsSnapshotResolver(resolver: DlsSnapshotResolver): void {
+  resolveDlsSnapshot = resolver;
+}
 
 export async function loadInningsContext(inningsId: string): Promise<InningsContext> {
   const innings = await prisma.innings.findUnique({
@@ -60,6 +78,7 @@ export async function loadInningsContext(inningsId: string): Promise<InningsCont
       primaryColor: innings.bowlingTeam.primaryColor,
     },
     oversQuota: innings.oversQuota,
+    ballsQuota: innings.ballsQuota,
     targetRuns: innings.targetRuns,
     battingXI: squadFor(innings.battingTeamId),
     bowlingXI: squadFor(innings.bowlingTeamId),
@@ -140,8 +159,10 @@ export function buildSnapshot(
   },
   state: MatchState,
   context: InningsContext,
+  dls: DlsSnapshot | null = null,
 ): MatchSnapshot {
-  const ballsRemaining = context.oversQuota * 6 - state.legalBalls;
+  const quota = quotaBalls(context);
+  const ballsRemaining = quota - state.legalBalls;
   const runsNeeded = context.targetRuns !== null ? context.targetRuns - state.runs : null;
 
   const atCrease = [state.strikerId, state.nonStrikerId]
@@ -168,6 +189,7 @@ export function buildSnapshot(
       balls: state.legalBalls,
       runRate: runRate(state.runs, state.legalBalls),
       oversQuota: context.oversQuota,
+      quotaOvers: formatOvers(quota),
     },
 
     bowling: {
@@ -215,6 +237,7 @@ export function buildSnapshot(
     extras: state.extras,
     fallOfWickets: state.fallOfWickets,
     resultText: match.resultText,
+    dls,
     lastEventSeq: state.lastEventSeq,
     updatedAt: new Date().toISOString(),
   };
@@ -282,7 +305,7 @@ export async function rebuildSnapshot(matchId: string): Promise<MatchSnapshot | 
   if (!innings) return null;
 
   const { state, context } = await rebuildState(innings.id);
-  const snapshot = buildSnapshot(match, state, context);
+  const snapshot = buildSnapshot(match, state, context, await resolveDlsSnapshot(matchId));
 
   await writeSnapshot(snapshot);
 

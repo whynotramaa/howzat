@@ -1,5 +1,6 @@
 import {
   PLAYERS_PER_TEAM,
+  quotaBalls,
   type MatchState,
   type PlayingXiInput,
   type TossInput,
@@ -9,6 +10,7 @@ import { prisma } from '../../lib/prisma';
 import { notFound, unprocessable } from '../../lib/errors';
 import { assertTeamEligible } from '../teams/eligibility';
 import { publishMatchEvent } from '../../realtime/bus';
+import { applyDlsRevision } from '../dls/service';
 
 export async function loadMatchOrThrow(matchId: string) {
   const match = await prisma.match.findUnique({
@@ -208,7 +210,9 @@ export async function closeInnings(
         number: 2,
         battingTeamId: innings.bowlingTeamId,
         bowlingTeamId: innings.battingTeamId,
+        // The chase gets whatever the first innings ended up with, to the ball.
         oversQuota: innings.oversQuota,
+        ballsQuota: innings.ballsQuota,
         targetRuns: state.runs + 1,
       },
     });
@@ -217,6 +221,10 @@ export async function closeInnings(
       where: { id: innings.matchId },
       data: { status: 'INNINGS_BREAK' },
     });
+
+    // Now that there is a first-innings score and a chase to scale, DLS has a
+    // target to set — and it overwrites the plain "one more than they made".
+    if (innings.match.dlsApplied) await applyDlsRevision(innings.matchId);
 
     return { matchCompleted: false, nextInningsId: next.id };
   }
@@ -240,33 +248,50 @@ export async function completeMatch(matchId: string, secondInningsState: MatchSt
 
   const target = second.targetRuns ?? 0;
   const chasingRuns = secondInningsState.runs;
-  const firstInningsRuns = target - 1;
+
+  // Under DLS this is the par score rather than the first innings total, which
+  // is exactly the figure a losing margin should be measured against.
+  const parScore = target - 1;
 
   const chasingTeam = teamById(match, second.battingTeamId);
   const defendingTeam = teamById(match, second.bowlingTeamId);
+
+  // A chase that ran its course against a revised target was still decided by
+  // DLS, and the scorecard has to say so — but only if the weather actually
+  // took something. A scorer who armed DLS against a forecast that never
+  // arrived has played an ordinary match, and calling it a DLS result would
+  // also hand net run rate the par-score substitution it must not have here.
+  const stoppages = await prisma.dlsInterruption.count({ where: { matchId } });
+  const byDls = match.dlsApplied && stoppages > 0;
+  const method = byDls ? ' (DLS method)' : '';
 
   let winnerTeamId: string | null = null;
   let resultText: string;
 
   if (chasingRuns >= target) {
     const wicketsLeft = PLAYERS_PER_TEAM - 1 - secondInningsState.wickets;
-    const ballsLeft = second.oversQuota * 6 - secondInningsState.legalBalls;
+    const ballsLeft = quotaBalls(second) - secondInningsState.legalBalls;
 
     winnerTeamId = second.battingTeamId;
     resultText =
-      `${chasingTeam} won by ${wicketsLeft} wicket${wicketsLeft === 1 ? '' : 's'}` +
+      `${chasingTeam} won by ${wicketsLeft} wicket${wicketsLeft === 1 ? '' : 's'}${method}` +
       (ballsLeft > 0 ? ` with ${ballsLeft} ball${ballsLeft === 1 ? '' : 's'} to spare` : '');
-  } else if (chasingRuns === firstInningsRuns) {
-    resultText = 'Match tied';
+  } else if (chasingRuns === parScore) {
+    resultText = `Match tied${method}`;
   } else {
-    const margin = firstInningsRuns - chasingRuns;
+    const margin = parScore - chasingRuns;
     winnerTeamId = second.bowlingTeamId;
-    resultText = `${defendingTeam} won by ${margin} run${margin === 1 ? '' : 's'}`;
+    resultText = `${defendingTeam} won by ${margin} run${margin === 1 ? '' : 's'}${method}`;
   }
 
   const updated = await prisma.match.update({
     where: { id: matchId },
-    data: { status: 'COMPLETED', winnerTeamId, resultText },
+    data: {
+      status: 'COMPLETED',
+      winnerTeamId,
+      resultText,
+      ...(byDls ? { decidedByDls: true, dlsParScore: parScore } : {}),
+    },
   });
 
   await publishMatchEvent('match:completed', {

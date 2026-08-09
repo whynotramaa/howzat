@@ -46,6 +46,9 @@ export function attachRealtime(server: HttpServer): MatchServer {
         case 'match:completed':
           room.emit('match:completed', envelope.payload);
           break;
+        case 'match:dls':
+          room.emit('match:dls', envelope.payload);
+          break;
         case 'football:event':
           room.emit('football:event', envelope.payload);
           break;

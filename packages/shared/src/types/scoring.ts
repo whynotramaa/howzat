@@ -1,4 +1,5 @@
 import type { ExtraType, InningsEndReason, WicketType, BallEventType } from './enums';
+import type { DlsSnapshot } from './dls';
 
 export interface PlayerRef {
   id: string;
@@ -46,6 +47,12 @@ export interface InningsContext {
   battingTeam: TeamRef;
   bowlingTeam: TeamRef;
   oversQuota: number;
+  /**
+   * The allotment to the ball. Absent unless DLS has revised the innings, since
+   * `oversQuota * 6` says the same thing for every innings the weather left
+   * alone. Read it through `quotaBalls()` rather than directly.
+   */
+  ballsQuota?: number | null;
   targetRuns: number | null;
   battingXI: PlayerRef[];
   bowlingXI: PlayerRef[];
@@ -141,6 +148,8 @@ export interface MatchState {
 
   targetRuns: number | null;
   oversQuota: number;
+  /** Always resolved — the ball count the innings actually runs to. */
+  ballsQuota: number;
   lastEventSeq: number;
 }
 
@@ -160,6 +169,8 @@ export interface MatchSnapshot {
     balls: number;
     runRate: number;
     oversQuota?: number;
+    /** The allotment as cricket writes it — "40.3" after a mid-over stoppage. */
+    quotaOvers?: string;
   };
   bowling: { teamId: string; name: string; short: string; color: string };
   target: number | null;
@@ -188,6 +199,8 @@ export interface MatchSnapshot {
   extras: ExtrasBreakdown;
   fallOfWickets: FallOfWicket[];
   resultText: string | null;
+  /** Null unless a scorer has turned DLS on for this match. */
+  dls: DlsSnapshot | null;
   lastEventSeq: number;
   updatedAt: string;
 }

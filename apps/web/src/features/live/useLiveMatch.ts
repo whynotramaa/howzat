@@ -108,6 +108,19 @@ export function useLiveMatch(slug: string): LiveMatch {
       if (payload.matchId === id) void fetchSnapshot();
     });
 
+    // A DLS revision moves the target without bowling a ball, so the sequence
+    // number has not changed and `applySnapshot` would discard it as stale.
+    socket.on('match:dls', (payload) => {
+      if (payload.matchId !== id) return;
+
+      if (payload.snapshot) {
+        latest.current = payload.snapshot;
+        setSnapshot(payload.snapshot);
+      } else {
+        void fetchSnapshot();
+      }
+    });
+
     socket.on('joined', (payload) => setViewers(payload.viewers));
     socket.on('viewers', (payload) => {
       if (payload.matchId === id) setViewers(payload.count);
@@ -120,6 +133,7 @@ export function useLiveMatch(slug: string): LiveMatch {
       socket.off('ball');
       socket.off('innings:complete');
       socket.off('match:completed');
+      socket.off('match:dls');
       socket.off('joined');
       socket.off('viewers');
     };

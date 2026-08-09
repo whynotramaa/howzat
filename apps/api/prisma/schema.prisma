@@ -1,6 +1,5 @@
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -9,7 +8,6 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-
 
 enum Sport {
   CRICKET
@@ -67,6 +65,7 @@ enum InningsEndReason {
   ALL_OUT
   OVERS_COMPLETE
   TARGET_CHASED
+  DLS_TERMINATED
 }
 
 enum BallEventType {
@@ -93,7 +92,6 @@ enum WicketType {
   OBSTRUCTING_FIELD
 }
 
-
 enum FootballEventKind {
   GOAL
   OWN_GOAL
@@ -116,22 +114,22 @@ enum ClockStatus {
   FINISHED
 }
 
-
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  username     String    @unique
-  name         String
-  passwordHash String
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  name            String
+  passwordHash    String
   emailVerifiedAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   tournaments       Tournament[]
   scorerAssignments ScorerAssignment[] @relation("AssignedScorer")
   assignmentsMade   ScorerAssignment[] @relation("AssignedBy")
   ballEvents        BallEvent[]
   footballEvents    FootballEvent[]
+  dlsInterruptions  DlsInterruption[]  @relation("DlsAuthor")
   refreshTokens     RefreshToken[]
   playerProfiles    Player[]
   notifications     Notification[]
@@ -145,12 +143,12 @@ enum NotificationType {
 }
 
 model Notification {
-  id      String           @id @default(cuid())
-  userId  String
-  type    NotificationType
-  title   String
-  body    String
-  link    String?
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType
+  title  String
+  body   String
+  link   String?
 
   tournamentId String?
   teamId       String?
@@ -201,7 +199,6 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-
 model Tournament {
   id               String           @id @default(cuid())
   organizerId      String
@@ -214,13 +211,13 @@ model Tournament {
   doubleRoundRobin Boolean          @default(false)
   status           TournamentStatus @default(DRAFT)
 
-  periods          Int              @default(2)
-  periodMinutes    Int              @default(45)
+  periods       Int @default(2)
+  periodMinutes Int @default(45)
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  organizer   User         @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizer   User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   teams       Team[]
   matches     Match[]
   pointsTable PointsTable[]
@@ -238,16 +235,16 @@ model Team {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tournament   Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  players      Player[]
-  matchesAsOne Match[]       @relation("Team1")
-  matchesAsTwo Match[]       @relation("Team2")
-  matchesWon   Match[]       @relation("MatchWinner")
-  tossesWon    Match[]       @relation("TossWinner")
-  matchPlayers MatchPlayer[]
-  battingInnings Innings[]   @relation("BattingTeam")
-  bowlingInnings Innings[]   @relation("BowlingTeam")
-  pointsRows   PointsTable[]
+  tournament     Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players        Player[]
+  matchesAsOne   Match[]         @relation("Team1")
+  matchesAsTwo   Match[]         @relation("Team2")
+  matchesWon     Match[]         @relation("MatchWinner")
+  tossesWon      Match[]         @relation("TossWinner")
+  matchPlayers   MatchPlayer[]
+  battingInnings Innings[]       @relation("BattingTeam")
+  bowlingInnings Innings[]       @relation("BowlingTeam")
+  pointsRows     PointsTable[]
   footballEvents FootballEvent[] @relation("FootballEventTeam")
 
   @@unique([tournamentId, name])
@@ -267,8 +264,8 @@ model Player {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team         Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   matchPlayers MatchPlayer[]
   matchStats   PlayerMatchStats[]
 
@@ -278,9 +275,9 @@ model Player {
   ballsAtOther BallEvent[] @relation("NonStriker")
   ballsBowled  BallEvent[] @relation("Bowler")
 
-  goalsScored  FootballEvent[] @relation("FootballScorer")
-  assists      FootballEvent[] @relation("FootballAssist")
-  subbedOff    FootballEvent[] @relation("FootballSubbedOff")
+  goalsScored FootballEvent[] @relation("FootballScorer")
+  assists     FootballEvent[] @relation("FootballAssist")
+  subbedOff   FootballEvent[] @relation("FootballSubbedOff")
 
   @@unique([teamId, userId])
   @@unique([teamId, username])
@@ -290,10 +287,10 @@ model Player {
 }
 
 model PlayerMatchStats {
-  id       String @id @default(cuid())
-  matchId  String
-  playerId String
-  teamId   String
+  id           String @id @default(cuid())
+  matchId      String
+  playerId     String
+  teamId       String
   tournamentId String
 
   batted     Boolean @default(false)
@@ -324,7 +321,6 @@ model PlayerMatchStats {
   @@map("player_match_stats")
 }
 
-
 model Match {
   id              String        @id @default(cuid())
   tournamentId    String
@@ -344,6 +340,16 @@ model Match {
   periodMinutes   Int?
   // Changes allowed per side. Null is futsal's rolling, unlimited bench.
   subLimit        Int?
+  // Duckworth-Lewis-Stern. Off until a scorer turns it on, because a match that
+  // never saw rain should carry no trace of it.
+  dlsApplied      Boolean       @default(false)
+  // The average 50-over score for this level of cricket. Only consulted when
+  // the chasing side ends up with more resource than the side batting first.
+  dlsG50          Int?
+  // The par score the result was read off, kept so a completed match can
+  // explain itself without recomputing the table.
+  dlsParScore     Int?
+  decidedByDls    Boolean       @default(false)
   winnerTeamId    String?
   resultText      String?
   publicSlug      String        @unique
@@ -363,6 +369,7 @@ model Match {
   playerStats       PlayerMatchStats[]
   footballEvents    FootballEvent[]
   clock             MatchClock?
+  dlsInterruptions  DlsInterruption[]
 
   @@index([tournamentId, round])
   @@index([status])
@@ -412,6 +419,10 @@ model Innings {
   battingTeamId String
   bowlingTeamId String
   oversQuota    Int
+  // The allotment to the ball. Null everywhere DLS has not been applied, where
+  // oversQuota * 6 says the same thing; set when a stoppage mid-over leaves an
+  // innings owing something like 40.3 overs, which whole overs cannot hold.
+  ballsQuota    Int?
   targetRuns    Int?
   status        InningsStatus     @default(IN_PROGRESS)
   endReason     InningsEndReason?
@@ -428,15 +439,41 @@ model Innings {
   @@map("innings")
 }
 
+/// One stoppage, as an ICC scorer writes it on the DLS worksheet: what was left
+/// to bowl when the players walked off, how many were down, and what was left
+/// when they came back. A delayed start is a stoppage before a ball is bowled;
+/// an innings called off for good is one that resumes with nothing left.
+///
+/// The revised target is never stored as an input — it is recomputed from this
+/// list every time the list changes, so a mistyped stoppage can be deleted and
+/// the match returns to exactly where it would have been.
+model DlsInterruption {
+  id                         String   @id @default(cuid())
+  matchId                    String
+  inningsNumber              Int
+  ballsRemainingAtSuspension Int
+  wicketsLost                Int
+  ballsRemainingOnResumption Int
+  reason                     String?
+  createdBy                  String
+  createdAt                  DateTime @default(now())
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  author User  @relation("DlsAuthor", fields: [createdBy], references: [id])
+
+  @@index([matchId, inningsNumber, createdAt])
+  @@map("dls_interruptions")
+}
+
 model BallEvent {
-  id            String        @id @default(cuid())
-  matchId       String
-  inningsId     String
-  clientEventId String        @unique
-  seq           Int
-  overNumber    Int
-  ballNumber    Int
-  eventType     BallEventType @default(BALL)
+  id                String        @id @default(cuid())
+  matchId           String
+  inningsId         String
+  clientEventId     String        @unique
+  seq               Int
+  overNumber        Int
+  ballNumber        Int
+  eventType         BallEventType @default(BALL)
   supersedesEventId String?
 
   runsOffBat      Int        @default(0)
@@ -456,16 +493,16 @@ model BallEvent {
   createdBy String
   createdAt DateTime @default(now())
 
-  match           Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  innings         Innings    @relation(fields: [inningsId], references: [id], onDelete: Cascade)
-  supersedes      BallEvent? @relation("Supersedes", fields: [supersedesEventId], references: [id])
+  match           Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  innings         Innings     @relation(fields: [inningsId], references: [id], onDelete: Cascade)
+  supersedes      BallEvent?  @relation("Supersedes", fields: [supersedesEventId], references: [id])
   supersededBy    BallEvent[] @relation("Supersedes")
-  striker         Player     @relation("Striker", fields: [strikerId], references: [id])
-  nonStriker      Player     @relation("NonStriker", fields: [nonStrikerId], references: [id])
-  bowler          Player     @relation("Bowler", fields: [bowlerId], references: [id])
-  dismissedPlayer Player?    @relation("DismissedPlayer", fields: [dismissedPlayerId], references: [id])
-  fielder         Player?    @relation("Fielder", fields: [fielderId], references: [id])
-  author          User       @relation(fields: [createdBy], references: [id])
+  striker         Player      @relation("Striker", fields: [strikerId], references: [id])
+  nonStriker      Player      @relation("NonStriker", fields: [nonStrikerId], references: [id])
+  bowler          Player      @relation("Bowler", fields: [bowlerId], references: [id])
+  dismissedPlayer Player?     @relation("DismissedPlayer", fields: [dismissedPlayerId], references: [id])
+  fielder         Player?     @relation("Fielder", fields: [fielderId], references: [id])
+  author          User        @relation(fields: [createdBy], references: [id])
 
   @@unique([inningsId, seq])
   @@index([matchId, createdAt])
@@ -473,36 +510,35 @@ model BallEvent {
   @@map("ball_events")
 }
 
-
 model FootballEvent {
-  id            String            @id @default(cuid())
-  matchId       String
-  clientEventId String            @unique
-  seq           Int
-  eventType     FootballEventType @default(EVENT)
+  id                String            @id @default(cuid())
+  matchId           String
+  clientEventId     String            @unique
+  seq               Int
+  eventType         FootballEventType @default(EVENT)
   supersedesEventId String?
 
-  kind   FootballEventKind
-  teamId String
+  kind           FootballEventKind
+  teamId         String
   playerId       String?
   assistPlayerId String?
   playerOffId    String?
 
-  minute Int
-  period Int @default(1)
+  minute   Int
+  period   Int @default(1)
   stoppage Int @default(0)
 
   createdBy String
   createdAt DateTime @default(now())
 
-  match          Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  supersedes     FootballEvent? @relation("FootballSupersedes", fields: [supersedesEventId], references: [id])
-  supersededBy   FootballEvent[] @relation("FootballSupersedes")
-  team           Team           @relation("FootballEventTeam", fields: [teamId], references: [id])
-  player         Player?        @relation("FootballScorer", fields: [playerId], references: [id])
-  assistPlayer   Player?        @relation("FootballAssist", fields: [assistPlayerId], references: [id])
-  playerOff      Player?        @relation("FootballSubbedOff", fields: [playerOffId], references: [id])
-  author         User           @relation(fields: [createdBy], references: [id])
+  match        Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  supersedes   FootballEvent?  @relation("FootballSupersedes", fields: [supersedesEventId], references: [id])
+  supersededBy FootballEvent[] @relation("FootballSupersedes")
+  team         Team            @relation("FootballEventTeam", fields: [teamId], references: [id])
+  player       Player?         @relation("FootballScorer", fields: [playerId], references: [id])
+  assistPlayer Player?         @relation("FootballAssist", fields: [assistPlayerId], references: [id])
+  playerOff    Player?         @relation("FootballSubbedOff", fields: [playerOffId], references: [id])
+  author       User            @relation(fields: [createdBy], references: [id])
 
   @@unique([matchId, seq])
   @@index([matchId, createdAt])
@@ -510,7 +546,7 @@ model FootballEvent {
 }
 
 model MatchClock {
-  matchId String @id
+  matchId       String @id
   periods       Int
   periodMinutes Int
 
@@ -527,23 +563,23 @@ model MatchClock {
 }
 
 model PointsTable {
-  id            String  @id @default(cuid())
-  tournamentId  String
-  teamId        String
-  played        Int     @default(0)
-  won           Int     @default(0)
-  lost          Int     @default(0)
-  tied          Int     @default(0)
-  noResult      Int     @default(0)
-  points        Int     @default(0)
-  runsScored    Int     @default(0)
-  ballsFaced    Int     @default(0)
-  runsConceded  Int     @default(0)
-  ballsBowled   Int     @default(0)
-  nrr           Float   @default(0)
-  goalsFor      Int     @default(0)
-  goalsAgainst  Int     @default(0)
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tournamentId String
+  teamId       String
+  played       Int      @default(0)
+  won          Int      @default(0)
+  lost         Int      @default(0)
+  tied         Int      @default(0)
+  noResult     Int      @default(0)
+  points       Int      @default(0)
+  runsScored   Int      @default(0)
+  ballsFaced   Int      @default(0)
+  runsConceded Int      @default(0)
+  ballsBowled  Int      @default(0)
+  nrr          Float    @default(0)
+  goalsFor     Int      @default(0)
+  goalsAgainst Int      @default(0)
+  updatedAt    DateTime @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)

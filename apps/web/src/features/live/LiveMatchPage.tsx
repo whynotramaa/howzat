@@ -136,8 +136,9 @@ export function LiveMatchPage() {
 }
 
 function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
-  const { batting, bowling, required, target } = snapshot;
-  const quota = batting.oversQuota;
+  const { batting, bowling, required, target, dls } = snapshot;
+  // "40.3" once a stoppage has left a part-over on the allotment.
+  const quota = batting.quotaOvers ?? (batting.oversQuota ? String(batting.oversQuota) : null);
   const finished = Boolean(snapshot.resultText);
 
   return (
@@ -205,6 +206,9 @@ function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string 
             ) : (
               <Metric label="Extras" value={snapshot.extras.total} />
             )}
+            {dls?.par !== null && dls?.par !== undefined ? (
+              <Metric label="DLS par" value={dls.par} />
+            ) : null}
           </dl>
         </div>
 

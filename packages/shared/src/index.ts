@@ -1,6 +1,7 @@
 export * from './types/enums';
 export * from './types/domain';
 export * from './types/scoring';
+export * from './types/dls';
 export * from './types/football';
 export * from './schemas/common';
 export * from './schemas/auth';
@@ -12,6 +13,8 @@ export * from './schemas/football';
 export * from './scoring/reducer';
 export * from './scoring/validate';
 export * from './scoring/format';
+export * from './dls/index';
+export * from './schemas/dls';
 export * from './nrr/index';
 export * from './football/clock';
 export * from './football/formations';

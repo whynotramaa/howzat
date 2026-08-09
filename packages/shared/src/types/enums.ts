@@ -34,7 +34,14 @@ export type TossDecision = (typeof TOSS_DECISIONS)[number];
 export const INNINGS_STATUSES = ['IN_PROGRESS', 'COMPLETED'] as const;
 export type InningsStatus = (typeof INNINGS_STATUSES)[number];
 
-export const INNINGS_END_REASONS = ['ALL_OUT', 'OVERS_COMPLETE', 'TARGET_CHASED'] as const;
+export const INNINGS_END_REASONS = [
+  'ALL_OUT',
+  'OVERS_COMPLETE',
+  'TARGET_CHASED',
+  // Rain, or anything else that stops play for good, closing an innings under
+  // the DLS regulation with overs still unbowled.
+  'DLS_TERMINATED',
+] as const;
 export type InningsEndReason = (typeof INNINGS_END_REASONS)[number];
 
 export const BALL_EVENT_TYPES = ['BALL', 'CORRECTION', 'UNDO'] as const;

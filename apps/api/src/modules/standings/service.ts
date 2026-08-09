@@ -29,7 +29,9 @@ async function loadResults(tournamentId: string): Promise<MatchResult[]> {
       team1Id: { not: null },
       team2Id: { not: null },
     },
-    include: { innings: true },
+    // Ordered, because the DLS substitution in `nrrInnings` is positional —
+    // it replaces the first innings with the par score.
+    include: { innings: { orderBy: { number: 'asc' } } },
   });
 
   return matches.map((match) => ({
@@ -37,12 +39,14 @@ async function loadResults(tournamentId: string): Promise<MatchResult[]> {
     teamIds: [match.team1Id!, match.team2Id!] as [string, string],
     winnerTeamId: match.winnerTeamId,
     noResult: match.status === 'ABANDONED',
+    dls: match.decidedByDls && match.dlsParScore !== null ? { parScore: match.dlsParScore } : null,
     innings: match.innings.map((innings) => ({
       battingTeamId: innings.battingTeamId,
       bowlingTeamId: innings.bowlingTeamId,
       runs: 0,
       legalBalls: 0,
       oversQuota: innings.oversQuota,
+      ballsQuota: innings.ballsQuota,
       endReason: innings.endReason,
     })),
   }));

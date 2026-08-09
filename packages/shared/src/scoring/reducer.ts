@@ -8,7 +8,7 @@ import type {
   MatchState,
 } from '../types/scoring';
 import type { WicketType } from '../types/enums';
-import { formatOvers } from './format';
+import { formatOvers, quotaBalls } from './format';
 
 export const BOWLER_CREDITED: ReadonlySet<WicketType> = new Set<WicketType>([
   'BOWLED',
@@ -53,6 +53,7 @@ export function createInitialState(context: InningsContext): MatchState {
 
     targetRuns: context.targetRuns,
     oversQuota: context.oversQuota,
+    ballsQuota: quotaBalls(context),
     lastEventSeq: 0,
   };
 }
@@ -229,7 +230,7 @@ export function applyBall(
   const partnerships = updatePartnerships(state, event, teamRuns, facedDelivery);
 
   const wicketsAllowed = Math.max(1, context.battingXI.length - 1);
-  const quotaBalls = context.oversQuota * BALLS_PER_OVER;
+  const quota = quotaBalls(context);
   const target = context.targetRuns;
 
   let isComplete = false;
@@ -241,7 +242,7 @@ export function applyBall(
   } else if (wickets >= wicketsAllowed) {
     isComplete = true;
     endReason = 'ALL_OUT';
-  } else if (legalBalls >= quotaBalls) {
+  } else if (legalBalls >= quota) {
     isComplete = true;
     endReason = 'OVERS_COMPLETE';
   }

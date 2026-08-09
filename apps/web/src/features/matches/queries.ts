@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   BallRequestInput,
+  DlsInterruptionInput,
+  DlsSettingsInput,
+  DlsStateDto,
   FixturePreviewDto,
   MatchDto,
   MatchSnapshot,
@@ -19,6 +22,7 @@ export const matchKeys = {
   match: (matchId: string) => ['matches', matchId] as const,
   squads: (matchId: string) => ['matches', matchId, 'squads'] as const,
   state: (matchId: string) => ['matches', matchId, 'state'] as const,
+  dls: (matchId: string) => ['matches', matchId, 'dls'] as const,
 };
 
 interface ListResponse<T> {
@@ -208,6 +212,68 @@ export function useUndoBall(matchId: string) {
         clientEventId: crypto.randomUUID(),
       }),
     onSuccess: () => invalidateMatch(queryClient, matchId),
+  });
+}
+
+export function useDlsState(matchId: string, enabled = true) {
+  return useQuery({
+    queryKey: matchKeys.dls(matchId),
+    queryFn: () => api.get<DlsStateDto>(`/matches/${matchId}/dls`),
+    enabled: Boolean(matchId) && enabled,
+  });
+}
+
+/**
+ * Every DLS write returns the whole recomputed state, so each of these seeds
+ * the cache with the answer rather than asking for it again — the scorer sees
+ * the revised target the instant it lands.
+ */
+function useDlsMutation<TInput>(
+  matchId: string,
+  request: (input: TInput) => Promise<DlsStateDto>,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: request,
+    onSuccess: (state) => {
+      queryClient.setQueryData(matchKeys.dls(matchId), state);
+      invalidateMatch(queryClient, matchId);
+    },
+  });
+}
+
+export function useUpdateDlsSettings(matchId: string) {
+  return useDlsMutation<DlsSettingsInput>(matchId, (input) =>
+    api.patch<DlsStateDto>(`/matches/${matchId}/dls`, input),
+  );
+}
+
+export function useAddDlsInterruption(matchId: string) {
+  return useDlsMutation<DlsInterruptionInput>(matchId, (input) =>
+    api.post<DlsStateDto>(`/matches/${matchId}/dls/interruptions`, input),
+  );
+}
+
+export function useRemoveDlsInterruption(matchId: string) {
+  return useDlsMutation<string>(matchId, (interruptionId) =>
+    api.delete<DlsStateDto>(`/matches/${matchId}/dls/interruptions/${interruptionId}`),
+  );
+}
+
+export function useConcludeUnderDls(matchId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reason?: string) =>
+      api.post<{ resultText: string; winnerTeamId: string | null; parScore: number | null }>(
+        `/matches/${matchId}/dls/conclude`,
+        reason ? { reason } : {},
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: matchKeys.dls(matchId) });
+      invalidateMatch(queryClient, matchId);
+    },
   });
 }
 

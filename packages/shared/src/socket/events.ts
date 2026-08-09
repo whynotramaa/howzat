@@ -5,6 +5,7 @@ export interface ServerToClientEvents {
   ball: (payload: BallBroadcast) => void;
   'innings:complete': (payload: InningsCompleteBroadcast) => void;
   'match:completed': (payload: MatchCompletedBroadcast) => void;
+  'match:dls': (payload: DlsRevisedBroadcast) => void;
   'football:event': (payload: FootballEventBroadcast) => void;
   'football:clock': (payload: FootballClockBroadcast) => void;
   viewers: (payload: { matchId: string; count: number }) => void;
@@ -33,6 +34,16 @@ export interface MatchCompletedBroadcast {
   matchId: string;
   tournamentId: string;
   winnerTeamId: string | null;
+}
+
+/**
+ * A revised target or allotment. It carries no new ball, so `lastEventSeq` has
+ * not moved and `isNewerSnapshot` would reject it — viewers apply this one
+ * because the scorer changed the terms of the match, not because time passed.
+ */
+export interface DlsRevisedBroadcast {
+  matchId: string;
+  snapshot: MatchSnapshot | null;
 }
 
 export interface FootballEventBroadcast {

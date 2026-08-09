@@ -5,6 +5,7 @@ export interface MatchEvents {
   ball: { matchId: string; snapshot: MatchSnapshot; seq: number };
   'innings:complete': { matchId: string; inningsNumber: number; snapshot: MatchSnapshot };
   'match:completed': { matchId: string; tournamentId: string; winnerTeamId: string | null };
+  'match:dls': { matchId: string; snapshot: MatchSnapshot | null };
   'football:event': { matchId: string; snapshot: FootballSnapshot; seq: number };
   'football:clock': { matchId: string; snapshot: FootballSnapshot };
 }

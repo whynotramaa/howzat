@@ -216,6 +216,28 @@ describe('applyBall — innings lifecycle', () => {
     expect(state.endReason).toBe('OVERS_COMPLETE');
   });
 
+  it('ends on a DLS part-over allotment rather than the whole over around it', () => {
+    reset();
+    // A stoppage mid-over can leave an innings owing 2.3 overs — 15 balls.
+    const revised: InningsContext = { ...context, oversQuota: 3, ballsQuota: 15 };
+
+    const short = buildState(
+      revised,
+      Array.from({ length: 14 }, () => ball({ runsOffBat: 0 })),
+    );
+
+    expect(short.isComplete).toBe(false);
+
+    const done = buildState(
+      revised,
+      Array.from({ length: 15 }, () => ball({ runsOffBat: 0 })),
+    );
+
+    expect(done.legalBalls).toBe(15);
+    expect(done.isComplete).toBe(true);
+    expect(done.endReason).toBe('OVERS_COMPLETE');
+  });
+
   it('prefers TARGET_CHASED over OVERS_COMPLETE when the winning run is the last ball', () => {
     reset();
     const chase: InningsContext = { ...context, oversQuota: 1, targetRuns: 6 };

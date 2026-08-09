@@ -48,12 +48,20 @@ export function ScoreFigure({
 export function OversFigure({
   overs,
   quota,
+  quotaLabel,
   tone = 'default',
 }: {
   overs: string;
   quota?: number;
+  /**
+   * The allotment already written as overs and balls. DLS can cut an innings to
+   * 40.3 overs, which the whole-over `quota` cannot say.
+   */
+  quotaLabel?: string;
   tone?: 'default' | 'inverse';
 }) {
+  const allotment = quotaLabel ?? (quota === undefined ? undefined : String(quota));
+
   return (
     <p className="flex items-baseline gap-1">
       <span
@@ -65,14 +73,14 @@ export function OversFigure({
       >
         {overs}
       </span>
-      {quota !== undefined ? (
+      {allotment !== undefined ? (
         <span
           className={cn(
             'mono text-sm',
             tone === 'inverse' ? 'text-muted-on-inverse' : 'text-muted',
           )}
         >
-          /{quota}
+          /{allotment}
         </span>
       ) : null}
     </p>

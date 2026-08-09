@@ -1,5 +1,6 @@
 import { BALLS_PER_OVER } from '../constants';
 import type { BallInput, InningsContext, MatchState } from '../types/scoring';
+import { formatOvers, quotaBalls } from './format';
 
 export interface ValidationIssue {
   code: string;
@@ -97,8 +98,10 @@ export function validateBall(
     fail('OVER_COMPLETE', 'This over already has six legal deliveries');
   }
 
-  if (state.legalBalls >= context.oversQuota * BALLS_PER_OVER) {
-    fail('QUOTA_EXHAUSTED', `The innings quota of ${context.oversQuota} overs is used up`);
+  const quota = quotaBalls(context);
+
+  if (state.legalBalls >= quota) {
+    fail('QUOTA_EXHAUSTED', `The innings quota of ${formatOvers(quota)} overs is used up`);
   }
 
   if (input.isWicket) {
