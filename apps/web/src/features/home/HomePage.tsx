@@ -1,54 +1,44 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { Sport } from '@howzat/shared';
 import { Button } from '@/components/ui/Button';
-import { BallChip } from '@/components/ui/Score';
-import { TeamMark } from '@/components/ui/Pill';
+import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
+import { TeamMark } from '@/components/ui/Pill';
 import { Reveal } from '@/components/ui/Reveal';
+import { BallChip } from '@/components/ui/Score';
 import { ScrollProgress, ScrollReveal } from '@/components/ui/ScrollReveal';
+import { SportMark } from '@/components/ui/SportMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Wordmark } from '@/components/Wordmark';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { cn } from '@/lib/cn';
 
+/*
+ * The front page.
+ *
+ * One idea carries it: the product scores two sports, so the page is built
+ * around a single working scoreboard that switches between them. Everything
+ * below is a ledger — hairlines and figures, no cards floating over cards.
+ */
 export function HomePage() {
   const { user } = useAuth();
+  const [sport, setSport] = useState<Sport>('CRICKET');
   const home = user ? '/dashboard' : '/login';
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden">
       <ScrollProgress />
 
-      <header className="sticky top-0 z-40 border-b border-line bg-[color-mix(in_oklab,var(--surface)_82%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex h-[4.5rem] w-full max-w-[80rem] items-center gap-6 px-5 sm:px-8 lg:px-12">
-          <Wordmark />
-
-          <nav aria-label="Sections" className="ml-8 hidden items-center gap-7 lg:flex">
-            {SECTIONS.map((section) => (
-              <a
-                key={section.href}
-                href={section.href}
-                className="text-[0.8125rem] text-muted transition-colors hover:text-primary"
-              >
-                {section.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3 sm:gap-4">
-            <ThemeToggle />
-            <Link to={home}>
-              <Button size="sm" variant={user ? 'primary' : 'secondary'}>
-                {user ? 'Open dashboard' : 'Sign in'}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <TopRail signedIn={Boolean(user)} home={home} />
 
       <main className="flex-1">
-        <Hero home={home} signedIn={Boolean(user)} />
-        <Capabilities />
-        <HowItWorks />
-        <Rules />
+        <Opening sport={sport} onSport={setSport} home={home} signedIn={Boolean(user)} />
+        <FiguresRail />
+        <TwoSports sport={sport} onSport={setSport} />
+        <ShareBand />
+        <Flow />
+        <Laws />
         <Closing home={home} signedIn={Boolean(user)} />
       </main>
 
@@ -58,354 +48,801 @@ export function HomePage() {
 }
 
 const SECTIONS = [
-  { href: '#what', label: 'What it does' },
-  { href: '#how', label: 'How it works' },
-  { href: '#rules', label: 'The laws' },
+  { href: '#sports', label: 'Two sports' },
+  { href: '#link', label: 'The link' },
+  { href: '#flow', label: 'The flow' },
+  { href: '#laws', label: 'The laws' },
 ] as const;
 
-function Hero({ home, signedIn }: { home: string; signedIn: boolean }) {
+function TopRail({ signedIn, home }: { signedIn: boolean; home: string }) {
   return (
-    <section className="mx-auto w-full max-w-[80rem] px-5 pt-16 pb-20 sm:px-8 sm:pt-24 sm:pb-28 lg:px-12">
-      <div className="grid items-center gap-16 lg:grid-cols-[1.02fr_1fr] lg:gap-20">
-        <div>
+    <header className="sticky top-0 z-40 border-b border-line bg-[color-mix(in_oklab,var(--surface)_84%,transparent)] backdrop-blur-xl">
+      <div className="mx-auto flex h-14 w-full max-w-[76rem] items-center gap-4 px-5 sm:px-8 lg:px-12">
+        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-70">
+          <Wordmark size="sm" />
+          <span aria-hidden className="hidden h-4 w-px bg-line sm:block" />
+          <span className="eyebrow hidden sm:block">Cricket &amp; football</span>
+        </Link>
+
+        <nav aria-label="Sections" className="ml-auto hidden items-center gap-7 md:flex">
+          {SECTIONS.map((section) => (
+            <a
+              key={section.href}
+              href={section.href}
+              className="text-[0.8125rem] text-muted transition-colors hover:text-primary"
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-3 md:ml-7">
+          <ThemeToggle />
+          <Link to={home}>
+            <Button size="sm" variant={signedIn ? 'primary' : 'secondary'}>
+              {signedIn ? 'Dashboard' : 'Sign in'}
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ── The opening ─────────────────────────────────────────────────────────── */
+
+function Opening({
+  sport,
+  onSport,
+  home,
+  signedIn,
+}: {
+  sport: Sport;
+  onSport: (sport: Sport) => void;
+  home: string;
+  signedIn: boolean;
+}) {
+  const cricket = sport === 'CRICKET';
+
+  return (
+    <section className="relative isolate overflow-hidden border-b border-line">
+      <span aria-hidden className="field-rules" />
+
+      <div className="relative mx-auto w-full max-w-[76rem] px-5 pt-16 pb-14 sm:px-8 sm:pt-24 lg:px-12">
+        <div className="mx-auto max-w-3xl text-center">
           <Reveal index={0}>
-            <p className="eyebrow">Local cricket, kept properly</p>
+            <p className="eyebrow">Local leagues, scored properly</p>
           </Reveal>
 
           <Reveal index={1}>
-            <h1 className="serif mt-7 text-[3.25rem] text-primary sm:text-[4.5rem] lg:text-[5rem]">
-              Every ball,
-              <br />
-              <span className="italic">on the record.</span>
+            <h1 className="serif mt-6 text-[3rem] text-primary sm:text-[4.25rem] lg:text-[5rem]">
+              {cricket ? 'Every ball' : 'Every minute'}
+              <span className="italic">, on the record.</span>
             </h1>
           </Reveal>
 
           <Reveal index={2}>
-            <p className="mt-7 max-w-xl text-[1.0625rem] leading-relaxed text-secondary sm:text-lg">
-              Run a tournament, score it from your phone at the ground, and share one link anyone
-              can open — no login, no app, the current score the moment it loads.
+            <p className="mx-auto mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-secondary sm:text-lg">
+              Run the tournament, score the match from your phone at the ground, and share one link
+              anyone can open — no account, no app, the live score the moment it loads.
             </p>
           </Reveal>
 
           <Reveal index={3}>
-            <div className="mt-10 flex flex-wrap items-center gap-3">
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link to={home}>
                 <Button size="lg">{signedIn ? 'Open your dashboard' : 'Start a tournament'}</Button>
               </Link>
-              <a href="#what">
+              <a href="#sports">
                 <Button size="lg" variant="secondary">
-                  See what it does
+                  See both sports
                 </Button>
               </a>
             </div>
           </Reveal>
-
-          <Reveal index={4}>
-            <dl className="mt-14 grid max-w-lg grid-cols-3 gap-8 border-t border-line pt-8">
-              {[
-                { value: '11', label: 'Per side, enforced' },
-                { value: '6', label: 'Legal balls an over' },
-                { value: '0', label: 'Balls lost offline' },
-              ].map((item) => (
-                <div key={item.label}>
-                  <dt className="mono text-[1.75rem] leading-none font-medium text-primary">
-                    {item.value}
-                  </dt>
-                  <dd className="eyebrow mt-2.5">{item.label}</dd>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
         </div>
 
-        <Reveal index={2} step={90}>
-          <SpecimenCard />
+        <Reveal index={4}>
+          <div className="mt-14 flex justify-center">
+            <SportSwitch sport={sport} onSport={onSport} />
+          </div>
+        </Reveal>
+
+        <Reveal index={5}>
+          <div className="mt-6">{cricket ? <CricketBoard /> : <FootballBoard />}</div>
+        </Reveal>
+
+        <Reveal index={6}>
+          <p className="mt-5 text-center text-[0.8125rem] text-muted">
+            A live share link, as a spectator sees it.{' '}
+            {cricket
+              ? 'Watch the wide: the chips grow, the over does not.'
+              : 'The clock carries its own stoppage time.'}
+          </p>
         </Reveal>
       </div>
     </section>
   );
 }
 
-function SpecimenCard() {
+function SportSwitch({ sport, onSport }: { sport: Sport; onSport: (sport: Sport) => void }) {
+  const options: ReadonlyArray<{ value: Sport; label: string }> = [
+    { value: 'CRICKET', label: 'Cricket' },
+    { value: 'FOOTBALL', label: 'Football' },
+  ];
+
   return (
     <div
-      className="live-stage w-full max-w-[27rem] justify-self-end overflow-hidden rounded-[var(--radius-lg)] border border-line"
-      style={{ '--team-a': '#1e40af', '--team-b': '#0f7a4a' } as React.CSSProperties}
+      role="radiogroup"
+      aria-label="Sport shown on the scoreboard"
+      className="inline-flex items-center gap-1 rounded-full border border-line bg-raised p-1"
+    >
+      {options.map((option) => {
+        const active = sport === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onSport(option.value)}
+            className={cn(
+              'flex items-center gap-2 rounded-full px-4 py-2 text-[0.8125rem] font-medium',
+              'transition-colors duration-[var(--dur-fast)]',
+              active
+                ? 'bg-accent-soft text-accent'
+                : 'text-muted hover:bg-hover hover:text-secondary',
+            )}
+          >
+            <SportMark sport={option.value} />
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── The demo board ──────────────────────────────────────────────────────── */
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Steps through a scripted sequence of scoreboard frames. Reduced motion holds
+ * the last frame, so the board is still a finished scoreboard and never blank.
+ */
+function useFrame(length: number, everyMs: number): number {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setIndex(length - 1);
+      return;
+    }
+
+    const id = window.setInterval(() => setIndex((current) => (current + 1) % length), everyMs);
+    return () => window.clearInterval(id);
+  }, [length, everyMs]);
+
+  return index;
+}
+
+function BoardFrame({
+  label,
+  teamA,
+  teamB,
+  ariaLabel,
+  children,
+}: {
+  label: string;
+  teamA: string;
+  teamB: string;
+  ariaLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      className="live-stage mx-auto w-full max-w-[64rem] overflow-hidden rounded-[var(--radius-xl)] border border-line"
+      style={{ '--team-a': teamA, '--team-b': teamB } as React.CSSProperties}
     >
       <span aria-hidden className="live-stage-seam block" />
 
-      <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3.5">
-        <p className="eyebrow">India v Pakistan · Innings 2</p>
-        <span className="flex items-center gap-2 text-[0.6875rem] tracking-[0.16em] text-live uppercase">
-          <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
-          Live
-        </span>
+      <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-3 sm:px-7">
+        <p className="eyebrow truncate">{label}</p>
+        <div className="flex shrink-0 items-center gap-4">
+          <span className="mono hidden text-[0.6875rem] text-muted sm:block">1,284 watching</span>
+          <span className="flex items-center gap-2 text-[0.6875rem] tracking-[0.16em] text-live uppercase">
+            <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
+            Live
+          </span>
+        </div>
       </div>
 
-      <div className="px-5 py-6 sm:px-6">
-        <div className="flex items-end justify-between gap-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <TeamMark shortName="IND" color="#1e40af" size="sm" />
-              <p className="text-[0.9375rem] text-secondary">India</p>
-            </div>
+      {children}
+    </div>
+  );
+}
 
-            <p className="score-figure mt-3.5 flex items-baseline text-[3.75rem] text-primary">
-              160
+const CHASE_TARGET = 188;
+
+interface CricketFrame {
+  runs: number;
+  overs: string;
+  over: string[];
+  need: { runs: number; balls: number };
+  bat: ReadonlyArray<{ runs: number; balls: number }>;
+  striker: 0 | 1;
+}
+
+const CRICKET_FRAMES: readonly CricketFrame[] = [
+  {
+    runs: 174,
+    overs: '19.0',
+    over: [],
+    need: { runs: 14, balls: 6 },
+    bat: [
+      { runs: 88, balls: 52 },
+      { runs: 41, balls: 34 },
+    ],
+    striker: 0,
+  },
+  {
+    runs: 178,
+    overs: '19.1',
+    over: ['4'],
+    need: { runs: 10, balls: 5 },
+    bat: [
+      { runs: 92, balls: 53 },
+      { runs: 41, balls: 34 },
+    ],
+    striker: 0,
+  },
+  {
+    // A single rotates the strike, so the other batter is on for the next ball.
+    runs: 179,
+    overs: '19.2',
+    over: ['4', '1'],
+    need: { runs: 9, balls: 4 },
+    bat: [
+      { runs: 93, balls: 54 },
+      { runs: 41, balls: 34 },
+    ],
+    striker: 1,
+  },
+  {
+    // The wide: a run is added, the over does not advance, nobody faced a ball.
+    runs: 180,
+    overs: '19.2',
+    over: ['4', '1', 'wd'],
+    need: { runs: 8, balls: 4 },
+    bat: [
+      { runs: 93, balls: 54 },
+      { runs: 41, balls: 34 },
+    ],
+    striker: 1,
+  },
+  {
+    runs: 186,
+    overs: '19.3',
+    over: ['4', '1', 'wd', '6'],
+    need: { runs: 2, balls: 3 },
+    bat: [
+      { runs: 93, balls: 54 },
+      { runs: 47, balls: 35 },
+    ],
+    striker: 1,
+  },
+  {
+    runs: 187,
+    overs: '19.4',
+    over: ['4', '1', 'wd', '6', '1'],
+    need: { runs: 1, balls: 2 },
+    bat: [
+      { runs: 93, balls: 54 },
+      { runs: 48, balls: 36 },
+    ],
+    striker: 0,
+  },
+];
+
+const CRICKET_BATTERS = [
+  { seed: 'a-rane', name: 'S. Srivastava' },
+  { seed: 'k-mistry', name: 'Umang' },
+] as const;
+
+function CricketBoard() {
+  const index = useFrame(CRICKET_FRAMES.length, 2200);
+  const frame = CRICKET_FRAMES[index]!;
+
+  const ballsBowled = 114 + frame.over.filter((ball) => !/[a-z]/.test(ball)).length;
+  const runFraction = Math.min(1, frame.runs / CHASE_TARGET);
+  const ballFraction = Math.min(1, ballsBowled / (ballsBowled + frame.need.balls));
+
+  return (
+    <BoardFrame
+      label="Kohli XI v Srivastava XI · Final"
+      teamA="#1e5fae"
+      teamB="#0f7a4a"
+      ariaLabel={`Example cricket scoreboard: Kohli XI ${frame.runs} for 6 after ${frame.overs} overs, chasing ${CHASE_TARGET}`}
+    >
+      <div className="grid sm:grid-cols-[1.25fr_1fr]">
+        <div className="px-5 py-6 sm:px-7 sm:py-7">
+          <div className="flex items-center gap-2.5">
+            <TeamMark shortName="SPX" color="#1e5fae" size="sm" />
+            <p className="text-[0.9375rem] text-secondary">Kohli XI</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-3">
+            <p className="score-figure flex items-baseline text-[3.5rem] text-primary sm:text-[4.5rem]">
+              <span key={frame.runs} className="figure-in">
+                {frame.runs}
+              </span>
               <span aria-hidden className="mx-[0.05em] font-normal text-muted">
                 /
               </span>
               <span className="text-muted">6</span>
             </p>
-          </div>
 
-          <div className="shrink-0 text-right">
-            <p className="mono text-xl font-medium text-primary">
-              19.0<span className="text-[0.875rem] text-muted">/20</span>
-            </p>
-            <p className="eyebrow mt-2">Overs</p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex items-center gap-2.5 border-t border-line pt-4">
-          <TeamMark shortName="PAK" color="#0f7a4a" size="sm" />
-          <p className="text-[0.9375rem] text-secondary">Pakistan</p>
-          <span aria-hidden className="h-px flex-1 bg-line" />
-          <p className="mono text-[0.9375rem] text-muted">187/5 (20)</p>
-        </div>
-      </div>
-
-      <div className="border-t border-line px-5 py-5 sm:px-6">
-        <p className="text-[1.0625rem] text-primary">
-          Need <span className="mono font-medium">28</span> from{' '}
-          <span className="mono font-medium">8</span> balls
-        </p>
-        <div className="chase-track mt-3.5">
-          <span className="chase-fill" style={{ width: '85%' }} />
-          <span aria-hidden className="chase-marker" style={{ left: '93%' }} />
-        </div>
-        <div className="mono mt-2.5 flex justify-between text-[0.6875rem] text-muted">
-          <span>160 of 188</span>
-          <span>RRR 21.00</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 border-t border-line px-5 py-5 sm:px-6">
-        {SPECIMEN_CREASE.map((batter) => (
-          <div key={batter.name} className="flex items-center gap-3">
-            <PlayerAvatar seed={batter.seed} name={batter.name} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-2 truncate text-sm font-medium text-primary">
-                {batter.name}
-                {batter.onStrike ? (
-                  <span className="mono text-[0.625rem] text-accent">● striker</span>
-                ) : null}
+            <div className="pb-2">
+              <p className="mono text-lg font-medium text-primary">
+                <span key={frame.overs} className="figure-in inline-block">
+                  {frame.overs}
+                </span>
+                <span className="text-[0.875rem] text-muted">/20</span>
               </p>
+              <p className="eyebrow mt-2">Overs</p>
             </div>
-            <p className="mono shrink-0 text-sm text-primary">
-              {batter.runs}
-              <span className="ml-1 text-[0.75rem] text-muted">({batter.balls})</span>
-            </p>
           </div>
-        ))}
 
-        <div className="border-t border-line pt-4">
-          <p className="eyebrow mb-3">This over</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {SPECIMEN_OVER.map((ball, index) => (
-              <BallChip key={index} display={ball} isWicket={ball === 'W'} />
-            ))}
+          <div className="mt-5 flex items-center gap-2.5 border-t border-line pt-4">
+            <TeamMark shortName="DDU" color="#0f7a4a" size="sm" />
+            <p className="text-[0.9375rem] text-secondary">Srivastava XI</p>
+            <span aria-hidden className="h-px flex-1 bg-line" />
+            <p className="mono text-[0.9375rem] text-muted">187/5 (20)</p>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-const SPECIMEN_CREASE = [
-  { seed: 'virat-kohli', name: 'Virat Kohli', runs: 82, balls: 53, onStrike: true },
-  { seed: 'hardik-pandya', name: 'Hardik Pandya', runs: 40, balls: 37, onStrike: false },
-] as const;
-
-const SPECIMEN_OVER = ['1', '4', 'wd', '0', 'W'] as const;
-
-function Capabilities() {
-  return (
-    <section
-      id="what"
-      className="mx-auto w-full max-w-[80rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
-    >
-      <ScrollReveal>
-        <p className="eyebrow">What it does</p>
-        <h2 className="serif mt-5 max-w-3xl text-[2.25rem] text-primary sm:text-[3rem]">
-          A season's worth of admin, done between deliveries.
-        </h2>
-      </ScrollReveal>
-
-      <div className="mt-14 grid gap-4 md:grid-cols-3">
-        <ScrollReveal index={0} className="md:col-span-2">
-          <article className="bento-tile flex h-full flex-col justify-between gap-10 rounded-[var(--radius-lg)] border border-line bg-raised p-8 sm:p-10">
-            <div>
-              <p className="mono text-[0.6875rem] tracking-[0.16em] text-accent uppercase">
-                The console
-              </p>
-              <h3 className="serif mt-4 text-[1.75rem] text-primary sm:text-[2rem]">
-                Score a whole match with one thumb.
-              </h3>
-              <p className="mt-4 max-w-lg text-secondary">
-                Runs, extras, wickets and corrections are one tap each. The engine rotates the
-                strike, ends the over, ends the innings and sets the target without being asked.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {['0', '1', '2', '4', '6', 'wd', 'nb', 'W'].map((ball) => (
-                <BallChip key={ball} display={ball} isWicket={ball === 'W'} />
-              ))}
-            </div>
-          </article>
-        </ScrollReveal>
-
-        <ScrollReveal index={1}>
-          <article className="bento-tile flex h-full flex-col justify-between gap-8 rounded-[var(--radius-lg)] border border-line bg-inverse p-8">
-            <div>
-              <p className="mono text-[0.6875rem] tracking-[0.16em] text-accent uppercase">
-                The share link
-              </p>
-              <h3 className="serif mt-4 text-2xl text-on-inverse">One URL. No login, no app.</h3>
-              <p className="mt-3.5 text-[0.9375rem] text-muted-on-inverse">
-                Paste it into the group chat. It opens on the current score, mid-over, and updates
-                itself from there.
-              </p>
-            </div>
-
-            <p className="mono truncate text-[0.75rem] text-accent">howzat.app/live/…</p>
-          </article>
-        </ScrollReveal>
-
-        {SMALL_TILES.map((tile, index) => (
-          <ScrollReveal key={tile.title} index={index + 2}>
-            <article className="bento-tile flex h-full flex-col gap-3.5 rounded-[var(--radius-lg)] border border-line bg-raised p-7">
-              <span className="mono text-[0.6875rem] tracking-[0.16em] text-accent uppercase">
-                {tile.kicker}
-              </span>
-              <h3 className="serif text-xl text-primary">{tile.title}</h3>
-              <p className="text-[0.9375rem] text-secondary">{tile.body}</p>
-            </article>
-          </ScrollReveal>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-const SMALL_TILES = [
-  {
-    kicker: 'Fixtures',
-    title: 'The draw writes itself',
-    body: 'Every pair meets exactly once — or twice, home and away — by the circle method. Playoff slots fill as their feeder matches finish.',
-  },
-  {
-    kicker: 'The table',
-    title: 'Points and NRR, recomputed',
-    body: 'The table is rebuilt from the log on every result, never incremented. Every input to the net run rate is shown alongside it.',
-  },
-  {
-    kicker: 'Profiles',
-    title: 'A career, not a spreadsheet',
-    body: 'Add a player by their handle and every run, wicket and catch lands on their record — across every team they ever turn out for.',
-  },
-] as const;
-
-function HowItWorks() {
-  return (
-    <section id="how" className="border-y border-line bg-sunken/40">
-      <div className="mx-auto w-full max-w-[80rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
-        <ScrollReveal>
-          <p className="eyebrow">How it works</p>
-          <h2 className="serif mt-5 max-w-2xl text-[2.25rem] text-primary sm:text-[3rem]">
-            Three people, one match, no paperwork afterwards.
-          </h2>
-        </ScrollReveal>
-
-        <div className="mt-16 grid gap-px overflow-hidden rounded-[var(--radius-lg)] border border-line bg-line md:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <ScrollReveal key={step.title} index={index} className="bg-raised p-8 sm:p-10">
-              <div className="flex items-baseline gap-3">
-                <p className="mono text-sm text-accent">{step.number}</p>
-                <span aria-hidden className="h-px flex-1 bg-[var(--accent-line)]" />
-              </div>
-              <h3 className="serif mt-6 text-2xl text-primary">{step.title}</h3>
-              <p className="mt-3.5 text-secondary">{step.body}</p>
-            </ScrollReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const STEPS = [
-  {
-    number: '01',
-    title: 'Register the teams',
-    body: 'Name your sides, give each one eleven players, and generate the fixtures. Anyone with a Howzat handle is added by handle — and told about it.',
-  },
-  {
-    number: '02',
-    title: 'Score from the ground',
-    body: 'Assign a scorer. They tap runs, extras and wickets on their phone between deliveries, one-handed, and it holds up when the signal does not.',
-  },
-  {
-    number: '03',
-    title: 'Share one link',
-    body: 'The public card shows the current score the instant it opens, mid-match, with no login. The points table updates itself when a result lands.',
-  },
-] as const;
-
-function Rules() {
-  return (
-    <section
-      id="rules"
-      className="mx-auto w-full max-w-[80rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
-    >
-      <div className="grid gap-14 lg:grid-cols-[0.82fr_1fr] lg:gap-24">
-        <ScrollReveal>
-          <div className="lg:sticky lg:top-32">
-            <p className="eyebrow">Correctness</p>
-            <h2 className="serif mt-5 text-[2.25rem] text-primary sm:text-[2.75rem]">
-              The rules a scorebook gets wrong.
-            </h2>
-            <p className="mt-5 text-secondary">
-              A wide is not a ball. A leg bye is not a run to the batter. A side bowled out inside
-              its quota is still charged the full quota on net run rate. Every one of those is a
-              place a spreadsheet quietly lies to you.
+          <div className="mt-6">
+            <p className="text-[1.0625rem] text-primary">
+              Need <span className="mono font-medium">{frame.need.runs}</span> from{' '}
+              <span className="mono font-medium">{frame.need.balls}</span>{' '}
+              {frame.need.balls === 1 ? 'ball' : 'balls'}
             </p>
-            <p className="mt-6 text-[0.9375rem] text-muted">
-              All four are covered by tests, not by good intentions.
-            </p>
-          </div>
-        </ScrollReveal>
 
-        <ul className="landing-ledger flex flex-col pl-8">
-          {RULES.map((rule, index) => (
-            <ScrollReveal
-              key={rule.title}
-              index={index}
-              step={60}
-              shift={12}
-              as="li"
-              className="relative border-b border-line py-7 first:pt-0 last:border-0"
-            >
+            <div className="chase-track mt-3.5">
+              <span className="chase-fill" style={{ width: `${runFraction * 100}%` }} />
               <span
                 aria-hidden
-                className="absolute top-9 -left-8 h-px w-5 bg-[var(--accent-line)] first:top-2"
+                className="chase-marker"
+                style={{ left: `${ballFraction * 100}%` }}
               />
+            </div>
+
+            <div className="mono mt-2.5 flex justify-between text-[0.6875rem] text-muted">
+              <span>
+                {frame.runs} of {CHASE_TARGET}
+              </span>
+              <span>RRR {((frame.need.runs / frame.need.balls) * 6).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-5 border-t border-line px-5 py-6 sm:border-t-0 sm:border-l sm:px-7 sm:py-7">
+          <p className="eyebrow">At the crease</p>
+
+          {CRICKET_BATTERS.map((batter, seat) => (
+            <div key={batter.seed} className="flex items-center gap-3">
+              <PlayerAvatar seed={batter.seed} name={batter.name} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 truncate text-sm font-medium text-primary">
+                  {batter.name}
+                  {frame.striker === seat ? (
+                    <span className="mono text-[0.625rem] text-accent">● striker</span>
+                  ) : null}
+                </p>
+              </div>
+              <p className="mono shrink-0 text-sm text-primary">
+                {frame.bat[seat]!.runs}
+                <span className="ml-1 text-[0.75rem] text-muted">({frame.bat[seat]!.balls})</span>
+              </p>
+            </div>
+          ))}
+
+          <div className="flex items-center gap-3 border-t border-line pt-5">
+            <PlayerAvatar seed="d-fernandes" name="D. Fernandes" size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-primary">M.S. Dhoni</p>
+              <p className="text-[0.75rem] text-muted">Bowling</p>
+            </div>
+            <p className="mono shrink-0 text-sm text-primary">
+              2/34
+              <span className="ml-1 text-[0.75rem] text-muted">(3.4)</span>
+            </p>
+          </div>
+
+          <div className="mt-auto border-t border-line pt-5">
+            <p className="eyebrow mb-3">This over</p>
+            <div className="flex min-h-9 flex-wrap items-center gap-2">
+              {frame.over.length === 0 ? (
+                <p className="text-sm text-muted">New over.</p>
+              ) : (
+                frame.over.map((ball, ballIndex) => (
+                  <span
+                    key={ballIndex}
+                    className={cn(ballIndex === frame.over.length - 1 && 'chip-in')}
+                  >
+                    <BallChip display={ball} />
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </BoardFrame>
+  );
+}
+
+type IncidentKind = 'GOAL' | 'YELLOW' | 'RED' | 'SAVE' | 'SUB';
+
+interface Incident {
+  minute: string;
+  kind: IncidentKind;
+  player: string;
+  detail: string;
+  side: 'HOME' | 'AWAY';
+}
+
+const INCIDENTS: readonly Incident[] = [
+  { minute: "12'", kind: 'GOAL', player: 'T. Okafor', detail: 'assist D. Mehra', side: 'HOME' },
+  { minute: "41'", kind: 'YELLOW', player: 'R. Banik', detail: 'dissent', side: 'AWAY' },
+  { minute: "55'", kind: 'GOAL', player: 'M. Silva', detail: 'assist R. Banik', side: 'AWAY' },
+  { minute: "71'", kind: 'GOAL', player: 'T. Okafor', detail: 'assist J. Adeyemi', side: 'HOME' },
+  { minute: "79'", kind: 'SUB', player: 'J. Adeyemi', detail: 'off for S. Kapadia', side: 'HOME' },
+  { minute: "81'", kind: 'SAVE', player: 'V. Nair', detail: 'one on one', side: 'AWAY' },
+  { minute: "84'", kind: 'GOAL', player: 'S. Kapadia', detail: 'assist T. Okafor', side: 'HOME' },
+  { minute: "88'", kind: 'RED', player: 'R. Banik', detail: 'second yellow', side: 'AWAY' },
+];
+
+interface FootballFrame {
+  clock: string;
+  minute: number;
+  home: number;
+  away: number;
+  through: number;
+  stoppage?: string;
+}
+
+const FOOTBALL_FRAMES: readonly FootballFrame[] = [
+  { clock: '76:12', minute: 76, home: 2, away: 1, through: 4 },
+  { clock: '79:08', minute: 79, home: 2, away: 1, through: 5 },
+  { clock: '81:44', minute: 81, home: 2, away: 1, through: 6 },
+  { clock: '84:26', minute: 84, home: 3, away: 1, through: 7 },
+  { clock: '88:03', minute: 88, home: 3, away: 1, through: 8 },
+  { clock: '90:00', minute: 90, home: 3, away: 1, through: 8, stoppage: '+4 added' },
+];
+
+const INCIDENT_TONE: Record<IncidentKind, string> = {
+  GOAL: 'bg-[var(--accent-strong)]',
+  YELLOW: 'bg-[var(--warning)]',
+  RED: 'bg-[var(--live)]',
+  SAVE: 'bg-[var(--success)]',
+  SUB: 'bg-[var(--line-strong)]',
+};
+
+const INCIDENT_LABEL: Record<IncidentKind, string> = {
+  GOAL: 'Goal',
+  YELLOW: 'Yellow card',
+  RED: 'Red card',
+  SAVE: 'Save',
+  SUB: 'Substitution',
+};
+
+function FootballBoard() {
+  const index = useFrame(FOOTBALL_FRAMES.length, 2200);
+  const frame = FOOTBALL_FRAMES[index]!;
+  const shown = INCIDENTS.slice(0, frame.through).slice(-4);
+
+  return (
+    <BoardFrame
+      label="Man Utd. v Man City · Semi-final"
+      teamA="#7a2f2a"
+      teamB="#2c5f4a"
+      ariaLabel={`Example football scoreboard: Man Utd. ${frame.home}, Dock Road ${frame.away}, ${frame.clock} played`}
+    >
+      <div className="grid sm:grid-cols-[1.25fr_1fr]">
+        <div className="px-5 py-6 sm:px-7 sm:py-7">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div className="flex min-w-0 flex-col items-start gap-2.5">
+              <TeamMark shortName="HIL" color="#7a2f2a" size="sm" />
+              <p className="truncate text-[0.9375rem] text-secondary">Man Utd.</p>
+            </div>
+
+            <p className="score-figure flex shrink-0 items-baseline text-[3.5rem] text-primary sm:text-[4.5rem]">
+              <span key={`h-${frame.home}`} className="figure-in">
+                {frame.home}
+              </span>
+              <span aria-hidden className="mx-[0.12em] font-normal text-muted">
+                –
+              </span>
+              <span key={`a-${frame.away}`} className="figure-in">
+                {frame.away}
+              </span>
+            </p>
+
+            <div className="flex min-w-0 flex-col items-end gap-2.5">
+              <TeamMark shortName="DRF" color="#2c5f4a" size="sm" />
+              <p className="truncate text-[0.9375rem] text-secondary">Man City</p>
+            </div>
+          </div>
+
+          <div className="mt-7 border-t border-line pt-5">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="clock-digits text-[2rem] text-primary">
+                {frame.clock.split(':')[0]}
+                <span className="clock-colon mx-0.5">:</span>
+                {frame.clock.split(':')[1]}
+              </p>
+              <p className="mono text-[0.6875rem] text-muted">
+                {frame.stoppage ?? 'Second half · 90 minutes'}
+              </p>
+            </div>
+
+            <div className="clock-track mt-4">
+              <span
+                className="clock-fill"
+                style={{
+                  width: `${Math.min(100, (frame.minute / 90) * 100)}%`,
+                  transition: 'width var(--dur-gauge) var(--ease)',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col border-t border-line px-5 py-6 sm:border-t-0 sm:border-l sm:px-7 sm:py-7">
+          <p className="eyebrow mb-4">Timeline</p>
+
+          <ul className="flex flex-col gap-3.5">
+            {shown.map((incident, position) => (
+              <li
+                key={incident.minute}
+                className={cn(
+                  'flex items-center gap-3',
+                  position === shown.length - 1 && 'chip-in',
+                )}
+              >
+                <FootballAvatar
+                  seed={incident.player}
+                  name={incident.player}
+                  size="xs"
+                  color={incident.side === 'HOME' ? '#7a2f2a' : '#2c5f4a'}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-primary">{incident.player}</p>
+                  <p className="truncate text-[0.75rem] text-muted">
+                    {INCIDENT_LABEL[incident.kind]} · {incident.detail}
+                  </p>
+                </div>
+
+                <span className="flex shrink-0 items-center gap-2">
+                  <span
+                    aria-hidden
+                    className={cn('size-2 rounded-[1px]', INCIDENT_TONE[incident.kind])}
+                  />
+                  <span className="mono text-[0.75rem] text-secondary">{incident.minute}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </BoardFrame>
+  );
+}
+
+/* ── The rail of figures ─────────────────────────────────────────────────── */
+
+const FIGURES = [
+  { value: '2', label: 'Sports, one event log' },
+  { value: '0', label: 'Logins to watch' },
+  { value: '6', label: 'Legal balls an over' },
+  { value: '90+', label: 'Minutes, stoppage carried' },
+] as const;
+
+function FiguresRail() {
+  return (
+    <section className="border-b border-line bg-sunken/40">
+      <dl className="mx-auto grid w-full max-w-[76rem] grid-cols-2 sm:grid-cols-4">
+        {FIGURES.map((figure, index) => (
+          <ScrollReveal
+            key={figure.label}
+            index={index}
+            step={50}
+            className={cn(
+              'px-5 py-8 sm:px-8 lg:px-12',
+              index % 2 === 0 && 'border-r border-line',
+              index < 2 && 'border-b border-line sm:border-b-0',
+              index === 1 && 'sm:border-r sm:border-line',
+            )}
+          >
+            <dt className="mono text-[2rem] leading-none font-medium text-primary">
+              {figure.value}
+            </dt>
+            <dd className="eyebrow mt-3 leading-[1.5]">{figure.label}</dd>
+          </ScrollReveal>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/* ── The two sports ──────────────────────────────────────────────────────── */
+
+const SPORT_COLUMNS: ReadonlyArray<{
+  sport: Sport;
+  title: string;
+  summary: string;
+  items: readonly string[];
+}> = [
+    {
+      sport: 'CRICKET',
+      title: 'Cricket, ball by ball',
+      summary:
+        'The console the scorer holds at the ground, and the engine that keeps the book honest behind it.',
+      items: [
+        'Runs, extras, wickets and corrections — one tap each',
+        'Strike rotation, over ends and innings ends without being asked',
+        'DLS par and revised targets when the rain arrives',
+        'A points table rebuilt from the log, net run rate included',
+        'Fixtures by the circle method, with playoff slots that fill themselves',
+      ],
+    },
+    {
+      sport: 'FOOTBALL',
+      title: 'Football, minute by minute',
+      summary:
+        'The same event log, a different set of laws — and a clock that a scorer can actually run from the touchline.',
+      items: [
+        'Goals, own goals, assists, saves, yellows and reds',
+        'A match clock with your own periods, breaks and stoppage',
+        'Substitutions capped by the limit set at kick off',
+        'Lineups on the pitch, with the bench beside them',
+        'A minute-by-minute timeline, and a PDF when it is over',
+      ],
+    },
+  ];
+
+function TwoSports({ sport, onSport }: { sport: Sport; onSport: (sport: Sport) => void }) {
+  return (
+    <section
+      id="sports"
+      className="mx-auto w-full max-w-[76rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
+    >
+      <ScrollReveal>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="eyebrow">Two sports</p>
+            <h2 className="serif mt-5 max-w-2xl text-[2.25rem] text-primary sm:text-[3rem]">
+              One append-only log. Two sets of laws on top of it.
+            </h2>
+          </div>
+          <p className="max-w-sm text-[0.9375rem] text-secondary">
+            Nothing is stored twice. A match is a stream of events, and each sport is the rules that
+            decide which events are legal.
+          </p>
+        </div>
+      </ScrollReveal>
+
+      <div className="mt-14 grid gap-4 lg:grid-cols-2">
+        {SPORT_COLUMNS.map((column, index) => {
+          const selected = sport === column.sport;
+
+          return (
+            <ScrollReveal key={column.sport} index={index}>
+              <button
+                type="button"
+                onClick={() => onSport(column.sport)}
+                data-selected={selected}
+                aria-pressed={selected}
+                className={cn(
+                  'sport-column flex h-full w-full flex-col rounded-[var(--radius-lg)] border p-8 text-left sm:p-10',
+                  selected
+                    ? 'border-[var(--accent-line)] bg-raised'
+                    : 'border-line bg-[var(--surface)]',
+                )}
+              >
+                <span className="flex items-center gap-2.5 text-accent">
+                  <SportMark sport={column.sport} />
+                  <span className="mono text-[0.6875rem] tracking-[0.16em] uppercase">
+                    {column.sport === 'CRICKET' ? 'Cricket' : 'Football'}
+                  </span>
+                  <span className="ml-auto text-[0.6875rem] tracking-[0.16em] text-muted uppercase">
+                    {selected ? 'On the board' : 'Show on the board'}
+                  </span>
+                </span>
+
+                <h3 className="serif mt-5 text-[1.75rem] text-primary">{column.title}</h3>
+                <p className="mt-3.5 text-secondary">{column.summary}</p>
+
+                <ul className="mt-8 flex flex-col border-t border-line">
+                  {column.items.map((item) => (
+                    <li
+                      key={item}
+                      className="ledger-row border-b border-line py-3.5 text-[0.9375rem] text-secondary last:border-0"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            </ScrollReveal>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ── The share link ──────────────────────────────────────────────────────── */
+
+const LINK_NOTES = [
+  {
+    title: 'Opens on the current score',
+    body: 'Mid-over, mid-half, whenever it is tapped. There is no loading screen to sit through and nothing to catch up on.',
+  },
+  {
+    title: 'Keeps itself up to date',
+    body: 'Every change arrives over a websocket carrying the whole score, so a dropped message repairs itself on the next one.',
+  },
+  {
+    title: 'Ends as a scorecard',
+    body: 'When the result lands the same link becomes the full card — and a PDF, if somebody wants it on paper.',
+  },
+] as const;
+
+function ShareBand() {
+  return (
+    <section id="link" className="border-y border-line bg-sunken/40">
+      <div className="mx-auto grid w-full max-w-[76rem] gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[0.9fr_1fr] lg:gap-20 lg:px-12">
+        <ScrollReveal>
+          <p className="eyebrow">The share link</p>
+          <h2 className="serif mt-5 text-[2.25rem] text-primary sm:text-[3rem]">
+            One URL. No account, no install.
+          </h2>
+          <p className="mt-6 max-w-lg text-secondary">
+            The people who actually want the score are a parent at work or a teammate on a bus.
+            Anything between them and the number loses them, so there is nothing between them and
+            the number.
+          </p>
+
+          <div className="mt-8 flex items-center gap-3 rounded-[var(--radius-sm)] border border-line bg-raised px-4 py-3">
+            <span aria-hidden className="live-pulse size-1.5 shrink-0 rounded-full bg-live" />
+            <p className="mono truncate text-[0.8125rem] text-secondary">
+              howzat.app/live/<span className="text-accent">k3n8-qv2p</span>
+            </p>
+            <span className="mono ml-auto shrink-0 text-[0.6875rem] text-muted">no login</span>
+          </div>
+        </ScrollReveal>
+
+        <ul className="flex flex-col">
+          {LINK_NOTES.map((note, index) => (
+            <ScrollReveal
+              key={note.title}
+              index={index}
+              step={60}
+              as="li"
+              className="ledger-row border-t border-line py-7 first:border-t-0 first:pt-0"
+            >
               <p className="mono text-[0.6875rem] text-accent">
                 {String(index + 1).padStart(2, '0')}
               </p>
-              <p className="mt-3 text-[1.0625rem] font-medium text-primary">{rule.title}</p>
-              <p className="mt-2 text-secondary">{rule.body}</p>
+              <p className="mt-3 text-[1.0625rem] font-medium text-primary">{note.title}</p>
+              <p className="mt-2 max-w-md text-secondary">{note.body}</p>
             </ScrollReveal>
           ))}
         </ul>
@@ -414,46 +851,172 @@ function Rules() {
   );
 }
 
-const RULES = [
+/* ── The flow ────────────────────────────────────────────────────────────── */
+
+const STEPS = [
   {
-    title: 'Extras counted the way the laws count them',
-    body: 'Wides and no-balls do not advance the over. Byes and leg byes do, and go to the side rather than the batter.',
+    number: '01',
+    title: 'Register the sides',
+    body: 'Name the teams, fill the squads, pick cricket or football. Anyone with a Howzat handle is added by handle and told about it.',
   },
   {
-    title: 'Strike rotation you never have to think about',
-    body: 'Odd runs swap the ends, the over-end swaps them back, and a new batter walks in on strike.',
+    number: '02',
+    title: 'Generate the fixtures',
+    body: 'Every pair meets once, or twice home and away. Playoff slots stay empty until their feeder matches finish, then fill themselves.',
   },
   {
-    title: 'Net run rate with the bowled-out rule',
-    body: 'A side dismissed inside its quota is charged the full quota. A successful chase is charged only the overs it faced.',
+    number: '03',
+    title: 'Hand a scorer the console',
+    body: 'They score from the touchline on a phone. When the signal at the ground goes, the balls queue on the device and go up in order.',
   },
   {
-    title: 'Corrections that never rewrite history',
-    body: 'A mistaken ball is superseded, not deleted. The original entry stays in the log, and a referee can audit every change.',
+    number: '04',
+    title: 'Share the link, forget the table',
+    body: 'Spectators watch live with no account. The points table and every career profile recompute themselves when the result lands.',
   },
 ] as const;
 
-function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
+function Flow() {
   return (
-    <section className="mx-auto w-full max-w-[80rem] px-5 pb-24 sm:px-8 lg:px-12">
-      <ScrollReveal shift={24}>
-        <div className="rounded-[var(--radius-lg)] bg-inverse px-8 py-16 sm:px-14 sm:py-20">
-          <div className="flex flex-col items-start gap-9 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="serif max-w-xl text-[2.25rem] text-on-inverse sm:text-[3rem]">
-                Open a scorebook for your league.
-              </h2>
-              <p className="mt-5 max-w-lg text-muted-on-inverse">
-                Register your teams, generate the fixtures, hand a scorer the link. It takes about
-                ten minutes.
-              </p>
+    <section
+      id="flow"
+      className="mx-auto w-full max-w-[76rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12"
+    >
+      <ScrollReveal>
+        <p className="eyebrow">The flow</p>
+        <h2 className="serif mt-5 max-w-2xl text-[2.25rem] text-primary sm:text-[3rem]">
+          A season, from a team sheet to a trophy.
+        </h2>
+      </ScrollReveal>
+
+      <ol className="flow-rail mt-16 grid gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        {STEPS.map((step, index) => (
+          <ScrollReveal key={step.number} index={index} as="li" className="relative">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="size-3.5 shrink-0 rounded-full border border-[var(--accent-line)] bg-[var(--surface)]"
+              />
+              <span className="mono text-sm text-accent">{step.number}</span>
             </div>
 
-            <Link to={home} className="shrink-0">
-              <span className="inline-flex h-[3.5rem] items-center rounded-[var(--radius-sm)] border border-[var(--accent)]/45 px-8 text-[0.9375rem] font-medium text-on-inverse transition-colors hover:bg-white/5">
+            <h3 className="serif mt-6 text-xl text-primary">{step.title}</h3>
+            <p className="mt-3 text-[0.9375rem] text-secondary">{step.body}</p>
+          </ScrollReveal>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ── The laws ────────────────────────────────────────────────────────────── */
+
+const LAWS: ReadonlyArray<{ sport: Sport; title: string; body: string }> = [
+  {
+    sport: 'CRICKET',
+    title: 'A wide is not a ball',
+    body: 'Wides and no-balls add a run and do not advance the over. Byes and leg byes advance it, and go to the side rather than the batter.',
+  },
+  {
+    sport: 'CRICKET',
+    title: 'Net run rate with the bowled-out rule',
+    body: 'A side dismissed inside its quota is charged the full quota. A successful chase is charged only the overs it actually faced.',
+  },
+  {
+    sport: 'FOOTBALL',
+    title: 'Two yellows is a red',
+    body: 'The second caution sends the player off, the side plays on with ten, and nobody can be substituted on in their place.',
+  },
+  {
+    sport: 'FOOTBALL',
+    title: 'A substitution is capped, not counted afterwards',
+    body: 'The limit is set at kick off. The console refuses the one that would break it rather than letting the sheet disagree later.',
+  },
+  {
+    sport: 'CRICKET',
+    title: 'Corrections never rewrite history',
+    body: 'A mistaken ball is superseded, not deleted. The original entry stays in the log and every change can be audited afterwards.',
+  },
+  {
+    sport: 'FOOTBALL',
+    title: 'Nobody assists their own goal',
+    body: 'An own goal credits the other side, an assist needs a second player, and a player off the pitch cannot be involved at all.',
+  },
+];
+
+function Laws() {
+  return (
+    <section id="laws" className="border-t border-line">
+      <div className="mx-auto w-full max-w-[76rem] px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+        <ScrollReveal>
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="eyebrow">Correctness</p>
+              <h2 className="serif mt-5 max-w-2xl text-[2.25rem] text-primary sm:text-[3rem]">
+                The rules a spreadsheet quietly gets wrong.
+              </h2>
+            </div>
+            <p className="max-w-sm text-[0.9375rem] text-muted">
+              Every one of these is covered by a test, not by good intentions — and enforced on the
+              server, inside the lock, before the event is written.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <dl className="mt-14 grid border-t border-line md:grid-cols-2">
+          {LAWS.map((law, index) => (
+            <ScrollReveal
+              key={law.title}
+              index={index % 2}
+              step={60}
+              className={cn(
+                'ledger-row border-b border-line py-8',
+                index % 2 === 0 ? 'md:border-r md:pr-10' : 'md:pl-10',
+              )}
+            >
+              <span className="flex items-center gap-2 text-muted">
+                <SportMark sport={law.sport} />
+                <span className="eyebrow">{law.sport === 'CRICKET' ? 'Cricket' : 'Football'}</span>
+              </span>
+              <dt className="mt-4 text-[1.0625rem] font-medium text-primary">{law.title}</dt>
+              <dd className="mt-2 max-w-md text-secondary">{law.body}</dd>
+            </ScrollReveal>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/* ── Closing ─────────────────────────────────────────────────────────────── */
+
+function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
+  return (
+    <section className="bg-inverse">
+      <ScrollReveal shift={24}>
+        <div className="mx-auto w-full max-w-[76rem] px-5 py-24 text-center sm:px-8 sm:py-32 lg:px-12">
+          <p className="eyebrow text-muted-on-inverse">Open a scorebook</p>
+
+          <h2 className="serif mx-auto mt-6 max-w-2xl text-[2.5rem] text-on-inverse sm:text-[3.5rem]">
+            Your league deserves a proper record of itself.
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-md text-muted-on-inverse">
+            Register the teams, generate the fixtures, hand a scorer the link. About ten minutes,
+            for cricket or football.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link to={home}>
+              <span className="inline-flex h-[3.25rem] items-center rounded-[var(--radius-sm)] bg-[var(--surface)] px-8 text-[0.9375rem] font-medium text-primary transition-opacity hover:opacity-90">
                 {signedIn ? 'Open your dashboard' : 'Create your account'} →
               </span>
             </Link>
+            <a href="#flow">
+              <span className="inline-flex h-[3.25rem] items-center rounded-[var(--radius-sm)] border border-[var(--line-inverse)] px-8 text-[0.9375rem] font-medium text-on-inverse transition-colors hover:bg-white/5">
+                See the flow
+              </span>
+            </a>
           </div>
         </div>
       </ScrollReveal>
@@ -461,15 +1024,37 @@ function Closing({ home, signedIn }: { home: string; signedIn: boolean }) {
   );
 }
 
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+const FOOTER_COLUMNS = [
+  {
+    title: 'The product',
+    items: [
+      { label: 'Two sports', href: '#sports' },
+      { label: 'The share link', href: '#link' },
+      { label: 'The flow', href: '#flow' },
+      { label: 'The laws it enforces', href: '#laws' },
+    ],
+  },
+  {
+    title: 'Get started',
+    items: [
+      { label: 'Create an account', href: '/login' },
+      { label: 'Sign in', href: '/login' },
+    ],
+  },
+] as const;
+
 function SiteFooter() {
   return (
     <footer className="border-t border-line">
-      <div className="mx-auto w-full max-w-[80rem] px-5 py-14 sm:px-8 lg:px-12">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="lg:col-span-2">
+      <div className="mx-auto w-full max-w-[76rem] px-5 py-14 sm:px-8 lg:px-12">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
             <Wordmark />
             <p className="mt-4 max-w-xs text-[0.9375rem] text-secondary">
-              Local cricket, kept properly. Built for grounds with bad signal and long memories.
+              Cricket and football, kept properly. Built for grounds with bad signal and long
+              memories.
             </p>
           </div>
 
@@ -494,27 +1079,9 @@ function SiteFooter() {
 
         <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-7">
           <p className="text-[0.8125rem] text-muted">© {new Date().getFullYear()} Howzat</p>
-          <p className="eyebrow">Every ball on the record</p>
+          <p className="eyebrow">Every ball, every minute, on the record</p>
         </div>
       </div>
     </footer>
   );
 }
-
-const FOOTER_COLUMNS = [
-  {
-    title: 'The product',
-    items: [
-      { label: 'What it does', href: '#what' },
-      { label: 'How it works', href: '#how' },
-      { label: 'The laws it enforces', href: '#rules' },
-    ],
-  },
-  {
-    title: 'Get started',
-    items: [
-      { label: 'Create an account', href: '/login' },
-      { label: 'Sign in', href: '/login' },
-    ],
-  },
-] as const;

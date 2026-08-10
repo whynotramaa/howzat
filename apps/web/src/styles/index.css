@@ -142,12 +142,82 @@ input {
   --text-on-inverse: #f4f6f8;
   --text-muted-on-inverse: #838a93;
 
+  --accent: #74b8f2;
+  --accent-strong: #93cbf8;
+  --accent-soft: #101f2d;
+  --accent-line: #2f5a80;
+
+  --live: #e0574a;
+  --live-soft: #2c1512;
+  --alert: #e0574a;
+  --alert-soft: #2c1512;
+  --success: #63b98d;
+  --success-soft: #12241a;
+  --warning: #ddb463;
+  --warning-soft: #251d10;
+
+  --focus: #74b8f2;
+
+  /* No elevation on the stage: a scoreboard is a lit panel, not lifted paper. */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  /* Set inline from the two sides' kit colours. */
   --team-a: #1268bd;
   --team-b: #363c44;
 
   color-scheme: dark;
   background: var(--surface);
   color: var(--text-primary);
+}
+
+/* The two kit colours as one 2px rule, split down the middle. Flat, never blended. */
+.live-stage-seam {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--team-a) 0,
+    var(--team-a) 50%,
+    var(--team-b) 50%,
+    var(--team-b) 100%
+  );
+}
+
+.live-stage-bar {
+  backdrop-filter: blur(14px) saturate(140%);
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+}
+
+.live-condensed {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+  pointer-events: none;
+}
+
+.live-condensed[data-shown='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The panel language of the stage: a flat plate and a hairline. Nothing else. */
+.live-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+/* Runs made and balls used compete for the same 100%. */
+.chase-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
 }
 
 .chase-fill {
@@ -219,31 +289,88 @@ input {
   transform: translateY(var(--reveal-shift, 18px));
 }
 
-.landing-ledger {
+/*
+ * The landing field: the same 1px column grid the layout is set on, drawn
+ * faintly behind the opening. Flat hairlines, never a wash — the page reads as
+ * ruled paper, and nothing on it glows.
+ */
+.field-rules {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--line) 45%, transparent) 0 1px,
+    transparent 1px 12.5%
+  );
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 62%, transparent);
+}
+
+/* A row in a ledger: the hairline is the divider, the accent cap is the hover. */
+.ledger-row {
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+
+.ledger-row::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline-start: 0;
+  height: 1px;
+  width: 0;
+  background: var(--accent-strong);
+  transition: width var(--dur) var(--ease);
+}
+
+.ledger-row:hover::before {
+  width: 2.5rem;
+}
+
+/* The sport columns. Selected is a hairline promotion, not a fill. */
+.sport-column {
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.sport-column[data-selected='false']:hover {
+  border-color: var(--line-strong);
+}
+
+/*
+ * The numbered rail: one hairline through every step marker. Only once the
+ * steps sit in a single row — stacked, the line would run past nothing.
+ */
+.flow-rail {
   position: relative;
 }
 
-.landing-ledger::before {
-  content: '';
-  position: absolute;
-  inset-block: 0.5rem;
-  inset-inline-start: 0;
-  width: 1px;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    var(--accent-line) 12%,
-    var(--accent-line) 88%,
-    transparent
-  );
+@media (min-width: 64rem) {
+  .flow-rail::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 0.4375rem;
+    height: 1px;
+    background: var(--line);
+  }
 }
 
-.bento-tile {
-  transition: border-color var(--dur) var(--ease);
+@keyframes chip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.bento-tile:hover {
-  border-color: var(--accent-line);
+/* A delivery or an incident arriving on the demo board. Once, on arrival. */
+.chip-in {
+  animation: chip-in var(--dur) var(--ease) both;
 }
 
 .rule {
