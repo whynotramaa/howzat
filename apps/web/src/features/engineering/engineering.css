@@ -1,0 +1,809 @@
+/*
+ * The engineering notebook.
+ *
+ * One idea holds this page together: every diagram is a drawing on ruled
+ * paper, not a rendered chart. Boxes are ink, lines are ink, annotations are
+ * handwriting. The wobble comes from one SVG displacement filter applied to
+ * whole diagram groups, so nothing here needs a drawing library.
+ *
+ * Colours come from the same tokens the rest of the product uses. Nothing on
+ * this page invents a colour.
+ */
+
+/* The paper. Plain now — the ruled grid fought every diagram on the page. */
+.eng-paper {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Handwriting. Used only for annotations on drawings, never for body copy. */
+.ink {
+  font-family: 'Caveat', 'Segoe Script', cursive;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+/*
+ * The wobble. feTurbulence drives feDisplacementMap, which pushes every edge
+ * of the group off its true path by a pixel or two. Applied to a <g>, so one
+ * filter roughens an entire drawing at once.
+ */
+.sketch {
+  filter: url(#eng-sketch);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sketch {
+    filter: none;
+  }
+}
+
+/* The ink palette for drawn elements. */
+.eng-svg {
+  --ink: var(--text-primary);
+  --ink-soft: var(--line-strong);
+  --ink-note: var(--accent);
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.eng-svg text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.eng-svg .t-label {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  letter-spacing: -0.005em;
+}
+
+.eng-svg .t-hand {
+  font-family: 'Caveat', cursive;
+  font-size: 18.5px;
+  fill: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.eng-svg .t-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text-muted);
+}
+
+/* A drawn box. Stroke only, never a fill that competes with the paper. */
+.eng-box {
+  fill: var(--surface-raised);
+  stroke: var(--line-strong);
+  stroke-width: 1.4;
+  transition:
+    stroke var(--dur) var(--ease),
+    fill var(--dur) var(--ease);
+}
+
+.eng-box[data-state='active'] {
+  stroke: var(--accent);
+  fill: var(--accent-soft);
+}
+
+.eng-box[data-state='done'] {
+  stroke: var(--success);
+  fill: var(--success-soft);
+}
+
+.eng-box[data-state='failed'] {
+  stroke: var(--alert);
+  fill: var(--alert-soft);
+}
+
+.eng-box[data-state='muted'] {
+  stroke: var(--line);
+  fill: var(--surface-sunken);
+}
+
+.eng-wire {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  transition: stroke var(--dur) var(--ease);
+}
+
+.eng-wire[data-state='active'] {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.eng-wire[data-state='failed'] {
+  stroke: var(--alert);
+  stroke-dasharray: 5 4;
+}
+
+.eng-wire[data-state='muted'] {
+  stroke: var(--line);
+}
+
+/* A packet travelling a wire. Drawn as a dashed run rather than a moving dot,
+   so it survives a paused animation and reads at a glance. */
+@keyframes eng-flow {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.eng-wire[data-flow='true'] {
+  stroke-dasharray: 6 6;
+  animation: eng-flow 700ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eng-wire[data-flow='true'] {
+    animation: none;
+  }
+}
+
+/* Hit target for a clickable drawn node. */
+.eng-hit {
+  cursor: pointer;
+  fill: transparent;
+}
+
+.eng-hit:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/*
+ * The minimap. A column of hairlines on the right margin: one per chapter,
+ * length proportional to nothing at all, just a tick. Labels appear on hover
+ * or keyboard focus, and the whole rail widens when it does.
+ */
+.eng-minimap {
+  position: fixed;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: none;
+  padding: 1rem 0.75rem 1rem 2rem;
+  max-height: 84dvh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.eng-minimap::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 90rem) {
+  .eng-minimap {
+    display: block;
+  }
+}
+
+.eng-minimap-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  width: 100%;
+  padding-block: 0.1875rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.eng-minimap-label {
+  font-size: 0.6875rem;
+  line-height: 1.1;
+  text-align: end;
+  color: var(--text-muted);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(6px);
+  transition:
+    opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+  transition-delay: var(--delay, 0ms);
+}
+
+.eng-minimap:hover .eng-minimap-label,
+.eng-minimap:focus-within .eng-minimap-label {
+  opacity: 1;
+  transform: none;
+}
+
+/* Active gets a colour, never a permanently visible label. The rail is ticks
+   until the pointer arrives. */
+.eng-minimap-item[data-active='true'] .eng-minimap-label {
+  color: var(--text-primary);
+}
+
+.eng-minimap-tick {
+  height: 1px;
+  width: 1.125rem;
+  flex: none;
+  background: var(--line-strong);
+  transition:
+    width var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.eng-minimap-item:hover .eng-minimap-tick {
+  background: var(--text-secondary);
+  width: 1.625rem;
+}
+
+.eng-minimap-item[data-active='true'] .eng-minimap-tick {
+  background: var(--accent);
+  width: 2.25rem;
+}
+
+/*
+ * A chapter's drop number, set in the serif at a size nothing else uses. It
+ * hangs in the left margin where there is room for it, and disappears where
+ * there is not, so every heading starts on the same line as the body text.
+ */
+.eng-chapter-num {
+  display: none;
+  font-family: var(--font-serif);
+  font-size: 3.25rem;
+  line-height: 0.8;
+  color: var(--line-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 78rem) {
+  .eng-chapter-num {
+    display: block;
+    position: absolute;
+    inset-inline-start: -5.25rem;
+    inset-block-start: -0.4rem;
+  }
+}
+
+/*
+ * One measure for the whole page. A figure is exactly as wide as the paragraph
+ * above it, so nothing on the page has a second left edge. A drawing that needs
+ * more room than that gets it by growing downwards, never sideways.
+ */
+/* A figure: the drawing, its caption, and its controls, boxed as one unit. */
+.eng-figure {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.eng-figure-stage {
+  padding: 1rem 0.75rem;
+  background: var(--surface-raised);
+}
+
+@media (min-width: 40rem) {
+  .eng-figure-stage {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+.eng-figure-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.875rem 1.5rem;
+  border-block-start: 1px solid var(--line);
+  background: var(--surface-sunken);
+  padding: 0.75rem 0.875rem;
+}
+
+@media (min-width: 40rem) {
+  .eng-figure-bar {
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* A small control button inside a figure bar. */
+.eng-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0.6875rem;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.eng-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.eng-btn[data-tone='primary'] {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--surface-raised);
+}
+
+.eng-btn[data-tone='primary']:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.eng-btn[data-tone='danger'] {
+  border-color: color-mix(in oklab, var(--alert) 45%, var(--line));
+  color: var(--alert);
+}
+
+.eng-btn[data-active='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.eng-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* The running log a lab prints under itself. Terminal, but quiet. */
+.eng-log {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.75;
+  max-height: 11rem;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border-block-start: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+}
+
+.eng-log-line[data-tone='ok'] {
+  color: var(--success);
+}
+
+.eng-log-line[data-tone='warn'] {
+  color: var(--warning);
+}
+
+.eng-log-line[data-tone='bad'] {
+  color: var(--alert);
+}
+
+.eng-log-line[data-tone='note'] {
+  color: var(--accent);
+}
+
+/*
+ * A margin note. Handwriting on the paper itself: no rule, no card, just a
+ * small ink tag and the note beside it.
+ */
+.eng-note {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  margin-block: 0.25rem;
+}
+
+.eng-note-mark {
+  flex: none;
+  font-size: 1.125rem;
+  color: var(--accent);
+  transform: rotate(-6deg);
+}
+
+.eng-note p {
+  font-family: 'Caveat', cursive;
+  font-size: 1.1875rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  max-width: 60ch;
+}
+
+/*
+ * Callouts. A plain card with a tone tag along the top edge. The old
+ * left-border treatment fought the ruled paper and looked like a quote block.
+ */
+.eng-callout {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--tone) 22%, var(--line));
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--tone) 7%, var(--surface-raised));
+  padding: 1.125rem;
+}
+
+.eng-callout[data-kind='gap'] {
+  --tone: var(--alert);
+}
+
+.eng-callout[data-kind='trap'] {
+  --tone: var(--warning);
+}
+
+.eng-callout[data-kind='why'] {
+  --tone: var(--accent);
+}
+
+.eng-callout-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--tone);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-block-end: 0.625rem;
+}
+
+.eng-callout-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-block-end: 0.375rem;
+}
+
+.eng-callout-body {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.eng-callout-body > p {
+  max-width: none;
+}
+
+/* The one-line instruction above a figure's controls. */
+.eng-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-block-end: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.eng-hint svg {
+  margin-block-start: 0.1875rem;
+}
+
+/* A labelled cluster of buttons inside a figure bar. */
+.eng-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.eng-controls-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.eng-controls[data-tone='danger'] .eng-controls-label {
+  color: var(--alert);
+}
+
+.eng-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+/* Prose defaults inside a chapter. Measure is deliberately short. */
+.eng-prose p {
+  color: var(--text-secondary);
+}
+
+.eng-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.8125em;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: 0.0625rem 0.3125rem;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.eng-prose strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The invariant card: a rule the system will not break. */
+.eng-law {
+  display: flex;
+  gap: 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 0.9375rem 1.125rem;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.eng-law:hover {
+  border-color: var(--accent-line);
+}
+
+.eng-law-num {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--accent);
+  padding-block-start: 0.1875rem;
+}
+
+/* A key-value row in the Redis keyspace table. */
+.eng-key {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+/* Chapters get scroll margin so the sticky header never covers a heading. */
+.eng-chapter {
+  scroll-margin-block-start: 5rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * The phone chapter picker. A floating button, and the list over the page.
+ * Shown exactly where the minimap rail is not.
+ * ------------------------------------------------------------------ */
+
+@media (min-width: 90rem) {
+  .eng-sheet-root {
+    display: none;
+  }
+}
+
+.eng-sheet-fab {
+  position: fixed;
+  inset-inline-end: 1rem;
+  inset-block-end: 1rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-raised) 82%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+}
+
+.eng-sheet-fab[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The scrim fades the page rather than blacking it out: the reader is picking
+   a place in something they can still see. */
+.eng-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  border: 0;
+  background: color-mix(in oklab, var(--surface) 55%, transparent);
+  backdrop-filter: blur(2px);
+  animation: eng-sheet-in 140ms var(--ease);
+  cursor: default;
+}
+
+.eng-sheet {
+  position: fixed;
+  z-index: 55;
+  inset-inline-end: 1rem;
+  inset-block-end: 4.25rem;
+  width: min(20rem, calc(100vw - 2rem));
+  max-height: min(60dvh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--surface-raised) 88%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.28);
+  animation: eng-sheet-in 160ms var(--ease);
+}
+
+@keyframes eng-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eng-sheet,
+  .eng-sheet-scrim {
+    animation: none;
+  }
+}
+
+.eng-sheet-list {
+  padding: 0 0.5rem 0.5rem;
+}
+
+.eng-sheet-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.eng-sheet-item[data-active='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.eng-sheet-num {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.eng-sheet-item[data-active='true'] .eng-sheet-num {
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Wide drawings on narrow screens
+ *
+ * A swimlane does not shrink to 360px and stay readable, so it scrolls
+ * sideways inside its own box and says so. The page body never scrolls
+ * horizontally.
+ * ------------------------------------------------------------------ */
+
+.eng-scroll {
+  position: relative;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-block-end: 0.25rem;
+}
+
+.eng-scroll-note {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-block-end: 0.5rem;
+}
+
+@media (min-width: 64rem) {
+  .eng-scroll-note {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * The store panels: one card per place a ball can be at a given moment.
+ * ------------------------------------------------------------------ */
+
+.eng-store {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 0.75rem;
+  transition:
+    border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+.eng-store[data-live='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.eng-store[data-live='down'] {
+  border-color: var(--alert);
+  background: var(--alert-soft);
+}
+
+.eng-store-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.eng-store-seq {
+  margin-inline-start: auto;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent);
+}
+
+.eng-store-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  min-height: 3.25rem;
+}
+
+.eng-store-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: var(--radius-xs);
+  background: var(--surface-sunken);
+  padding: 0.1875rem 0.4375rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Phone sizing for the page itself
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 40rem) {
+  .eng-chapter {
+    padding-block-start: 3rem;
+  }
+
+  .eng-log {
+    font-size: 0.6875rem;
+    max-height: 8.5rem;
+  }
+
+  .eng-btn {
+    font-size: 0.6875rem;
+    padding: 0.4375rem 0.625rem;
+  }
+
+  /* Anything drawn or tabular keeps its own scroller rather than stretching
+     the page. */
+  .eng-prose pre,
+  .eng-prose table {
+    max-width: 100%;
+  }
+}
+
+/* Touch targets stay tappable even in the dense control bars. */
+@media (pointer: coarse) {
+  .eng-btn {
+    min-height: 2.25rem;
+  }
+}

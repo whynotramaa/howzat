@@ -1034,6 +1034,7 @@ const FOOTER_COLUMNS = [
       { label: 'The share link', href: '#link' },
       { label: 'The flow', href: '#flow' },
       { label: 'The laws it enforces', href: '#laws' },
+      { label: 'How it is engineered', href: '/engineering' },
     ],
   },
   {

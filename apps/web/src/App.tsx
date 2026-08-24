@@ -37,6 +37,10 @@ const PlayerProfilePage = lazy(() =>
   import('@/features/profile/PlayerProfilePage').then((m) => ({ default: m.PlayerProfilePage })),
 );
 
+const EngineeringPage = lazy(() =>
+  import('@/features/engineering/EngineeringPage').then((m) => ({ default: m.EngineeringPage })),
+);
+
 const LiveRoute = lazy(() =>
   import('@/features/matches/SportRoutes').then((m) => ({ default: m.LiveRoute })),
 );
@@ -77,6 +81,8 @@ export function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/live/:slug" element={<LiveRoute />} />
               <Route path="/tournament/:tournamentId" element={<PublicTournamentPage />} />
+
+              <Route path="/engineering" element={<EngineeringPage />} />
 
               <Route path="/login" element={<LoginPage />} />
 
