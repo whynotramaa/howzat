@@ -242,25 +242,7 @@ export function CreaseCard({
       ) : (
         <ul className="flex flex-col">
           {batters.map((batter) => (
-            <li
-              key={batter.id}
-              className={cn(
-                'relative flex items-center gap-4 border-b border-line px-5 py-4',
-                batter.onStrike && 'bg-accent-soft/60',
-              )}
-            >
-              {batter.onStrike ? (
-                <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-              ) : null}
-
-              <span
-                aria-hidden
-                className={cn(
-                  'size-2 shrink-0 rounded-full',
-                  batter.onStrike ? 'strike-dot bg-accent' : 'bg-line-strong',
-                )}
-              />
-
+            <li key={batter.id} className="flex items-center gap-4 border-b border-line px-5 py-4">
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
@@ -269,6 +251,12 @@ export function CreaseCard({
                   )}
                 >
                   {batter.name}
+                  {batter.onStrike ? (
+                    <>
+                      <span aria-hidden>*</span>
+                      <span className="sr-only"> on strike</span>
+                    </>
+                  ) : null}
                 </p>
                 <p className="mono mt-1 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted">
                   <span>{batter.fours}×4</span>
@@ -278,10 +266,6 @@ export function CreaseCard({
                   </span>
                 </p>
               </div>
-
-              {batter.onStrike ? (
-                <span className="hand hidden text-xl text-accent sm:block">on strike</span>
-              ) : null}
 
               <p className="score-figure shrink-0 text-[1.75rem] text-primary">
                 {batter.runs}
@@ -294,9 +278,7 @@ export function CreaseCard({
         </ul>
       )}
 
-      <div className="relative flex items-center gap-4 bg-sunken px-5 py-4">
-        <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-line-strong" />
-
+      <div className="flex items-center gap-4 bg-sunken px-5 py-4">
         <div className="min-w-0 flex-1">
           <p className="eyebrow">Bowling</p>
           <p className="mt-1.5 truncate font-medium text-primary">{bowler?.name ?? 'Not named'}</p>

@@ -300,22 +300,6 @@
 }
 
 /* The striker's marker. A slow breath, not a blink. */
-@keyframes strike-breathe {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.82);
-  }
-}
-
-.strike-dot {
-  animation: strike-breathe 2.2s var(--ease-in-out) infinite;
-}
-
 /* ── The moment ──────────────────────────────────────────────────────────── */
 
 /*
@@ -433,7 +417,6 @@
   }
 
   .score-hit,
-  .strike-dot,
   .chip-land,
   .rpo-bar,
   .ink-draw,

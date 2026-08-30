@@ -10,6 +10,7 @@ import { PdfButton } from '@/components/ui/PdfButton';
 import { Tabs } from '@/components/ui/Tabs';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { Wordmark } from '@/components/Wordmark';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ClockIcon, EyeIcon, StumpsIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
 import {
   BallChip,
@@ -107,6 +108,7 @@ export function LiveMatchPage() {
             {snapshot ? (
               <ShareLink slug={slug} variant="quiet" matchLabel={matchLabel} label="Share" />
             ) : null}
+            <ThemeToggle />
           </div>
         </div>
       </header>
