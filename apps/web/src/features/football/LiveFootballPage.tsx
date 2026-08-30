@@ -25,35 +25,8 @@ export function LiveFootballPage({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!snapshot || !matchLabel) return;
-
-    const title = `${matchLabel} — ${snapshot.home.goals}–${snapshot.away.goals} · Howzat`;
-    document.title = title;
-    const image = `${window.location.origin}/api/public/matches/${slug}/og.svg`;
-    const description = `Follow ${matchLabel} live on Howzat.`;
-    const tags = [
-      ['property', 'og:title', title],
-      ['property', 'og:description', description],
-      ['property', 'og:image', image],
-      ['property', 'og:image:type', 'image/svg+xml'],
-      ['property', 'og:image:width', '1200'],
-      ['property', 'og:image:height', '630'],
-      ['property', 'og:url', window.location.href],
-      ['name', 'twitter:card', 'summary_large_image'],
-      ['name', 'twitter:title', title],
-      ['name', 'twitter:description', description],
-      ['name', 'twitter:image', image],
-    ] as const;
-
-    const elements = tags.map(([attribute, key, content]) => {
-      const meta = document.createElement('meta');
-      meta.setAttribute(attribute, key);
-      meta.content = content;
-      document.head.appendChild(meta);
-      return meta;
-    });
-
-    return () => elements.forEach((meta) => meta.remove());
-  }, [matchLabel, slug, snapshot]);
+    document.title = `${matchLabel} — ${snapshot.home.goals}–${snapshot.away.goals} · Howzat`;
+  }, [matchLabel, snapshot]);
 
   return (
     <div

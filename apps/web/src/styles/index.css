@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './stage.css';
 
 @theme inline {
   --color-surface: var(--surface);
@@ -31,6 +32,15 @@
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+
+  --color-pos: var(--pos);
+  --color-pos-soft: var(--pos-soft);
+  --color-hot: var(--hot);
+  --color-hot-soft: var(--hot-soft);
+  --color-cool: var(--cool);
+  --color-cool-soft: var(--cool-soft);
+  --color-analytic: var(--analytic);
+  --color-analytic-soft: var(--analytic-soft);
 
   --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);

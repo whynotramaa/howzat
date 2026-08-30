@@ -19,6 +19,10 @@ export function AppShell() {
 
   const navHref = (to: string) => (to === '/profile' ? `/players/${user?.username ?? ''}` : to);
 
+  // The scoring console is an instrument, not a page: it takes the whole width
+  // below the app header and brings its own dark surface.
+  const consoleRoute = /^\/(matches\/[^/]+\/score|score\/)/.test(pathname);
+
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -189,15 +193,22 @@ export function AppShell() {
         />
       ) : null}
 
-      <main className="mx-auto w-full max-w-[78rem] flex-1 px-5 py-10 sm:px-8 sm:py-14 lg:px-12">
+      <main
+        className={cn(
+          'flex-1',
+          !consoleRoute && 'mx-auto w-full max-w-[78rem] px-5 py-10 sm:px-8 sm:py-14 lg:px-12',
+        )}
+      >
         <Outlet />
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4 px-5 py-7 sm:px-8 lg:px-12">
-          <p className="eyebrow">Made with ❤️ by whynotramaa</p>
-        </div>
-      </footer>
+      {consoleRoute ? null : (
+        <footer className="border-t border-line">
+          <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4 px-5 py-7 sm:px-8 lg:px-12">
+            <p className="eyebrow">Made with ❤️ by whynotramaa</p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

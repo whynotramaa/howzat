@@ -9,8 +9,11 @@ import { getFootballSnapshot } from '../football/snapshot';
 import { getStandings } from '../standings/service';
 import { loadTournamentMatches } from '../tournaments/report';
 import { renderMatchOgImage } from './og';
+import { shareHandler } from './share';
 
 export const publicRouter = Router();
+
+publicRouter.get('/share/:slug', shareHandler);
 
 async function resolveSlug(slug: string): Promise<string> {
   const cacheKey = `slug:${slug}`;

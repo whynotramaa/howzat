@@ -17,7 +17,7 @@ export function renderMatchOgImage(
   const team2 = match.team2 ?? { name: 'Team two', shortName: 'TWO', primaryColor: '#363c44' };
   const live = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const status = match.resultText ?? (live ? 'LIVE NOW' : match.status.replace('_', ' '));
-  const score = match.sport === 'FOOTBALL' ? footballScore(snapshot) : cricketScore(snapshot);
+  const score = ogScoreLine(match.sport, snapshot);
   const detail = match.sport === 'FOOTBALL' ? 'FOOTBALL' : 'CRICKET · BALL BY BALL';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
@@ -51,6 +51,13 @@ export function renderMatchOgImage(
 </svg>`;
 }
 
+export function ogScoreLine(
+  sport: 'CRICKET' | 'FOOTBALL',
+  snapshot: MatchSnapshot | FootballSnapshot | null,
+): string {
+  return sport === 'FOOTBALL' ? footballScore(snapshot) : cricketScore(snapshot);
+}
+
 function cricketScore(snapshot: MatchSnapshot | FootballSnapshot | null): string {
   if (!snapshot || 'sport' in snapshot) return 'Not started';
   return `${snapshot.batting.runs}/${snapshot.batting.wickets}  ·  ${snapshot.batting.overs} ov`;
@@ -65,6 +72,6 @@ function color(value: string): string {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#1268bd';
 }
 
-function xml(value: string): string {
+export function xml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

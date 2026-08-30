@@ -13,6 +13,17 @@
       "destination": "/api/server"
     },
     {
+      "source": "/live/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Pinterest|redditbot|SkypeUriPreview).*"
+        }
+      ],
+      "destination": "/api/server"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
