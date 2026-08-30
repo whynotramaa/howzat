@@ -22,6 +22,7 @@ import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
+import { QuickMatchSheet } from './QuickMatchSheet';
 import { useCreateTournament, useTournaments } from './queries';
 
 const FORMAT_LABELS: Record<TournamentFormat, string> = {
@@ -46,14 +47,22 @@ const SPORTS: Array<{ value: Sport; label: string; blurb: string }> = [
 export function TournamentsPage() {
   const { data, isPending, error } = useTournaments();
   const [creating, setCreating] = useState(false);
+  const [quickMatch, setQuickMatch] = useState(false);
 
   return (
     <div className="flex flex-col gap-10">
       <SectionHeading
         eyebrow="Your competitions"
         title="Tournaments"
-        description="Pick a sport, register your sides, fill each squad, then generate the fixtures."
-        action={<Button onClick={() => setCreating(true)}>New tournament</Button>}
+        description="Pick a sport, register your sides, fill each squad, then generate the fixtures. For a one-off, start a match between two sides instead."
+        action={
+          <div className="flex flex-wrap gap-2.5">
+            <Button variant="secondary" onClick={() => setQuickMatch(true)}>
+              Start a match
+            </Button>
+            <Button onClick={() => setCreating(true)}>New tournament</Button>
+          </div>
+        }
       />
 
       {error ? <ErrorText error={error} /> : null}
@@ -74,12 +83,20 @@ export function TournamentsPage() {
       ) : (
         <EmptyState
           title="No tournaments on the board yet"
-          description="Open your first one, register the sides, and the fixture list will write itself."
-          action={<Button onClick={() => setCreating(true)}>New tournament</Button>}
+          description="Open your first one, register the sides, and the fixture list will write itself. Just two teams? Start a match instead."
+          action={
+            <div className="flex flex-wrap justify-center gap-2.5">
+              <Button onClick={() => setCreating(true)}>New tournament</Button>
+              <Button variant="secondary" onClick={() => setQuickMatch(true)}>
+                Start a match
+              </Button>
+            </div>
+          }
         />
       )}
 
       <CreateTournamentSheet open={creating} onClose={() => setCreating(false)} />
+      <QuickMatchSheet open={quickMatch} onClose={() => setQuickMatch(false)} />
     </div>
   );
 }

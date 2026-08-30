@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { nameSchema } from './common';
+import { createTeamSchema } from './team';
 import { SPORTS, TOURNAMENT_FORMATS } from '../types/enums';
 import {
   DEFAULT_OVERS_PER_INNINGS,
@@ -37,11 +38,29 @@ export const createTournamentSchema = z
       .min(MIN_PERIOD_MINUTES)
       .max(MAX_PERIOD_MINUTES)
       .default(DEFAULT_PERIOD_MINUTES),
+    /** Sides to register alongside the tournament, so a one-off match is one call. */
+    teams: z.array(createTeamSchema).max(MAX_TEAMS).optional(),
   })
   .refine((input) => input.sport !== 'CRICKET' || input.playersPerTeam === PLAYERS_PER_TEAM, {
     message: `A cricket side is exactly ${PLAYERS_PER_TEAM} players`,
     path: ['playersPerTeam'],
-  });
+  })
+  .refine((input) => (input.teams?.length ?? 0) <= input.teamsCount, {
+    message: 'More sides than the tournament has room for',
+    path: ['teams'],
+  })
+  .refine(
+    (input) =>
+      new Set((input.teams ?? []).map((team) => team.shortName.toUpperCase())).size ===
+      (input.teams?.length ?? 0),
+    { message: 'Two sides cannot share an abbreviation', path: ['teams'] },
+  )
+  .refine(
+    (input) =>
+      new Set((input.teams ?? []).map((team) => team.name.toLowerCase())).size ===
+      (input.teams?.length ?? 0),
+    { message: 'Two sides cannot share a name', path: ['teams'] },
+  );
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
 
 export const updateTournamentSchema = z.object({

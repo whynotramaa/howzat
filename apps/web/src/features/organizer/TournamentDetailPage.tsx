@@ -11,7 +11,7 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { PdfButton } from '@/components/ui/PdfButton';
-import { useFixtures } from '@/features/matches/queries';
+import { useFixtures, useGenerateFixtures } from '@/features/matches/queries';
 import { cn } from '@/lib/cn';
 import { StandingsTable } from './StandingsTable';
 import { TournamentStatsPanel } from './TournamentStatsPanel';
@@ -34,6 +34,7 @@ export function TournamentDetailPage() {
   const fixtures = useFixtures(tournamentId);
   const deleteTeam = useDeleteTeam(tournamentId);
   const deleteTournament = useDeleteTournament();
+  const generate = useGenerateFixtures(tournamentId);
 
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<TeamDto | null>(null);
@@ -53,6 +54,17 @@ export function TournamentDetailPage() {
     fixtures.data?.items.filter((match) =>
       ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
     ).length ?? 0;
+
+  // Two sides meeting once is a one-off match, so it skips the fixture list and
+  // goes straight to the game.
+  const isSingleMatch = tournament.data.teamsCount === 2 && !tournament.data.doubleRoundRobin;
+  const soleMatch = isSingleMatch ? fixtures.data?.items[0] : undefined;
+
+  async function startTheMatch() {
+    const result = await generate.mutateAsync(false);
+    const match = result.items[0];
+    if (match) void navigate(`/matches/${match.id}`);
+  }
 
   return (
     <div className="flex flex-col gap-12">
@@ -97,11 +109,27 @@ export function TournamentDetailPage() {
               {full ? 'All sides registered' : 'Register a side'}
             </Button>
 
-            <Link to={`/tournaments/${tournamentId}/fixtures`}>
-              <Button disabled={!readyForFixtures && fixtureCount === 0}>
-                {fixtureCount > 0 ? `Fixtures (${fixtureCount})` : 'Generate fixtures'}
-              </Button>
-            </Link>
+            {isSingleMatch ? (
+              soleMatch ? (
+                <Link to={`/matches/${soleMatch.id}`}>
+                  <Button>Open the match</Button>
+                </Link>
+              ) : (
+                <Button
+                  disabled={!readyForFixtures}
+                  isLoading={generate.isPending}
+                  onClick={() => void startTheMatch()}
+                >
+                  Start the match
+                </Button>
+              )
+            ) : (
+              <Link to={`/tournaments/${tournamentId}/fixtures`}>
+                <Button disabled={!readyForFixtures && fixtureCount === 0}>
+                  {fixtureCount > 0 ? `Fixtures (${fixtureCount})` : 'Generate fixtures'}
+                </Button>
+              </Link>
+            )}
 
             <Button
               variant="quiet"
@@ -132,6 +160,8 @@ export function TournamentDetailPage() {
           <StatTile label="Fixtures played" value={`${played}/${fixtureCount}`} />
         </div>
 
+        {generate.error ? <ErrorText error={generate.error} /> : null}
+
         <p
           className={cn(
             'flex items-center gap-3 text-[0.9375rem]',
@@ -139,7 +169,9 @@ export function TournamentDetailPage() {
           )}
         >
           {readyForFixtures
-            ? `Every side has ${tournament.data.playersPerTeam} players. You can generate the fixture list.`
+            ? `Every side has ${tournament.data.playersPerTeam} players. You can ${
+                isSingleMatch ? 'start the match' : 'generate the fixture list'
+              }.`
             : !full
               ? `Register ${tournament.data.teamsCount - registered} more side${
                   tournament.data.teamsCount - registered === 1 ? '' : 's'

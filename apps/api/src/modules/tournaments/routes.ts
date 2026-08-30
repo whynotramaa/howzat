@@ -48,13 +48,31 @@ tournamentsRouter.get(
 tournamentsRouter.post(
   '/',
   asyncHandler(async (req, res) => {
-    const input = parseBody(createTournamentSchema, req.body);
+    const { teams, ...settings } = parseBody(createTournamentSchema, req.body);
 
+    // Sides come in with the tournament for a one-off match, where "two teams
+    // and go" is the whole point. Nested create keeps it one transaction.
     const tournament = await prisma.tournament.create({
-      data: { ...input, organizerId: req.user!.id },
+      data: {
+        ...settings,
+        organizerId: req.user!.id,
+        ...(teams?.length
+          ? {
+              teams: {
+                create: teams.map((team) => ({
+                  name: team.name,
+                  shortName: team.shortName.toUpperCase(),
+                  primaryColor: team.primaryColor,
+                })),
+              },
+            }
+          : {}),
+      },
     });
 
-    res.status(201).json(toTournamentDto(tournament, { registeredTeams: 0, eligibleTeams: 0 }));
+    res
+      .status(201)
+      .json(toTournamentDto(tournament, { registeredTeams: teams?.length ?? 0, eligibleTeams: 0 }));
   }),
 );
 
