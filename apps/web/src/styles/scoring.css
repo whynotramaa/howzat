@@ -1,0 +1,233 @@
+/*
+ * The scoring surfaces: the scorer's console and the public live page.
+ *
+ * Both run on the app's own tokens, so light and dark come free and nothing
+ * here re-skins the page. The rule is simple. Hairlines, dotted rules and one
+ * accent carry the layout; only the score itself is allowed to be loud.
+ */
+
+/* Crop marks. Two corners, the way a scoreboard is cropped on paper. */
+.crop::before,
+.crop::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--line-strong);
+  pointer-events: none;
+}
+
+.crop::before {
+  inset-block-start: 9px;
+  inset-inline-start: 9px;
+  border-inline-end: 0;
+  border-block-end: 0;
+}
+
+.crop::after {
+  inset-block-end: 9px;
+  inset-inline-end: 9px;
+  border-inline-start: 0;
+  border-block-start: 0;
+}
+
+/* A dotted rule reads as a scoreboard seam where a solid one reads as a box. */
+.dot-rule {
+  height: 1px;
+  background-image: repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 6px);
+}
+
+.dot-rule-v {
+  width: 1px;
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--line-strong) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+/*
+ * The unlit segments behind the figure, borrowed from a dot-matrix board. The
+ * ghost is the same string of eights in the same tabular font, so it lands
+ * exactly under the live number.
+ */
+.led {
+  position: relative;
+}
+
+.led-ghost {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  opacity: 0.055;
+  pointer-events: none;
+  user-select: none;
+}
+
+/*
+ * `.eyebrow` in index.css owns its colour, so a Tailwind text utility on the
+ * same element loses to it. These are the four the scoring pages need.
+ */
+.eyebrow[data-tone='live'] {
+  color: var(--live);
+}
+
+.eyebrow[data-tone='accent'] {
+  color: var(--accent);
+}
+
+.eyebrow[data-tone='success'] {
+  color: var(--success);
+}
+
+.eyebrow[data-tone='warning'] {
+  color: var(--warning);
+}
+
+/* --------------------------------------------------------------- the pad */
+
+/*
+ * `.console-key` in index.css already draws the key. These are the two states
+ * the cricket pad adds: armed (the next tap is an extra) and the wicket.
+ */
+.console-key[data-armed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.console-key.key-row {
+  flex-direction: row;
+}
+
+.console-key[data-tone='boundary']:not(:disabled) {
+  color: var(--accent);
+}
+
+.console-key[data-tone='wicket']:not(:disabled) {
+  border-color: color-mix(in oklab, var(--live) 55%, transparent);
+  color: var(--live);
+}
+
+.console-key[data-tone='wicket']:hover:not(:disabled) {
+  border-color: var(--live);
+  background: var(--live-soft);
+}
+
+.key-legend {
+  position: absolute;
+  inset-block-start: 0.4375rem;
+  inset-inline-end: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------- the momentum */
+
+.rpo-bar {
+  transition: height var(--dur-gauge) var(--ease);
+}
+
+/* ------------------------------------------------------------ the moment */
+
+/*
+ * A six, a four and a wicket are the only three things worth interrupting the
+ * page for. Each gets 1.6s of big type and then gets out of the way.
+ */
+.moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+@keyframes moment-word {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    letter-spacing: 0.16em;
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: -0.03em;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+.moment-word {
+  font-weight: 600;
+  font-size: clamp(3.5rem, 17vw, 10rem);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--moment-ink);
+  animation: moment-word 1.6s var(--ease) both;
+}
+
+@keyframes ring-out {
+  from {
+    opacity: 0.5;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.moment-ring {
+  position: absolute;
+  width: min(140vw, 140vh);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border: 1px solid var(--moment-ink);
+  animation: ring-out 1.6s var(--ease) both;
+}
+
+.moment-ring:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.moment-ring:nth-child(3) {
+  animation-delay: 320ms;
+}
+
+/* The score acknowledges the ball with a nudge, not a fanfare. */
+@keyframes score-hit {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.score-hit {
+  animation: score-hit 620ms var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moment {
+    display: none;
+  }
+
+  .score-hit,
+  .moment-word,
+  .moment-ring {
+    animation: none;
+  }
+}

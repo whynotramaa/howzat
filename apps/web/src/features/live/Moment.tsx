@@ -9,10 +9,10 @@ interface Moment {
   sub: string;
 }
 
-const COPY: Record<MomentKind, { word: string; ink: string; glow: string }> = {
-  four: { word: 'FOUR', ink: 'var(--cool)', glow: 'rgb(103 179 245 / 0.28)' },
-  six: { word: 'SIX', ink: 'var(--pos)', glow: 'rgb(62 224 137 / 0.3)' },
-  wicket: { word: 'OUT', ink: 'var(--hot)', glow: 'rgb(255 143 74 / 0.3)' },
+const COPY: Record<MomentKind, { word: string; ink: string }> = {
+  four: { word: 'FOUR', ink: 'var(--accent)' },
+  six: { word: 'SIX', ink: 'var(--accent-strong)' },
+  wicket: { word: 'OUT', ink: 'var(--live)' },
 };
 
 function classify(ball: BallSummary): MomentKind | null {
@@ -63,7 +63,7 @@ export function useMoment(lastEventSeq: number, recentBalls: BallSummary[]): Mom
 export function MomentOverlay({ moment }: { moment: Moment | null }) {
   if (!moment) return null;
 
-  const { word, ink, glow } = COPY[moment.kind];
+  const { word, ink } = COPY[moment.kind];
 
   return (
     <div
@@ -71,15 +71,15 @@ export function MomentOverlay({ moment }: { moment: Moment | null }) {
       className="moment"
       role="status"
       aria-live="polite"
-      style={{ '--moment-ink': ink, '--moment-glow': glow } as React.CSSProperties}
+      style={{ '--moment-ink': ink } as React.CSSProperties}
     >
       <span aria-hidden className="moment-ring" />
       <span aria-hidden className="moment-ring" />
       <span aria-hidden className="moment-ring" />
 
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center gap-3">
         <p className="moment-word">{word}</p>
-        <p className="moment-sub micro text-secondary">Over {moment.sub}</p>
+        <p className="eyebrow">Over {moment.sub}</p>
       </div>
     </div>
   );
