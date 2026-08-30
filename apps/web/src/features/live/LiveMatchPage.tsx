@@ -10,25 +10,19 @@ import { PdfButton } from '@/components/ui/PdfButton';
 import { Tabs } from '@/components/ui/Tabs';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { Wordmark } from '@/components/Wordmark';
-import {
-  BallIcon,
-  ClockIcon,
-  EyeIcon,
-  StumpsIcon,
-  TrendIcon,
-  TrophyIcon,
-} from '@/components/ui/Icons';
+import { ClockIcon, EyeIcon, StumpsIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
 import {
   BallChip,
+  CreaseCard,
   LeaderRow,
   OverStrip,
   Panel,
   RunsPerOver,
   Scoreboard,
-  type Readout,
+  StatLine,
 } from '@/components/ui/Score';
 import { cn } from '@/lib/cn';
-import { MomentOverlay, useMoment } from './Moment';
+import { MomentOverlay, SketchFilter, useMoment } from './Moment';
 import { useLiveMatch, type ConnectionState } from './useLiveMatch';
 
 /*
@@ -65,6 +59,7 @@ export function LiveMatchPage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <SketchFilter />
       <MomentOverlay moment={moment} />
 
       <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_oklab,var(--surface)_84%,transparent)] backdrop-blur-xl">
@@ -95,11 +90,17 @@ export function LiveMatchPage() {
             </div>
           ) : null}
 
-          <div className="ml-auto flex shrink-0 items-center gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
             {viewers > 0 ? (
-              <span className="mono hidden items-center gap-1.5 text-[0.6875rem] text-muted sm:flex">
+              <span
+                title={`${viewers} watching now`}
+                className="mono flex items-center gap-1.5 text-[0.6875rem] text-muted"
+              >
                 <EyeIcon />
-                {viewers}
+                <span key={viewers} className="figure-in tabular text-secondary">
+                  {viewers.toLocaleString()}
+                </span>
+                <span className="hidden sm:inline">watching</span>
               </span>
             ) : null}
             <ConnectionBadge state={connection} />
@@ -160,14 +161,50 @@ const EMPTY_BALLS: BallSummary[] = [];
 
 function NotStarted() {
   return (
-    <section className="crop relative flex flex-col items-center gap-4 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-24 text-center">
-      <BallIcon className="size-7 text-muted" />
+    <section className="crop relative flex flex-col items-center gap-5 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-20 text-center">
+      <DrawnBall />
       <p className="eyebrow">Not a ball bowled yet</p>
-      <p className="serif text-[2rem] text-primary">The first delivery lands here</p>
+      <p className="hand text-[2.5rem] text-primary">the first delivery lands here</p>
       <p className="max-w-md text-secondary">
         The score appears the moment the scorer records a ball. Leave this open, it updates itself.
       </p>
     </section>
+  );
+}
+
+/** A ball, drawn rather than iconified. Seam first, then the shine. */
+function DrawnBall() {
+  return (
+    <svg viewBox="0 0 80 80" aria-hidden className="sketch size-16 text-muted">
+      <circle
+        cx="40"
+        cy="40"
+        r="26"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="ink-draw"
+        style={{ '--len': 180 } as React.CSSProperties}
+      />
+      <path
+        d="M26 24 C 34 38, 34 44, 26 56"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        className="ink-draw"
+        style={{ '--len': 60, '--i': 1 } as React.CSSProperties}
+      />
+      <path
+        d="M54 24 C 46 38, 46 44, 54 56"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        className="ink-draw"
+        style={{ '--len': 60, '--i': 2 } as React.CSSProperties}
+      />
+    </svg>
   );
 }
 
@@ -177,20 +214,6 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
   const { batting, bowling, required, target } = snapshot;
   const quota = batting.quotaOvers ?? (batting.oversQuota ? String(batting.oversQuota) : null);
   const finished = Boolean(snapshot.resultText);
-  const partnership = currentPartnership(snapshot);
-
-  const readouts: Readout[] = [
-    { label: 'Run rate', value: batting.runRate.toFixed(2) },
-    target !== null
-      ? { label: 'Target', value: target }
-      : { label: 'Extras', value: snapshot.extras.total },
-    required
-      ? { label: 'Req. rate', value: required.rrr.toFixed(2), tone: 'live' as const }
-      : { label: 'Partnership', value: partnership.runs },
-    snapshot.dls?.par !== null && snapshot.dls?.par !== undefined
-      ? { label: 'DLS par', value: snapshot.dls.par, tone: 'accent' as const }
-      : { label: 'Wickets left', value: Math.max(0, 10 - batting.wickets) },
-  ];
 
   return (
     <Scoreboard
@@ -212,7 +235,6 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
       wickets={batting.wickets}
       overs={batting.overs}
       quota={quota}
-      readouts={readouts}
     >
       {snapshot.resultText ? (
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-5 py-6 sm:px-9">
@@ -261,6 +283,20 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
           </div>
         </div>
       ) : null}
+
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line px-5 py-4 sm:px-9">
+        <p className="eyebrow flex items-center gap-2">
+          <ClockIcon />
+          This over
+        </p>
+        <OverStrip
+          balls={snapshot.thisOver.map((ball, index) => ({
+            key: `${index}-${ball}`,
+            display: ball,
+          }))}
+          emptyLabel="First ball of the over coming up"
+        />
+      </div>
     </Scoreboard>
   );
 }
@@ -270,181 +306,94 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
 function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   const window = recentWindow(snapshot.recentBalls);
   const partnership = currentPartnership(snapshot);
+  const { extras } = snapshot;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Panel
-        title="This over"
-        icon={<ClockIcon />}
-        meta={
-          <span className="mono text-[0.6875rem] text-muted">{snapshot.thisOver.length} of 6</span>
+    <div className="flex flex-col gap-7">
+      <CreaseCard
+        batters={snapshot.batsmen.map((batsman) => ({
+          id: batsman.playerId,
+          name: batsman.name,
+          runs: batsman.runs,
+          balls: batsman.balls,
+          fours: batsman.fours,
+          sixes: batsman.sixes,
+          onStrike: batsman.onStrike,
+        }))}
+        bowler={
+          snapshot.bowler
+            ? {
+                name: snapshot.bowler.name,
+                overs: snapshot.bowler.overs,
+                maidens: snapshot.bowler.maidens,
+                runs: snapshot.bowler.runs,
+                wickets: snapshot.bowler.wickets,
+                econ: snapshot.bowler.econ,
+              }
+            : null
         }
-        bodyClassName="p-5"
+      />
+
+      <StatLine
+        items={[
+          { label: 'Run rate', value: snapshot.batting.runRate.toFixed(2) },
+          ...(snapshot.required
+            ? [
+                {
+                  label: 'Required',
+                  value: snapshot.required.rrr.toFixed(2),
+                  tone: 'live' as const,
+                },
+              ]
+            : []),
+          { label: 'Partnership', value: `${partnership.runs} (${partnership.balls})` },
+          {
+            label: 'Extras',
+            value: `${extras.total} · w${extras.wides} nb${extras.noBalls} b${extras.byes} lb${extras.legByes}`,
+          },
+        ]}
+        note={`${window.fours}×4 and ${window.sixes}×6 in the last ${window.balls}`}
+      />
+
+      <Panel
+        title="Momentum"
+        icon={<TrendIcon />}
+        meta={<span className="mono text-[0.6875rem] text-muted">runs per over</span>}
+        bodyClassName="flex flex-col gap-5 p-5"
       >
-        <OverStrip
-          balls={snapshot.thisOver.map((ball, index) => ({
-            key: `${index}-${ball}`,
-            display: ball,
-          }))}
-          emptyLabel="First ball of the over coming up"
-        />
+        <RunsPerOver balls={snapshot.recentBalls} />
+
+        <div className="flex flex-col gap-2.5 border-t border-line pt-4">
+          <LeaderRow
+            label={`Last ${window.balls} balls`}
+            value={`${window.runs} runs · ${window.wickets}w`}
+            emphasis
+          />
+          <LeaderRow
+            label="Dot balls"
+            value={window.balls > 0 ? `${Math.round((window.dots / window.balls) * 100)}%` : '—'}
+          />
+        </div>
       </Panel>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel title="At the crease" icon={<BallIcon />} bodyClassName="p-0">
-          <div className="overflow-x-auto">
-            <Table density="compact" className="min-w-[18rem]">
-              <thead>
-                <tr className="border-b border-line">
-                  <Th align="left" className="pl-5">
-                    Batter
-                  </Th>
-                  <Th align="right">R</Th>
-                  <Th align="right">B</Th>
-                  <Th align="right">4s</Th>
-                  <Th align="right" className="pr-5 sm:pr-3">
-                    6s
-                  </Th>
-                  <Th align="right" className="hidden pr-5 sm:table-cell">
-                    SR
-                  </Th>
-                </tr>
-              </thead>
-              <tbody>
-                {snapshot.batsmen.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-5 text-sm text-muted">
-                      Nobody at the crease yet.
-                    </td>
-                  </tr>
-                ) : (
-                  snapshot.batsmen.map((batsman) => (
-                    <tr key={batsman.playerId} className="border-b border-line last:border-b-0">
-                      <td className="py-3 pl-5">
-                        <span
-                          className={cn(
-                            'flex items-center gap-2 text-sm',
-                            batsman.onStrike ? 'font-medium text-primary' : 'text-secondary',
-                          )}
-                        >
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'size-1.5 rounded-full',
-                              batsman.onStrike ? 'bg-accent' : 'bg-transparent',
-                            )}
-                          />
-                          {batsman.name}
-                        </span>
-                      </td>
-                      <Td align="right" emphasis>
-                        {batsman.runs}
-                      </Td>
-                      <Td align="right">{batsman.balls}</Td>
-                      <Td align="right">{batsman.fours}</Td>
-                      <Td align="right" className="pr-5 sm:pr-3">
-                        {batsman.sixes}
-                      </Td>
-                      <Td align="right" className="hidden pr-5 sm:table-cell">
-                        {batsman.sr.toFixed(1)}
-                      </Td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          </div>
-
-          <div className="dot-rule mx-5" />
-
-          <div className="flex items-center justify-between gap-4 px-5 py-4">
-            <div className="min-w-0">
-              <p className="eyebrow">Bowling</p>
-              <p className="mt-2 truncate text-sm font-medium text-primary">
-                {snapshot.bowler?.name ?? 'Not named'}
-              </p>
-            </div>
-            <p className="mono shrink-0 text-sm text-secondary">
-              {snapshot.bowler
-                ? `${snapshot.bowler.overs}–${snapshot.bowler.maidens}–${snapshot.bowler.runs}–${snapshot.bowler.wickets} · econ ${snapshot.bowler.econ.toFixed(2)}`
-                : '0.0–0–0–0'}
-            </p>
-          </div>
-        </Panel>
-
+      {snapshot.fallOfWickets.length > 0 ? (
         <Panel
-          title="Momentum"
-          icon={<TrendIcon />}
-          meta={<span className="mono text-[0.6875rem] text-muted">runs per over</span>}
-          bodyClassName="flex flex-col gap-5 p-5"
+          title="Fall of wickets"
+          icon={<StumpsIcon />}
+          bodyClassName="flex flex-col gap-2.5 p-5"
         >
-          <RunsPerOver balls={snapshot.recentBalls} />
-
-          <div className="flex flex-col gap-2.5 border-t border-line pt-4">
-            <LeaderRow label="Run rate" value={snapshot.batting.runRate.toFixed(2)} emphasis />
-            <LeaderRow
-              label={`Last ${window.balls} balls`}
-              value={`${window.runs} runs · ${window.wickets}w`}
-            />
-            <LeaderRow
-              label="Dot balls"
-              value={window.balls > 0 ? `${Math.round((window.dots / window.balls) * 100)}%` : '—'}
-            />
-            <LeaderRow label="Boundaries" value={`${window.fours}×4 · ${window.sixes}×6`} />
-            <LeaderRow label="Partnership" value={`${partnership.runs} (${partnership.balls})`} />
-          </div>
+          {snapshot.fallOfWickets
+            .slice()
+            .reverse()
+            .map((wicket) => (
+              <LeaderRow
+                key={wicket.wicket}
+                label={`${wicket.wicket}. ${wicket.name}`}
+                value={`${wicket.teamRuns} (${wicket.overs})`}
+              />
+            ))}
         </Panel>
-      </div>
-
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel title="Extras" icon={<StumpsIcon />} bodyClassName="p-5">
-          <dl className="grid grid-cols-5 gap-2 text-center">
-            <Figure label="Wd" value={snapshot.extras.wides} />
-            <Figure label="Nb" value={snapshot.extras.noBalls} />
-            <Figure label="B" value={snapshot.extras.byes} />
-            <Figure label="Lb" value={snapshot.extras.legByes} />
-            <Figure label="Total" value={snapshot.extras.total} emphasis />
-          </dl>
-        </Panel>
-
-        {snapshot.fallOfWickets.length > 0 ? (
-          <Panel
-            title="Fall of wickets"
-            icon={<ClockIcon />}
-            bodyClassName="flex flex-col gap-2.5 p-5"
-          >
-            {snapshot.fallOfWickets
-              .slice()
-              .reverse()
-              .map((wicket) => (
-                <LeaderRow
-                  key={wicket.wicket}
-                  label={`${wicket.wicket}. ${wicket.name}`}
-                  value={`${wicket.teamRuns} (${wicket.overs})`}
-                />
-              ))}
-          </Panel>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function Figure({
-  label,
-  value,
-  emphasis = false,
-}: {
-  label: string;
-  value: string | number;
-  emphasis?: boolean;
-}) {
-  return (
-    <div>
-      <dd className={cn('mono text-lg font-medium', emphasis ? 'text-primary' : 'text-secondary')}>
-        {value}
-      </dd>
-      <dt className="eyebrow mt-1.5">{label}</dt>
+      ) : null}
     </div>
   );
 }

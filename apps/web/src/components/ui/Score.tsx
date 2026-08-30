@@ -3,91 +3,7 @@ import type { BallSummary } from '@howzat/shared';
 import { TeamMark } from '@/components/ui/Pill';
 import { cn } from '@/lib/cn';
 
-export function ScoreFigure({
-  runs,
-  wickets,
-  size = 'lg',
-  tone = 'default',
-}: {
-  runs: number;
-  wickets: number;
-  size?: 'md' | 'lg' | 'xl';
-  tone?: 'default' | 'inverse';
-}) {
-  const sizes = {
-    md: 'text-[2.5rem]',
-    lg: 'text-[3.25rem] sm:text-[4rem]',
-    xl: 'text-[4rem] sm:text-[5.5rem]',
-  } as const;
-
-  return (
-    <p
-      className={cn(
-        'score-figure flex items-baseline',
-        sizes[size],
-        tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
-      )}
-    >
-      <span key={runs} className="figure-in">
-        {runs}
-      </span>
-      <span
-        aria-hidden
-        className={cn(
-          'mx-[0.06em] font-normal',
-          tone === 'inverse' ? 'text-muted-on-inverse' : 'text-muted',
-        )}
-      >
-        /
-      </span>
-      <span key={wickets} className="figure-in">
-        {wickets}
-      </span>
-    </p>
-  );
-}
-
-export function OversFigure({
-  overs,
-  quota,
-  quotaLabel,
-  tone = 'default',
-}: {
-  overs: string;
-  quota?: number;
-  /**
-   * The allotment already written as overs and balls. DLS can cut an innings to
-   * 40.3 overs, which the whole-over `quota` cannot say.
-   */
-  quotaLabel?: string;
-  tone?: 'default' | 'inverse';
-}) {
-  const allotment = quotaLabel ?? (quota === undefined ? undefined : String(quota));
-
-  return (
-    <p className="flex items-baseline gap-1">
-      <span
-        key={overs}
-        className={cn(
-          'mono figure-in text-2xl font-medium',
-          tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
-        )}
-      >
-        {overs}
-      </span>
-      {allotment !== undefined ? (
-        <span
-          className={cn(
-            'mono text-sm',
-            tone === 'inverse' ? 'text-muted-on-inverse' : 'text-muted',
-          )}
-        >
-          /{allotment}
-        </span>
-      ) : null}
-    </p>
-  );
-}
+/* ── Deliveries ──────────────────────────────────────────────────────────── */
 
 export function BallChip({ display, isWicket }: { display: string; isWicket?: boolean }) {
   const wicket = isWicket || display.includes('W');
@@ -126,17 +42,15 @@ export function OverStrip({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {balls.map((ball, index) => (
-        <span
-          key={ball.key}
-          className="reveal"
-          style={{ '--delay': `${index * 40}ms` } as React.CSSProperties}
-        >
+        <span key={ball.key} className="chip-land" style={{ '--i': index } as CSSProperties}>
           <BallChip display={ball.display} isWicket={ball.isWicket} />
         </span>
       ))}
     </div>
   );
 }
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
 
 export function LeaderRow({
   label,
@@ -165,223 +79,7 @@ export function LeaderRow({
   );
 }
 
-/* ── The board ───────────────────────────────────────────────────────────── */
-
-export interface Readout {
-  label: string;
-  value: ReactNode;
-  tone?: 'plain' | 'accent' | 'live';
-}
-
-const READOUT_TONE = {
-  plain: 'text-primary',
-  accent: 'text-accent',
-  live: 'text-live',
-} as const;
-
-/**
- * The one loud thing on either scoring page. Everything else in the console
- * and the live page is a hairline and a label; the board gets the big figure,
- * the crop marks and the unlit segments behind the number.
- */
-export function Scoreboard({
-  team,
-  eyebrow,
-  status,
-  runs,
-  wickets,
-  overs,
-  quota,
-  readouts,
-  size = 'lg',
-  children,
-}: {
-  team: { name: string; shortName: string; primaryColor: string };
-  eyebrow: string;
-  status?: ReactNode;
-  runs: number;
-  wickets: number;
-  overs: string;
-  quota?: string | null;
-  readouts?: ReadonlyArray<Readout>;
-  size?: 'md' | 'lg';
-  children?: ReactNode;
-}) {
-  const pad = size === 'lg' ? 'px-5 sm:px-9' : 'px-5 sm:px-7';
-
-  return (
-    <section
-      style={{ '--team-a': team.primaryColor } as CSSProperties}
-      className="crop relative rounded-[var(--radius-lg)] border border-line bg-raised"
-    >
-      <div
-        className={cn('flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pt-6 pb-5', pad)}
-      >
-        <div className="flex min-w-0 items-center gap-3">
-          <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
-          <div className="min-w-0">
-            <p className="truncate font-medium text-primary">{team.name}</p>
-            <p className="eyebrow mt-2">{eyebrow}</p>
-          </div>
-        </div>
-        {status}
-      </div>
-
-      <div className={cn('dot-rule', size === 'lg' ? 'mx-5 sm:mx-9' : 'mx-5 sm:mx-7')} />
-
-      <div
-        className={cn(
-          'flex flex-wrap items-end justify-between gap-x-10 gap-y-5 pt-7 pb-8 sm:pt-9',
-          pad,
-        )}
-      >
-        <p
-          key={`${runs}-${wickets}`}
-          className={cn(
-            'led score-hit score-figure flex items-baseline text-primary',
-            size === 'lg' ? 'text-[clamp(3.75rem,17vw,7rem)]' : 'text-[clamp(3.25rem,13vw,5rem)]',
-          )}
-        >
-          <span aria-hidden className="led-ghost flex items-baseline">
-            <span>{'8'.repeat(String(runs).length)}</span>
-            <span className="font-normal">/</span>
-            <span>{'8'.repeat(String(wickets).length)}</span>
-          </span>
-          <span>{runs}</span>
-          <span aria-hidden className="font-normal text-muted">
-            /
-          </span>
-          <span className="text-muted">{wickets}</span>
-        </p>
-
-        <div className="pb-1.5">
-          <p className="mono flex items-baseline text-[1.375rem] font-medium text-primary">
-            <span key={overs} className="figure-in">
-              {overs}
-            </span>
-            {quota ? <span className="text-base text-muted">/{quota}</span> : null}
-          </p>
-          <p className="eyebrow mt-2.5">Overs</p>
-        </div>
-      </div>
-
-      {readouts && readouts.length > 0 ? (
-        <dl className="grid grid-cols-2 border-t border-line sm:grid-cols-4">
-          {readouts.map((readout, index) => (
-            <div
-              key={readout.label}
-              className={cn(
-                'px-5 py-4 sm:px-7',
-                index % 2 === 1 && 'border-l border-line',
-                index > 0 && 'sm:border-l sm:border-line',
-                index > 1 && 'border-t border-line sm:border-t-0',
-              )}
-            >
-              <dd
-                className={cn(
-                  'mono text-[1.375rem] leading-none font-medium',
-                  READOUT_TONE[readout.tone ?? 'plain'],
-                )}
-              >
-                {readout.value}
-              </dd>
-              <dt className="eyebrow mt-2.5">{readout.label}</dt>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-
-      {children ? <div className="border-t border-line">{children}</div> : null}
-    </section>
-  );
-}
-
-/* ── The momentum ────────────────────────────────────────────────────────── */
-
-/**
- * Runs in each over as a row of hollow bars. Wicket overs are drawn in the
- * live colour, which is the only place the eye needs to stop.
- */
-export function RunsPerOver({
-  balls,
-  className,
-}: {
-  balls: ReadonlyArray<BallSummary>;
-  className?: string;
-}) {
-  const overs = groupOvers(balls);
-
-  if (overs.length === 0) {
-    return <p className="text-sm text-muted">No overs to plot yet.</p>;
-  }
-
-  const peak = Math.max(6, ...overs.map((over) => over.runs));
-
-  return (
-    <div className={className}>
-      <div className="flex h-32 items-end gap-1.5 border-b border-line">
-        {overs.map((over) => (
-          <div
-            key={over.number}
-            title={`Over ${over.number + 1}: ${over.runs} run${over.runs === 1 ? '' : 's'}${
-              over.wickets > 0 ? `, ${over.wickets}w` : ''
-            }`}
-            className="flex h-full min-w-0 flex-1 flex-col justify-end gap-1.5"
-          >
-            <span
-              className={cn(
-                'mono text-center text-[0.625rem] leading-none',
-                over.wickets > 0 ? 'text-live' : 'text-muted',
-              )}
-            >
-              {over.runs}
-            </span>
-            <span
-              aria-hidden
-              style={{ height: `${Math.max(4, (over.runs / peak) * 82)}%` }}
-              className={cn(
-                'rpo-bar w-full rounded-t-[2px] border border-b-0',
-                over.wickets > 0
-                  ? 'border-[var(--live)] bg-live-soft'
-                  : 'border-[var(--accent-line)] bg-accent-soft',
-              )}
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-2 flex gap-1.5">
-        {overs.map((over) => (
-          <span
-            key={over.number}
-            className="mono min-w-0 flex-1 text-center text-[0.625rem] text-muted"
-          >
-            {overs.length > 12 && over.number % 2 === 1 ? '' : over.number + 1}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function groupOvers(
-  balls: ReadonlyArray<BallSummary>,
-): Array<{ number: number; runs: number; wickets: number }> {
-  const byOver = new Map<number, { runs: number; wickets: number }>();
-
-  for (const ball of balls) {
-    const entry = byOver.get(ball.overNumber) ?? { runs: 0, wickets: 0 };
-    entry.runs += ball.runs;
-    entry.wickets += ball.isWicket ? 1 : 0;
-    byOver.set(ball.overNumber, entry);
-  }
-
-  return [...byOver.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([number, entry]) => ({ number, ...entry }));
-}
-
-/* ── The panel ───────────────────────────────────────────────────────────── */
+/* ── Containers ──────────────────────────────────────────────────────────── */
 
 /** One hairline box with a labelled head. The only container these pages use. */
 export function Panel({
@@ -413,4 +111,354 @@ export function Panel({
       <div className={cn('p-5', bodyClassName)}>{children}</div>
     </section>
   );
+}
+
+/* ── The board ───────────────────────────────────────────────────────────── */
+
+/**
+ * The score and nothing else. Every rate, average and breakdown belongs below
+ * the players, which is the order a spectator actually reads in.
+ */
+export function Scoreboard({
+  team,
+  eyebrow,
+  status,
+  runs,
+  wickets,
+  overs,
+  quota,
+  size = 'lg',
+  children,
+}: {
+  team: { name: string; shortName: string; primaryColor: string };
+  eyebrow: string;
+  status?: ReactNode;
+  runs: number;
+  wickets: number;
+  overs: string;
+  quota?: string | null;
+  size?: 'md' | 'lg';
+  children?: ReactNode;
+}) {
+  const pad = size === 'lg' ? 'px-5 sm:px-9' : 'px-5 sm:px-7';
+
+  return (
+    <section
+      style={{ '--team-a': team.primaryColor } as CSSProperties}
+      className="crop relative rounded-[var(--radius-lg)] border border-line bg-raised"
+    >
+      <div
+        className={cn('flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pt-6 pb-5', pad)}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-primary">{team.name}</p>
+            <p className="eyebrow mt-2">{eyebrow}</p>
+          </div>
+        </div>
+        {status}
+      </div>
+
+      <div className={cn('dot-rule', size === 'lg' ? 'mx-5 sm:mx-9' : 'mx-5 sm:mx-7')} />
+
+      <div className={cn('flex items-end justify-between gap-6 pt-7 pb-8 sm:pt-9', pad)}>
+        <p
+          key={`${runs}-${wickets}`}
+          className={cn(
+            'score-hit score-figure flex items-baseline text-primary',
+            size === 'lg' ? 'text-[clamp(3.75rem,17vw,7rem)]' : 'text-[clamp(3.25rem,13vw,5rem)]',
+          )}
+        >
+          <span>{runs}</span>
+          <span aria-hidden className="font-normal text-muted">
+            /
+          </span>
+          <span className="text-muted">{wickets}</span>
+        </p>
+
+        <div className="flex shrink-0 items-end gap-5 pb-1.5 sm:gap-7">
+          <span aria-hidden className="dot-rule-v hidden self-stretch sm:block" />
+          <div>
+            <p className="mono flex items-baseline text-[1.375rem] font-medium text-primary">
+              <span key={overs} className="figure-in">
+                {overs}
+              </span>
+              {quota ? <span className="text-base text-muted">/{quota}</span> : null}
+            </p>
+            <p className="eyebrow mt-2.5">Overs</p>
+          </div>
+        </div>
+      </div>
+
+      {children ? <div className="border-t border-line">{children}</div> : null}
+    </section>
+  );
+}
+
+/* ── The crease ──────────────────────────────────────────────────────────── */
+
+export interface CreaseBatter {
+  id: string;
+  name: string;
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  onStrike: boolean;
+}
+
+export interface CreaseBowler {
+  name: string;
+  overs: string;
+  maidens: number;
+  runs: number;
+  wickets: number;
+  econ: number | null;
+}
+
+/**
+ * The scorebook page. Feint ruling behind it, the striker's row lit and
+ * annotated by hand, the bowler's figures given the same weight as a batter's
+ * score because the scorer needs both at a glance.
+ */
+export function CreaseCard({
+  batters,
+  bowler,
+  emptyLabel = 'Nobody at the crease yet.',
+  action,
+  bowlerAction,
+}: {
+  batters: CreaseBatter[];
+  bowler: CreaseBowler | null;
+  emptyLabel?: string;
+  action?: ReactNode;
+  bowlerAction?: ReactNode;
+}) {
+  return (
+    <Panel title="At the crease" meta={action} bodyClassName="p-0">
+      {batters.length === 0 ? (
+        <p className="px-5 py-6 text-sm text-muted">{emptyLabel}</p>
+      ) : (
+        <ul className="flex flex-col">
+          {batters.map((batter) => (
+            <li
+              key={batter.id}
+              className={cn(
+                'relative flex items-center gap-4 border-b border-line px-5 py-4',
+                batter.onStrike && 'bg-accent-soft/60',
+              )}
+            >
+              {batter.onStrike ? (
+                <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
+              ) : null}
+
+              <span
+                aria-hidden
+                className={cn(
+                  'size-2 shrink-0 rounded-full',
+                  batter.onStrike ? 'strike-dot bg-accent' : 'bg-line-strong',
+                )}
+              />
+
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    'truncate',
+                    batter.onStrike ? 'font-semibold text-primary' : 'text-secondary',
+                  )}
+                >
+                  {batter.name}
+                </p>
+                <p className="mono mt-1 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted">
+                  <span>{batter.fours}×4</span>
+                  <span>{batter.sixes}×6</span>
+                  <span>
+                    SR {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '—'}
+                  </span>
+                </p>
+              </div>
+
+              {batter.onStrike ? (
+                <span className="hand hidden text-xl text-accent sm:block">on strike</span>
+              ) : null}
+
+              <p className="score-figure shrink-0 text-[1.75rem] text-primary">
+                {batter.runs}
+                <span className="mono ml-1 text-[0.8125rem] font-normal text-muted">
+                  ({batter.balls})
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="relative flex items-center gap-4 bg-sunken px-5 py-4">
+        <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-line-strong" />
+
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow">Bowling</p>
+          <p className="mt-1.5 truncate font-medium text-primary">{bowler?.name ?? 'Not named'}</p>
+        </div>
+
+        {bowlerAction}
+
+        <div className="shrink-0 text-right">
+          <p className="score-figure text-[1.75rem] text-primary">
+            {bowler?.wickets ?? 0}
+            <span className="text-muted">/{bowler?.runs ?? 0}</span>
+          </p>
+          <p className="mono mt-1 text-[0.6875rem] text-muted">
+            {bowler ? `${bowler.overs} ov · ${bowler.maidens} mdn` : '0.0 ov'}
+            {bowler?.econ != null ? ` · econ ${bowler.econ.toFixed(2)}` : ''}
+          </p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── The numbers, in a sentence ──────────────────────────────────────────── */
+
+/**
+ * The rates and the breakdown, set as text on a ruled line rather than boxed
+ * up as tiles. They are supporting figures and they should read like it.
+ */
+export function StatLine({
+  items,
+  note,
+}: {
+  items: ReadonlyArray<{ label: string; value: ReactNode; tone?: 'plain' | 'accent' | 'live' }>;
+  note?: string;
+}) {
+  return (
+    <div className="border-y border-line py-4">
+      <dl className="flex flex-wrap items-baseline gap-x-7 gap-y-3">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-baseline gap-2.5">
+            <dt className="eyebrow">{item.label}</dt>
+            <dd
+              className={cn(
+                'mono text-[0.9375rem] font-medium',
+                item.tone === 'accent'
+                  ? 'text-accent'
+                  : item.tone === 'live'
+                    ? 'text-live'
+                    : 'text-primary',
+              )}
+            >
+              {item.value}
+            </dd>
+          </div>
+        ))}
+
+        {note ? <span className="hand ml-auto text-xl text-muted">{note}</span> : null}
+      </dl>
+    </div>
+  );
+}
+
+/* ── The momentum ────────────────────────────────────────────────────────── */
+
+/**
+ * Runs in each over as a row of hollow bars. Wicket overs are drawn in the
+ * live colour, the peak is called out by hand, and hovering an over gives you
+ * the ball-by-ball total without a legend.
+ */
+export function RunsPerOver({
+  balls,
+  className,
+}: {
+  balls: ReadonlyArray<BallSummary>;
+  className?: string;
+}) {
+  const overs = groupOvers(balls);
+
+  if (overs.length === 0) {
+    return <p className="text-sm text-muted">No overs to plot yet.</p>;
+  }
+
+  const peak = Math.max(6, ...overs.map((over) => over.runs));
+  const best = overs.reduce((top, over) => (over.runs > top.runs ? over : top), overs[0]!);
+
+  return (
+    <div className={className}>
+      <div className="flex h-32 items-end gap-1.5">
+        {overs.map((over, index) => (
+          <div
+            key={over.number}
+            data-wicket={over.wickets > 0}
+            className="rpo-col flex h-full min-w-0 flex-1 flex-col justify-end gap-1.5"
+          >
+            <span className="rpo-tip rounded-[var(--radius-xs)] border border-line bg-raised px-2 py-1">
+              <span className="mono text-[0.625rem] text-primary">
+                ov {over.number + 1} · {over.runs}
+                {over.wickets > 0 ? ` · ${over.wickets}w` : ''}
+              </span>
+            </span>
+
+            {over.number === best.number && best.runs > 0 ? (
+              <span className="hand text-center text-lg leading-none text-muted">best</span>
+            ) : null}
+
+            <span
+              className={cn(
+                'mono text-center text-[0.625rem] leading-none',
+                over.wickets > 0 ? 'text-live' : 'text-muted',
+              )}
+            >
+              {over.runs}
+            </span>
+
+            <span
+              aria-hidden
+              style={
+                {
+                  height: `${Math.max(4, (over.runs / peak) * 78)}%`,
+                  '--i': index,
+                } as CSSProperties
+              }
+              className={cn(
+                'rpo-bar w-full rounded-t-[3px] border border-b-0',
+                over.wickets > 0
+                  ? 'border-[var(--live)] bg-live-soft'
+                  : 'border-[var(--accent-line)] bg-accent-soft',
+              )}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="dot-rule" />
+
+      <div className="mt-2 flex gap-1.5">
+        {overs.map((over) => (
+          <span
+            key={over.number}
+            className="mono min-w-0 flex-1 text-center text-[0.625rem] text-muted"
+          >
+            {overs.length > 12 && over.number % 2 === 1 ? '' : over.number + 1}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function groupOvers(
+  balls: ReadonlyArray<BallSummary>,
+): Array<{ number: number; runs: number; wickets: number }> {
+  const byOver = new Map<number, { runs: number; wickets: number }>();
+
+  for (const ball of balls) {
+    const entry = byOver.get(ball.overNumber) ?? { runs: 0, wickets: 0 };
+    entry.runs += ball.runs;
+    entry.wickets += ball.isWicket ? 1 : 0;
+    byOver.set(ball.overNumber, entry);
+  }
+
+  return [...byOver.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([number, entry]) => ({ number, ...entry }));
 }

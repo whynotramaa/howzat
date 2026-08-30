@@ -1,10 +1,28 @@
 /*
  * The scoring surfaces: the scorer's console and the public live page.
  *
- * Both run on the app's own tokens, so light and dark come free and nothing
- * here re-skins the page. The rule is simple. Hairlines, dotted rules and one
- * accent carry the layout; only the score itself is allowed to be loud.
+ * Both run on the app's own tokens, so light and dark come free. The rules
+ * are: hairlines carry the layout, the score is the only loud figure, the pad
+ * is the only coloured object, and every celebration is drawn by hand.
  */
+
+/* ── Ink ─────────────────────────────────────────────────────────────────── */
+
+/* Handwriting. Annotations and celebrations only, never body copy. */
+.hand {
+  font-family: var(--font-hand);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+}
+
+/*
+ * The wobble. feTurbulence drives feDisplacementMap, so one filter roughens a
+ * whole drawing at once and nothing sits on a true path.
+ */
+.sketch {
+  filter: url(#ink-sketch);
+}
 
 /* Crop marks. Two corners, the way a scoreboard is cropped on paper. */
 .crop::before,
@@ -37,36 +55,19 @@
   background-image: repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 6px);
 }
 
-.dot-rule-v {
-  width: 1px;
+/* The scorebook: feint ruling behind the players, as the book is printed. */
+.ruled {
   background-image: repeating-linear-gradient(
     180deg,
-    var(--line-strong) 0 2px,
-    transparent 2px 6px
+    transparent 0 calc(var(--rule-step, 3rem) - 1px),
+    color-mix(in oklab, var(--line) 70%, transparent) calc(var(--rule-step, 3rem) - 1px)
+      var(--rule-step, 3rem)
   );
 }
 
 /*
- * The unlit segments behind the figure, borrowed from a dot-matrix board. The
- * ghost is the same string of eights in the same tabular font, so it lands
- * exactly under the live number.
- */
-.led {
-  position: relative;
-}
-
-.led-ghost {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  opacity: 0.055;
-  pointer-events: none;
-  user-select: none;
-}
-
-/*
  * `.eyebrow` in index.css owns its colour, so a Tailwind text utility on the
- * same element loses to it. These are the four the scoring pages need.
+ * same element loses to it. These are the tones the scoring pages need.
  */
 .eyebrow[data-tone='live'] {
   color: var(--live);
@@ -84,126 +85,204 @@
   color: var(--warning);
 }
 
-/* --------------------------------------------------------------- the pad */
+/* ── The pad ─────────────────────────────────────────────────────────────── */
 
 /*
- * `.console-key` in index.css already draws the key. These are the two states
- * the cricket pad adds: armed (the next tap is an extra) and the wicket.
+ * The pad is an instrument, not a panel, so it takes the opposite tone to the
+ * page it floats over. Dark slate on the light theme, lifted slate on the
+ * dark one. A scorer looking for the keys never has to search.
  */
-.console-key[data-armed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+.pad {
+  --pad-bg: #12161b;
+  --pad-face: #1e242c;
+  --pad-face-hi: #283039;
+  --pad-line: #39434f;
+  --pad-edge: #0a0d11;
+  --pad-ink: #f1f4f7;
+  --pad-ink-soft: #9aa5b1;
+  --pad-accent: #7cc0ff;
+  --pad-accent-soft: #14293c;
+  --pad-live: #ff6f5e;
+  --pad-live-soft: #331512;
+
+  border-radius: var(--radius-lg);
+  background: var(--pad-bg);
+  box-shadow:
+    0 0 0 1px var(--pad-line),
+    0 20px 44px -26px rgb(0 0 0 / 0.75);
+  color: var(--pad-ink);
 }
 
-.console-key.key-row {
-  flex-direction: row;
+/* On the dark theme the instrument lifts out of the page instead of sinking. */
+:root[data-theme='dark'] .pad {
+  --pad-bg: #1e242c;
+  --pad-face: #2b333d;
+  --pad-face-hi: #353f4b;
+  --pad-line: #46515f;
+  --pad-edge: #12161b;
 }
 
-.console-key[data-tone='boundary']:not(:disabled) {
-  color: var(--accent);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .pad {
+    --pad-bg: #1e242c;
+    --pad-face: #2b333d;
+    --pad-face-hi: #353f4b;
+    --pad-line: #46515f;
+    --pad-edge: #12161b;
+  }
 }
 
-.console-key[data-tone='wicket']:not(:disabled) {
-  border-color: color-mix(in oklab, var(--live) 55%, transparent);
-  color: var(--live);
+.pad-label {
+  color: var(--pad-ink-soft);
 }
 
-.console-key[data-tone='wicket']:hover:not(:disabled) {
-  border-color: var(--live);
-  background: var(--live-soft);
+/*
+ * A key with a hard offset edge and no blur. It reads as a moulded button
+ * rather than a rectangle with a shadow, and the travel on press is the whole
+ * point: the thumb has to feel the delivery land.
+ */
+.pad-key {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--pad-line);
+  border-radius: 12px;
+  background: var(--pad-face);
+  box-shadow: 0 3px 0 0 var(--pad-edge);
+  color: var(--pad-ink);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 90ms var(--ease),
+    box-shadow 90ms var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
 }
 
+.pad-key:hover:not(:disabled) {
+  background: var(--pad-face-hi);
+}
+
+.pad-key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 0 var(--pad-edge);
+}
+
+.pad-key:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+/* Four and six are the keys most often wanted, so they carry the accent. */
+.pad-key[data-tone='boundary'] {
+  border-color: color-mix(in oklab, var(--pad-accent) 55%, transparent);
+  background: var(--pad-accent-soft);
+  color: var(--pad-accent);
+}
+
+.pad-key[data-tone='wicket'] {
+  border-color: color-mix(in oklab, var(--pad-live) 60%, transparent);
+  background: var(--pad-live-soft);
+  color: var(--pad-live);
+}
+
+.pad-key[data-armed='true'] {
+  border-color: var(--pad-accent);
+  background: var(--pad-accent-soft);
+  color: var(--pad-accent);
+  box-shadow:
+    0 3px 0 0 var(--pad-edge),
+    inset 0 0 0 1px var(--pad-accent);
+}
+
+/* The keycap legend, printed the way it is on a key. */
 .key-legend {
   position: absolute;
-  inset-block-start: 0.4375rem;
+  inset-block-start: 0.375rem;
   inset-inline-end: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: 0.02em;
-  color: var(--text-muted);
+  opacity: 0.5;
 }
 
-/* ---------------------------------------------------------- the momentum */
+/* ── The momentum ────────────────────────────────────────────────────────── */
+
+.rpo-col {
+  position: relative;
+  cursor: default;
+}
 
 .rpo-bar {
-  transition: height var(--dur-gauge) var(--ease);
+  transform-origin: 50% 100%;
+  animation: rpo-grow var(--dur-slow) var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
 }
 
-/* ------------------------------------------------------------ the moment */
-
-/*
- * A six, a four and a wicket are the only three things worth interrupting the
- * page for. Each gets 1.6s of big type and then gets out of the way.
- */
-.moment {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-
-@keyframes moment-word {
-  0% {
-    opacity: 0;
-    transform: scale(0.8);
-    letter-spacing: 0.16em;
-  }
-  22% {
-    opacity: 1;
-    transform: scale(1);
-    letter-spacing: -0.03em;
-  }
-  72% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.04);
-  }
-}
-
-.moment-word {
-  font-weight: 600;
-  font-size: clamp(3.5rem, 17vw, 10rem);
-  line-height: 0.85;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-  color: var(--moment-ink);
-  animation: moment-word 1.6s var(--ease) both;
-}
-
-@keyframes ring-out {
+@keyframes rpo-grow {
   from {
-    opacity: 0.5;
-    transform: scale(0.3);
+    transform: scaleY(0.04);
+    opacity: 0.2;
   }
   to {
-    opacity: 0;
-    transform: scale(1);
+    transform: scaleY(1);
+    opacity: 1;
   }
 }
 
-.moment-ring {
+.rpo-col:hover .rpo-bar {
+  transform: translateY(-3px);
+  background: color-mix(in oklab, var(--accent) 26%, transparent);
+}
+
+.rpo-col[data-wicket='true']:hover .rpo-bar {
+  background: color-mix(in oklab, var(--live) 26%, transparent);
+}
+
+.rpo-tip {
   position: absolute;
-  width: min(140vw, 140vh);
-  aspect-ratio: 1;
-  border-radius: 999px;
-  border: 1px solid var(--moment-ink);
-  animation: ring-out 1.6s var(--ease) both;
+  inset-block-end: calc(100% + 6px);
+  inset-inline-start: 50%;
+  translate: -50% 4px;
+  z-index: 2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    translate var(--dur-fast) var(--ease);
 }
 
-.moment-ring:nth-child(2) {
-  animation-delay: 160ms;
+.rpo-col:hover .rpo-tip {
+  opacity: 1;
+  translate: -50% 0;
 }
 
-.moment-ring:nth-child(3) {
-  animation-delay: 320ms;
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+
+@keyframes chip-land {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* The score acknowledges the ball with a nudge, not a fanfare. */
+.chip-land {
+  animation: chip-land var(--dur) var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
 @keyframes score-hit {
   0% {
     transform: scale(1);
@@ -220,14 +299,154 @@
   animation: score-hit 620ms var(--ease) both;
 }
 
+/* The striker's marker. A slow breath, not a blink. */
+@keyframes strike-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+.strike-dot {
+  animation: strike-breathe 2.2s var(--ease-in-out) infinite;
+}
+
+/* ── The moment ──────────────────────────────────────────────────────────── */
+
+/*
+ * A four, a six and a wicket are the only three things worth interrupting the
+ * page for. Each is drawn rather than typeset: the strokes ink themselves in,
+ * the word is handwritten, and the whole thing is gone in under two seconds.
+ */
+.moment {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.moment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  opacity: 0;
+  animation: moment-wash 1.9s var(--ease) both;
+}
+
+@keyframes moment-wash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.72;
+  }
+  70% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.moment-plate {
+  position: relative;
+  width: min(88vw, 34rem);
+  animation: moment-plate 1.9s var(--ease) both;
+}
+
+@keyframes moment-plate {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) rotate(-1.5deg);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1) rotate(-1.5deg);
+  }
+  74% {
+    opacity: 1;
+    transform: scale(1) rotate(-1.5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03) rotate(-1.5deg);
+  }
+}
+
+/* Every stroke inks itself along its own length. */
+.ink-draw {
+  stroke-dasharray: var(--len, 400);
+  stroke-dashoffset: var(--len, 400);
+  animation: ink-draw 620ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes ink-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.ink-pop {
+  animation: ink-pop 420ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes ink-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-12deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.moment-word {
+  font-family: var(--font-hand);
+  font-weight: 700;
+  font-size: clamp(4rem, 16vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: 0.005em;
+  color: var(--moment-ink);
+  animation: ink-pop 520ms var(--ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .moment {
     display: none;
   }
 
   .score-hit,
-  .moment-word,
-  .moment-ring {
+  .strike-dot,
+  .chip-land,
+  .rpo-bar,
+  .ink-draw,
+  .ink-pop,
+  .moment-word {
     animation: none;
+  }
+
+  .ink-draw {
+    stroke-dashoffset: 0;
+  }
+
+  .sketch {
+    filter: none;
   }
 }
