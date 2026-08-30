@@ -8,6 +8,7 @@ import { getSnapshot, loadEvents, loadInningsContext } from '../snapshot';
 import { getFootballSnapshot } from '../football/snapshot';
 import { getStandings } from '../standings/service';
 import { loadTournamentMatches } from '../tournaments/report';
+import { renderMatchOgImage } from './og';
 
 export const publicRouter = Router();
 
@@ -109,6 +110,44 @@ publicRouter.get(
 
     res.setHeader('Cache-Control', 'public, max-age=5');
     res.json(snapshot);
+  }),
+);
+
+publicRouter.get(
+  '/matches/:slug/og.svg',
+  asyncHandler(async (req, res) => {
+    const slug = requireParam(req, 'slug');
+    const match = await prisma.match.findUnique({
+      where: { publicSlug: slug },
+      include: {
+        team1: true,
+        team2: true,
+        tournament: { select: { name: true, sport: true } },
+      },
+    });
+
+    if (!match) throw notFound('Match');
+
+    const snapshot =
+      match.tournament.sport === 'FOOTBALL'
+        ? await getFootballSnapshot(match.id)
+        : await getSnapshot(match.id);
+
+    const svg = renderMatchOgImage(
+      {
+        tournamentName: match.tournament.name,
+        status: match.status,
+        sport: match.tournament.sport,
+        team1: match.team1,
+        team2: match.team2,
+        resultText: match.resultText,
+      },
+      snapshot,
+    );
+
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+    res.send(svg);
   }),
 );
 

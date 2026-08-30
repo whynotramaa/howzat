@@ -29,6 +29,39 @@ export function LiveMatchPage() {
 
   const matchLabel = snapshot ? `${snapshot.batting.short} v ${snapshot.bowling.short}` : undefined;
 
+  useEffect(() => {
+    if (!snapshot) return;
+
+    const title = `${matchLabel} — ${snapshot.batting.runs}/${snapshot.batting.wickets} · Howzat`;
+    document.title = title;
+    const image = `${window.location.origin}/api/public/matches/${slug}/og.svg`;
+    const description = `Follow ${matchLabel} live on Howzat.`;
+
+    const tags = [
+      ['property', 'og:title', title],
+      ['property', 'og:description', description],
+      ['property', 'og:image', image],
+      ['property', 'og:image:type', 'image/svg+xml'],
+      ['property', 'og:image:width', '1200'],
+      ['property', 'og:image:height', '630'],
+      ['property', 'og:url', window.location.href],
+      ['name', 'twitter:card', 'summary_large_image'],
+      ['name', 'twitter:title', title],
+      ['name', 'twitter:description', description],
+      ['name', 'twitter:image', image],
+    ] as const;
+
+    const elements = tags.map(([attribute, key, content]) => {
+      const meta = document.createElement('meta');
+      meta.setAttribute(attribute, key);
+      meta.content = content;
+      document.head.appendChild(meta);
+      return meta;
+    });
+
+    return () => elements.forEach((meta) => meta.remove());
+  }, [matchLabel, slug, snapshot]);
+
   return (
     <div
       className="live-stage relative flex min-h-dvh flex-col"
@@ -142,7 +175,7 @@ function Scoreboard({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string 
   const finished = Boolean(snapshot.resultText);
 
   return (
-    <section className="live-panel overflow-hidden">
+    <section className="scoreboard-panel live-panel overflow-hidden">
       <span aria-hidden className="live-stage-seam block" />
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5 sm:px-7">

@@ -199,7 +199,17 @@ export function useRecordBall(matchId: string) {
   return useMutation({
     mutationFn: (input: BallRequestInput) =>
       api.post<BallResponse>(`/matches/${matchId}/balls`, input),
-    onSuccess: () => invalidateMatch(queryClient, matchId),
+    onSuccess: async () => {
+      // The offline queue removes the item after mutateAsync resolves. Make
+      // that resolution mean the scorer state has caught up, not just that the
+      // ball POST succeeded, otherwise an older in-flight GET can flash back.
+      await queryClient.cancelQueries({ queryKey: matchKeys.state(matchId) });
+      await queryClient.refetchQueries({
+        queryKey: matchKeys.state(matchId),
+        type: 'active',
+      });
+      invalidateMatch(queryClient, matchId, { skipState: true });
+    },
   });
 }
 
@@ -277,9 +287,13 @@ export function useConcludeUnderDls(matchId: string) {
   });
 }
 
-function invalidateMatch(queryClient: ReturnType<typeof useQueryClient>, matchId: string): void {
+function invalidateMatch(
+  queryClient: ReturnType<typeof useQueryClient>,
+  matchId: string,
+  options: { skipState?: boolean } = {},
+): void {
   void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
-  void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
+  if (!options.skipState) void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
   void queryClient.invalidateQueries({ queryKey: matchKeys.squads(matchId) });
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'tournaments' && query.queryKey[2] === 'matches',

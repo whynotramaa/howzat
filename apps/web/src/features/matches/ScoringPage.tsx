@@ -23,6 +23,7 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { ChoiceChip } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { Pill, TeamMark } from '@/components/ui/Pill';
+import { PdfButton } from '@/components/ui/PdfButton';
 import { BallChip, LeaderRow, OversFigure, OverStrip, ScoreFigure } from '@/components/ui/Score';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -64,9 +65,13 @@ export function ScoringPage() {
   const header = (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <BackLink to={`/matches/${matchId}`}>
-          {match.team1?.shortName ?? 'TBD'} v {match.team2?.shortName ?? 'TBD'}
-        </BackLink>
+        <div className="min-w-0">
+          <BackLink to={`/matches/${matchId}`}>Back to match</BackLink>
+          <p className="serif mt-3 truncate text-[1.75rem] text-primary sm:text-[2.25rem]">
+            {match.team1?.name ?? 'TBD'} <span className="text-muted">v</span>{' '}
+            {match.team2?.name ?? 'TBD'}
+          </p>
+        </div>
 
         <div className="flex items-center gap-2.5">
           {dlsApplied ? <Pill tone="warning">DLS</Pill> : null}
@@ -113,6 +118,14 @@ export function ScoringPage() {
               {match.resultText ?? 'This match is over'}
             </p>
             <p className="mt-3 text-secondary">There is nothing left to score.</p>
+            <PdfButton
+              label="Share PDF"
+              arrow
+              size="md"
+              build={() =>
+                import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(match.publicSlug))
+              }
+            />
           </CardBody>
         </Card>
       </div>
@@ -420,7 +433,15 @@ function Console({
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)_17rem]">
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-        <ScorePanel state={displayState} context={context} isSaving={isSaving} par={par} />
+        <ScorePanel
+          state={displayState}
+          context={context}
+          isSaving={isSaving}
+          par={par}
+          isOnline={isOnline}
+          syncState={syncState}
+          hasQueuedBalls={queueItems.length > 0}
+        />
         <CreaseCard
           state={displayState}
           context={context}
@@ -485,12 +506,20 @@ function Console({
 
         <div
           className={cn(
-            'sticky bottom-0 z-10 -mx-5 border-t border-line bg-surface px-5 pt-5 sm:-mx-8 sm:px-8',
+            'score-pad sticky bottom-0 z-10 -mx-5 border-t border-line px-5 pt-5 sm:-mx-8 sm:px-8',
             'pb-[max(1.25rem,env(safe-area-inset-bottom))]',
-            'lg:static lg:mx-0 lg:rounded-[var(--radius-lg)] lg:border lg:bg-raised lg:p-7 lg:pb-7',
+            'lg:static lg:mx-0 lg:rounded-[var(--radius-lg)] lg:border lg:p-7 lg:pb-7',
           )}
         >
           <div className="flex flex-col gap-5">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow text-accent">Scoring pad</p>
+                <p className="mt-1 text-sm text-secondary">Record the next delivery</p>
+              </div>
+              <span className="mono text-[0.6875rem] text-muted">0–6 runs</span>
+            </div>
+
             <div className="grid grid-cols-4 gap-2">
               {EXTRAS.map((option) => (
                 <ChoiceChip
@@ -515,8 +544,8 @@ function Console({
                   onClick={() => void handleRuns(runs)}
                   className={cn(
                     'mono grid h-16 place-items-center rounded-[var(--radius-sm)] border text-xl',
-                    'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
-                    'active:translate-y-px disabled:pointer-events-none disabled:opacity-30',
+                    'transition-[transform,border-color,background-color,opacity] duration-[var(--dur-fast)] ease-[var(--ease)]',
+                    'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30',
                     runs === 4 || runs === 6
                       ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
                       : 'border-line bg-raised text-primary hover:border-line-strong hover:bg-hover',
@@ -533,7 +562,7 @@ function Console({
                 className={cn(
                   'col-span-4 grid h-16 place-items-center rounded-[var(--radius-sm)] sm:col-span-7',
                   'border border-[var(--live)] bg-live text-base font-medium tracking-[0.08em] text-white uppercase',
-                  'transition-all duration-[var(--dur-fast)] active:translate-y-px',
+                  'transition-[transform,background-color,opacity] duration-[var(--dur-fast)] active:scale-[0.98]',
                   'disabled:pointer-events-none disabled:opacity-30',
                 )}
               >
@@ -591,11 +620,17 @@ function ScorePanel({
   context,
   isSaving = false,
   par = null,
+  isOnline = true,
+  syncState = 'idle',
+  hasQueuedBalls = false,
 }: {
   state: MatchState;
   context: InningsContext;
   isSaving?: boolean;
   par?: DlsParPosition | null;
+  isOnline?: boolean;
+  syncState?: 'idle' | 'syncing' | 'synced' | 'failed';
+  hasQueuedBalls?: boolean;
 }) {
   const quota = quotaBalls(context);
   const ballsRemaining = quota - state.legalBalls;
@@ -603,7 +638,7 @@ function ScorePanel({
   const runRate = state.legalBalls > 0 ? (state.runs * 6) / state.legalBalls : 0;
 
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] bg-inverse">
+    <div className="score-panel overflow-hidden rounded-[var(--radius-lg)] bg-inverse">
       <div className="flex items-center justify-between gap-4 border-b border-[var(--line-inverse)] px-6 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark
@@ -614,19 +649,17 @@ function ScorePanel({
           <p className="truncate text-[0.8125rem] text-on-inverse">{context.battingTeam.name}</p>
         </div>
 
-        <span
-          className={cn(
-            'mono shrink-0 text-[0.6875rem] transition-colors',
-            isSaving ? 'text-accent' : 'text-muted-on-inverse',
-          )}
-        >
-          {isSaving ? 'saving…' : `#${state.lastEventSeq}`}
-        </span>
+        <SyncStatus
+          isSaving={isSaving}
+          isOnline={isOnline}
+          syncState={syncState}
+          hasQueuedBalls={hasQueuedBalls}
+        />
       </div>
 
       <div className="px-6 py-7">
         <div className="flex items-start justify-between gap-5">
-          <ScoreFigure runs={state.runs} wickets={state.wickets} tone="inverse" />
+          <ScoreFigure runs={state.runs} wickets={state.wickets} size="xl" tone="inverse" />
 
           <div className="text-right">
             <OversFigure
@@ -664,6 +697,48 @@ function ScorePanel({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function SyncStatus({
+  isSaving,
+  isOnline,
+  syncState,
+  hasQueuedBalls,
+}: {
+  isSaving: boolean;
+  isOnline: boolean;
+  syncState: 'idle' | 'syncing' | 'synced' | 'failed';
+  hasQueuedBalls: boolean;
+}) {
+  const failed = syncState === 'failed';
+  const syncing = isSaving || syncState === 'syncing' || hasQueuedBalls;
+  const label = failed
+    ? 'Needs retry'
+    : !isOnline
+      ? 'Offline'
+      : syncing
+        ? 'Saving'
+        : syncState === 'synced'
+          ? 'Synced'
+          : 'Ready';
+
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center gap-1.5 text-[0.6875rem] tracking-[0.08em] uppercase',
+        failed ? 'text-alert' : syncing ? 'text-accent' : 'text-muted-on-inverse',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'size-1.5 rounded-full',
+          failed ? 'bg-alert' : syncing ? 'bg-accent' : 'bg-success',
+        )}
+      />
+      {label}
+    </span>
   );
 }
 

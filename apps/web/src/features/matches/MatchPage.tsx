@@ -173,17 +173,25 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
           </h1>
 
           {toss ? <p className="mt-3 text-secondary">{toss}</p> : null}
-          {match.resultText ? (
+          {match.status === 'COMPLETED' || match.status === 'ABANDONED' ? (
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="text-[1.0625rem] text-success">{match.resultText}</p>
+              <p className="text-[1.0625rem] text-success">
+                {match.resultText ?? 'Match ended without a result'}
+              </p>
               <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="secondary">
                   View scorecard
                 </Button>
               </a>
               <PdfButton
+                label="Share PDF"
+                arrow
                 build={() =>
-                  import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(match.publicSlug))
+                  import('@/lib/pdf').then((pdf) =>
+                    match.sport === 'FOOTBALL'
+                      ? pdf.buildFootballMatchPdf(match.publicSlug)
+                      : pdf.buildCricketMatchPdf(match.publicSlug),
+                  )
                 }
               />
             </div>

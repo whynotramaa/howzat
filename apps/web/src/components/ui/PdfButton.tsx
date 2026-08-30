@@ -12,6 +12,7 @@ export function PdfButton({
   variant = 'secondary',
   disabled = false,
   disabledReason,
+  arrow = false,
   className,
 }: {
   build: () => Promise<BuiltPdf>;
@@ -20,6 +21,7 @@ export function PdfButton({
   variant?: 'primary' | 'secondary' | 'quiet';
   disabled?: boolean;
   disabledReason?: string;
+  arrow?: boolean;
   className?: string;
 }) {
   const [state, setState] = useState<State>('idle');
@@ -89,7 +91,7 @@ export function PdfButton({
     >
       {state !== 'working' ? (
         <span aria-hidden className="mono text-[0.8125rem]">
-          {confirmation !== null ? '✓' : state === 'error' ? '!' : '↓'}
+          {confirmation !== null ? '✓' : state === 'error' ? '!' : arrow ? '→' : '↓'}
         </span>
       ) : null}
       {state === 'working'

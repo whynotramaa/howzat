@@ -211,6 +211,45 @@ input {
   background: var(--surface-raised);
 }
 
+/* The scorer's pad is a working instrument: dark, high contrast, and calm. */
+.score-pad {
+  --surface-raised: #171b21;
+  --surface-sunken: #0c0f13;
+  --surface-hover: #242a32;
+  --line: #2c333c;
+  --line-strong: #46515e;
+  --text-primary: #f4f6f8;
+  --text-secondary: #bbc2ca;
+  --text-muted: #89929c;
+  --accent: #83c2ff;
+  --accent-strong: #9bcfff;
+  --accent-soft: #16283a;
+  --accent-line: #315b83;
+  --live: #e0574a;
+  --alert: #e0574a;
+  --alert-soft: #321816;
+  --success: #63b98d;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.score-panel {
+  position: relative;
+}
+
+.score-panel::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-strong), transparent 75%);
+}
+
+.scoreboard-panel {
+  background:
+    radial-gradient(circle at 90% 0%, color-mix(in oklab, var(--team-a) 18%, transparent), transparent 38%),
+    var(--surface-raised);
+}
+
 /* Runs made and balls used compete for the same 100%. */
 .chase-track {
   position: relative;
