@@ -168,7 +168,7 @@ function NotStarted() {
       <p className="eyebrow">Not a ball bowled yet</p>
       <p className="hand text-[2.5rem] text-primary">the first delivery lands here</p>
       <p className="max-w-md text-secondary">
-        The score appears the moment the scorer records a ball. Leave this open, it updates itself.
+        Score updates automatically when recorded.
       </p>
     </section>
   );

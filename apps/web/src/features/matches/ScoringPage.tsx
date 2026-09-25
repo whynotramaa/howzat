@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/Score';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
-import { SketchFilter } from '@/features/live/Moment';
+import { MomentOverlay, SketchFilter, useMoment } from '@/features/live/Moment';
 import { cn } from '@/lib/cn';
 import { DlsSheet } from './DlsSheet';
 import {
@@ -335,6 +335,7 @@ function Console({
   const [extraType, setExtraType] = useState<ExtraType | null>(null);
   const [wicketOpen, setWicketOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const moment = useMoment(displayState.lastEventSeq, displayState.recentBalls);
 
   useEffect(() => {
     if (displayState.lastEventSeq === appliedSeq) return;
@@ -469,6 +470,7 @@ function Console({
 
   return (
     <div className="flex flex-col gap-6">
+      <MomentOverlay moment={moment} />
       <Board
         state={displayState}
         context={context}

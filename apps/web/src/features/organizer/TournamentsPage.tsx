@@ -54,7 +54,7 @@ export function TournamentsPage() {
       <SectionHeading
         eyebrow="Your competitions"
         title="Tournaments"
-        description="Pick a sport, register your sides, fill each squad, then generate the fixtures. For a one-off, start a match between two sides instead."
+        description="Manage tournaments or start a quick match."
         action={
           <div className="flex flex-wrap gap-2.5">
             <Button variant="secondary" onClick={() => setQuickMatch(true)}>
@@ -83,7 +83,7 @@ export function TournamentsPage() {
       ) : (
         <EmptyState
           title="No tournaments on the board yet"
-          description="Open your first one, register the sides, and the fixture list will write itself. Just two teams? Start a match instead."
+          description="Create a tournament or start a quick match."
           action={
             <div className="flex flex-wrap justify-center gap-2.5">
               <Button onClick={() => setCreating(true)}>New tournament</Button>
@@ -224,7 +224,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       onClose={onClose}
       size="lg"
       title="New tournament"
-      description="Pick the sport first — it decides everything below it. These settings shape the fixture list."
+      description="Configure settings for the fixture list."
       footer={
         <>
           <Button type="submit" form="create-tournament" isLoading={createTournament.isPending}>

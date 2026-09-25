@@ -57,8 +57,8 @@ export function SubstitutionRule({
 
       <p className="mt-3 text-[0.8125rem] text-secondary">
         {value === null
-          ? 'Futsal rules — a side can change as often as it likes, and a player who has come off can go straight back on.'
-          : `Each side gets ${value} changes. A player who has come off can still be brought back on, so long as the side has a change left.`}
+          ? 'Unlimited rolling substitutions.'
+          : `Maximum ${value} substitutions per side.`}
       </p>
     </div>
   );

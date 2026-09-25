@@ -545,9 +545,7 @@ function DevCodeBanner({ code }: { code: string }) {
     <div className="rounded-[var(--radius-md)] border border-[var(--warning)]/40 bg-warning-soft px-4 py-3.5">
       <p className="eyebrow text-warning">Development mode</p>
       <p className="mt-2 text-[0.8125rem] leading-relaxed text-secondary">
-        Email sending is off, so the code is{' '}
-        <span className="mono font-medium tracking-[0.2em] text-primary">{code}</span>. Set{' '}
-        <code className="mono text-primary">RESEND_API_KEY</code> to send real email.
+        Code is <span className="mono font-medium tracking-[0.2em] text-primary">{code}</span>.
       </p>
     </div>
   );

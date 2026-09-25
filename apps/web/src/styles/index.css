@@ -39,9 +39,9 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
 
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
-  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
+  --font-sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
   --font-hand: 'Caveat', 'Segoe Script', cursive;
 }
 
@@ -56,7 +56,7 @@ body {
   background: var(--surface);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -93,10 +93,40 @@ input {
 
 .serif {
   font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.12;
+  font-weight: 380;
+  letter-spacing: -0.022em;
+  line-height: 1.06;
   font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 60;
+}
+
+.serif .italic,
+.serif em {
+  font-variation-settings: 'SOFT' 100;
+  font-weight: 340;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .25 0 0 0 0 .15 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-theme='dark'] body::after {
+  mix-blend-mode: screen;
+  opacity: 0.05;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) body::after {
+    mix-blend-mode: screen;
+    opacity: 0.05;
+  }
 }
 
 .eyebrow {
@@ -120,45 +150,48 @@ input {
 }
 
 .score-figure {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-  letter-spacing: -0.03em;
-  line-height: 0.92;
+  font-family: var(--font-serif);
+  font-weight: 480;
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 30;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum', 'lnum';
+  letter-spacing: -0.035em;
+  line-height: 0.9;
 }
 
 .live-stage {
-  --surface: #08090b;
-  --surface-raised: #121519;
-  --surface-sunken: #0d0f12;
-  --surface-hover: #1c2026;
-  --surface-inverse: #f2f4f6;
+  --surface: #11130e;
+  --surface-raised: #191c15;
+  --surface-sunken: #0c0e0a;
+  --surface-hover: #23271e;
+  --surface-inverse: #f0eadc;
 
-  --line: #22262c;
-  --line-strong: #363c44;
-  --line-inverse: #22262c;
+  --line: #2a2e24;
+  --line-strong: #3e4436;
+  --line-inverse: #2a2e24;
 
-  --text-primary: #f4f6f8;
-  --text-secondary: #b6bcc4;
-  --text-muted: #838a93;
-  --text-on-inverse: #f4f6f8;
-  --text-muted-on-inverse: #838a93;
+  --text-primary: #f0eadc;
+  --text-secondary: #c0b9a6;
+  --text-muted: #8e8876;
+  --text-on-inverse: #f0eadc;
+  --text-muted-on-inverse: #8e8876;
 
-  --accent: #74b8f2;
-  --accent-strong: #93cbf8;
-  --accent-soft: #101f2d;
-  --accent-line: #2f5a80;
+  --accent: #c9a45c;
+  --accent-strong: #dcb86d;
+  --accent-soft: #2a2213;
+  --accent-line: #5c4a26;
 
-  --live: #e0574a;
-  --live-soft: #2c1512;
-  --alert: #e0574a;
-  --alert-soft: #2c1512;
-  --success: #63b98d;
-  --success-soft: #12241a;
-  --warning: #ddb463;
-  --warning-soft: #251d10;
+  --live: #e0674f;
+  --live-soft: #34170f;
+  --alert: #e0674f;
+  --alert-soft: #34170f;
+  --success: #a9c98f;
+  --success-soft: #1f2a1a;
+  --warning: #dcae5e;
+  --warning-soft: #2c2211;
 
-  --focus: #74b8f2;
+  --focus: #dcb86d;
 
   /* No elevation on the stage: a scoreboard is a lit panel, not lifted paper. */
   --shadow-xs: none;
@@ -167,8 +200,8 @@ input {
   --shadow-lg: none;
 
   /* Set inline from the two sides' kit colours. */
-  --team-a: #1268bd;
-  --team-b: #363c44;
+  --team-a: #3b6d48;
+  --team-b: #3e4436;
 
   color-scheme: dark;
   background: var(--surface);
@@ -767,4 +800,33 @@ input {
 
 .sub-arrows {
   animation: sub-arrows 320ms var(--ease) both;
+}
+
+.hero-title {
+  font-size: clamp(3.25rem, 8.4vw, 6.75rem);
+  font-weight: 340;
+  line-height: 0.94;
+  letter-spacing: -0.045em;
+  font-variation-settings: 'SOFT' 100, 'opsz' 144;
+}
+
+.hero-title .italic {
+  font-weight: 300;
+  font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 144;
+}
+
+.avatar-ring {
+  box-shadow:
+    0 0 0 2px var(--surface-raised),
+    0 0 0 3.5px var(--ring, var(--line-strong));
+  transition: transform var(--dur) var(--ease);
+}
+
+.avatar-ring:hover {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+button,
+a {
+  transition-timing-function: var(--ease);
 }

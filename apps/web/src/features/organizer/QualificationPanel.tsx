@@ -47,7 +47,7 @@ export function QualificationPanel({
       <SectionHeading
         eyebrow="What-if desk"
         title="Qualification scenarios"
-        description="A bounded view of the remaining fixtures that can change this side’s position. Tied outcomes are flagged for NRR review."
+        description="Remaining fixture outcomes affecting team position."
       />
       <Card>
         <CardBody className="flex flex-col gap-6">

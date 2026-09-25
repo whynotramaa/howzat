@@ -434,7 +434,7 @@ function PlayingXiCard({
         description={
           disabled
             ? 'Record the toss first.'
-            : 'Tap eleven names per side in batting order, then mark a captain and a keeper.'
+            : 'Select eleven players per side in batting order.'
         }
       >
         <div className="grid gap-8 lg:grid-cols-2">
@@ -614,8 +614,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
           <p className="eyebrow">Permissions</p>
           <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
           <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-            Anyone with an account can score this match once you assign them. They do not need to be
-            in a squad or own the tournament.
+            Assign users with an account to score this match.
           </p>
         </CardHeader>
 
@@ -675,8 +674,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
           {canAbandon ? (
             <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
               <p className="max-w-xl text-[0.9375rem] text-secondary">
-                Rain, or a side that never showed? Abandoning ends the match without a result and
-                awards a point to each side.
+                Abandoning ends the match without a result.
               </p>
               <Button variant="danger" size="sm" onClick={() => setConfirmAbandon(true)}>
                 Abandon the match

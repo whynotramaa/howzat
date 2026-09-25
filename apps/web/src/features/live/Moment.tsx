@@ -22,7 +22,10 @@ function classify(ball: BallSummary): MomentKind | null {
  * for. The first snapshot only seeds the watermark, because arriving at a
  * match that is already 40 overs old must not replay its last six.
  */
-export function useMoment(lastEventSeq: number, recentBalls: BallSummary[]): Moment | null {
+export function useMoment(
+  lastEventSeq: number,
+  recentBalls: ReadonlyArray<BallSummary>,
+): Moment | null {
   const [moment, setMoment] = useState<Moment | null>(null);
   const watermark = useRef<number | null>(null);
 
@@ -43,7 +46,7 @@ export function useMoment(lastEventSeq: number, recentBalls: BallSummary[]): Mom
 
   useEffect(() => {
     if (!moment) return;
-    const timer = window.setTimeout(() => setMoment(null), 1900);
+    const timer = window.setTimeout(() => setMoment(null), 2200);
     return () => window.clearTimeout(timer);
   }, [moment]);
 
@@ -59,9 +62,9 @@ export function useMoment(lastEventSeq: number, recentBalls: BallSummary[]): Mom
  */
 
 const COPY: Record<MomentKind, { word: string; note: string; ink: string }> = {
-  four: { word: 'FOUR!', note: 'along the carpet', ink: 'var(--accent)' },
-  six: { word: 'SIX!', note: 'out of the ground', ink: 'var(--success)' },
-  wicket: { word: 'OUT!', note: 'got him', ink: 'var(--live)' },
+  four: { word: 'Four', note: 'along the carpet', ink: 'var(--warning)' },
+  six: { word: 'Six!', note: 'out of the ground', ink: 'var(--success)' },
+  wicket: { word: 'Howzat', note: 'and he has to go', ink: 'var(--live)' },
 };
 
 function Stroke({
@@ -170,30 +173,57 @@ const DRAWING: Record<MomentKind, () => React.JSX.Element> = {
   wicket: WicketDrawing,
 };
 
+const SPARKS = Array.from({ length: 22 }, (_, i) => ({
+  a: `${(i * 360) / 22 + (i % 3) * 7}deg`,
+  r: `${-30 - ((i * 37) % 24)}vmin`,
+  d: `${(i % 5) * 30}ms`,
+}));
+
 export function MomentOverlay({ moment }: { moment: Moment | null }) {
   if (!moment) return null;
 
   const { word, note, ink } = COPY[moment.kind];
   const Drawing = DRAWING[moment.kind];
+  const rings = moment.kind === 'six' ? 3 : moment.kind === 'four' ? 2 : 1;
 
   return (
     <div
       key={moment.id}
       className="moment"
+      data-kind={moment.kind}
       role="status"
       aria-live="polite"
       style={{ '--moment-ink': ink } as React.CSSProperties}
     >
+      {Array.from({ length: rings }, (_, i) => (
+        <span key={i} aria-hidden className="moment-ring" style={{ '--i': i } as React.CSSProperties} />
+      ))}
+      {moment.kind !== 'wicket'
+        ? SPARKS.slice(0, moment.kind === 'six' ? 22 : 10).map((spark, i) => (
+            <span
+              key={i}
+              aria-hidden
+              className="moment-spark"
+              style={{ '--a': spark.a, '--r': spark.r, '--d': spark.d } as React.CSSProperties}
+            />
+          ))
+        : null}
+
       <div className="moment-plate flex flex-col items-center">
-        <svg viewBox="0 0 320 220" aria-hidden className="sketch w-full" style={{ color: ink }}>
+        <svg viewBox="0 0 320 220" aria-hidden className="sketch w-3/4" style={{ color: ink }}>
           <Drawing />
         </svg>
 
-        <p className="moment-word -mt-6">{word}</p>
-
-        <p className="hand mt-1 text-2xl text-secondary">
-          {note} · over {moment.sub}
+        <p className="moment-word -mt-4" aria-label={word}>
+          {[...word].map((letter, i) => (
+            <span key={i} aria-hidden style={{ '--i': i } as React.CSSProperties}>
+              {letter}
+            </span>
+          ))}
         </p>
+
+        <p className="hand mt-3 text-[1.75rem] text-secondary">{note}</p>
+        <p className="moment-runs mt-2">Over {moment.sub}</p>
       </div>
     </div>
   );

@@ -245,13 +245,13 @@ export function TournamentDetailPage() {
           <SectionHeading
             eyebrow="Standings"
             title="Points table"
-            description="Recomputed from the innings records every time a result lands, so it never drifts."
+            description="Recomputed automatically as results land."
           />
           <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-[0.9375rem] text-secondary">
-              The table, every result and the fixtures still to come, as one document.
+              Export tournament summary as PDF.
             </p>
             <PdfButton
               variant="secondary"
@@ -275,7 +275,7 @@ export function TournamentDetailPage() {
         open={deleting}
         onClose={() => setDeleting(false)}
         title={`Delete ${tournament.data.name}?`}
-        description="Every side, squad, fixture and score recorded in this tournament goes with it. It cannot be undone."
+        description="Permanently delete this tournament and its data."
         footer={
           <>
             <Button
@@ -371,7 +371,7 @@ function AddTeamSheet({
       open={open}
       onClose={onClose}
       title="Register a side"
-      description="The abbreviation and colour are what appear on the live card."
+      description="Set side details for scorecards."
       footer={
         <>
           <Button type="submit" form="add-team" isLoading={createTeam.isPending}>

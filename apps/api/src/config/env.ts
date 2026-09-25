@@ -17,7 +17,7 @@ const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
 
   RESEND_API_KEY: z.string().optional(),
-  OTP_FROM_EMAIL: z.string().default('onboarding@resend.dev'),
+  OTP_FROM_EMAIL: z.string().default('Howzat <otp@ramaa.tech>'),
   OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
 

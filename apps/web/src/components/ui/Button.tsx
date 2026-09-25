@@ -14,8 +14,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary: cn(
-    'bg-inverse text-on-inverse shadow-[var(--shadow-sm)]',
-    'hover:shadow-[var(--shadow-md)] hover:brightness-110',
+    'bg-accent text-surface shadow-[var(--shadow-sm),inset_0_1px_0_rgb(255_255_255/0.14)]',
+    'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] hover:brightness-110',
   ),
   secondary: cn(
     'border border-line-strong bg-raised text-primary',
@@ -47,9 +47,9 @@ export function Button({
       disabled={disabled || isLoading}
       className={cn(
         'group relative inline-flex shrink-0 select-none items-center justify-center',
-        'rounded-[var(--radius-sm)] font-medium tracking-[0.01em] whitespace-nowrap',
-        'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
-        'active:translate-y-px',
+        'rounded-full font-medium tracking-[0.01em] whitespace-nowrap',
+        'transition-all duration-[var(--dur)] ease-[var(--ease)]',
+        'active:translate-y-px active:scale-[0.98]',
         'disabled:pointer-events-none disabled:opacity-40',
         variants[variant],
         sizes[size],

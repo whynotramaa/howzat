@@ -101,14 +101,14 @@ export function TeamDetailPage() {
         <SectionHeading
           eyebrow={`${squad.players.length} registered`}
           title="The squad"
-          description="The team sheet is picked at the toss or the team-sheet step, not here — this is the pool it comes from."
+          description="Registered pool for team selection."
         />
 
         <Card>
           {squad.players.length === 0 ? (
             <CardBody>
               <p className="py-8 text-center text-secondary">
-                Nobody registered yet. Add them one at a time, or paste the whole list.
+                Nobody registered yet.
               </p>
             </CardBody>
           ) : (
@@ -234,7 +234,7 @@ function AddPlayerCard({
       <CardHeader>
         <h3 className="serif text-xl text-primary">Register a player</h3>
         <p className="mt-1.5 text-[0.8125rem] text-secondary">
-          By name for a guest, or by handle to link their record.
+          Register by name or Howzat handle.
         </p>
       </CardHeader>
 
@@ -254,7 +254,7 @@ function AddPlayerCard({
               label="Player name"
               required
               placeholder="P. Kabra"
-              hint="They play as a guest — no profile, but fully scoreable."
+              hint="Guest player record."
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -398,9 +398,7 @@ function BulkAddCard({
       <CardHeader>
         <h3 className="serif text-xl text-primary">Paste the whole squad</h3>
         <p className="mt-1.5 text-[0.8125rem] text-secondary">
-          {sport === 'FOOTBALL'
-            ? `One name per line — paste everybody. The ${startingSize} who start are picked on match day; the rest are substitutes.`
-            : 'One name per line — the fastest way to fill a squad.'}
+          One name per line ({startingSize} per squad).
         </p>
       </CardHeader>
 

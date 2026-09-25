@@ -93,20 +93,23 @@
  * dark one. A scorer looking for the keys never has to search.
  */
 .pad {
-  --pad-bg: #12161b;
-  --pad-face: #1e242c;
-  --pad-face-hi: #283039;
-  --pad-line: #39434f;
-  --pad-edge: #0a0d11;
-  --pad-ink: #f1f4f7;
-  --pad-ink-soft: #9aa5b1;
-  --pad-accent: #7cc0ff;
-  --pad-accent-soft: #14293c;
-  --pad-live: #ff6f5e;
-  --pad-live-soft: #331512;
+  --pad-bg: #1b1f17;
+  --pad-face: #272c21;
+  --pad-face-hi: #313729;
+  --pad-line: #444b3a;
+  --pad-edge: #0b0d08;
+  --pad-ink: #f0eadc;
+  --pad-ink-soft: #a8a18d;
+  --pad-accent: #dcb86d;
+  --pad-accent-soft: #2e2614;
+  --pad-live: #ec6f55;
+  --pad-live-soft: #3a1a12;
 
   border-radius: var(--radius-lg);
-  background: var(--pad-bg);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--pad-accent) 7%, transparent), transparent 60%),
+    repeating-linear-gradient(90deg, transparent 0 48px, rgb(255 255 255 / 0.012) 48px 96px),
+    var(--pad-bg);
   box-shadow:
     0 0 0 1px var(--pad-line),
     0 20px 44px -26px rgb(0 0 0 / 0.75);
@@ -115,20 +118,20 @@
 
 /* On the dark theme the instrument lifts out of the page instead of sinking. */
 :root[data-theme='dark'] .pad {
-  --pad-bg: #1e242c;
-  --pad-face: #2b333d;
-  --pad-face-hi: #353f4b;
-  --pad-line: #46515f;
-  --pad-edge: #12161b;
+  --pad-bg: #22271d;
+  --pad-face: #2e3427;
+  --pad-face-hi: #384030;
+  --pad-line: #4d5542;
+  --pad-edge: #131610;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .pad {
-    --pad-bg: #1e242c;
-    --pad-face: #2b333d;
-    --pad-face-hi: #353f4b;
-    --pad-line: #46515f;
-    --pad-edge: #12161b;
+    --pad-bg: #22271d;
+    --pad-face: #2e3427;
+    --pad-face-hi: #384030;
+    --pad-line: #4d5542;
+    --pad-edge: #131610;
   }
 }
 
@@ -150,9 +153,14 @@
   border: 1px solid var(--pad-line);
   border-radius: 12px;
   background: var(--pad-face);
-  box-shadow: 0 3px 0 0 var(--pad-edge);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.045), transparent 55%);
+  box-shadow:
+    0 3px 0 0 var(--pad-edge),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
   color: var(--pad-ink);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-serif);
+  font-variation-settings: 'SOFT' 40;
+  font-variant-numeric: tabular-nums lining-nums;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -210,103 +218,8 @@
   opacity: 0.5;
 }
 
-/* ── The momentum ────────────────────────────────────────────────────────── */
-
-.rpo-col {
-  position: relative;
-  cursor: default;
-}
-
-.rpo-bar {
-  transform-origin: 50% 100%;
-  animation: rpo-grow var(--dur-slow) var(--ease) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
-  transition:
-    transform var(--dur-fast) var(--ease),
-    background-color var(--dur-fast) var(--ease);
-}
-
-@keyframes rpo-grow {
-  from {
-    transform: scaleY(0.04);
-    opacity: 0.2;
-  }
-  to {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-.rpo-col:hover .rpo-bar {
-  transform: translateY(-3px);
-  background: color-mix(in oklab, var(--accent) 26%, transparent);
-}
-
-.rpo-col[data-wicket='true']:hover .rpo-bar {
-  background: color-mix(in oklab, var(--live) 26%, transparent);
-}
-
-.rpo-tip {
-  position: absolute;
-  inset-block-end: calc(100% + 6px);
-  inset-inline-start: 50%;
-  translate: -50% 4px;
-  z-index: 2;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    opacity var(--dur-fast) var(--ease),
-    translate var(--dur-fast) var(--ease);
-}
-
-.rpo-col:hover .rpo-tip {
-  opacity: 1;
-  translate: -50% 0;
-}
-
-/* ── Motion ──────────────────────────────────────────────────────────────── */
-
-@keyframes chip-land {
-  from {
-    opacity: 0;
-    transform: translateY(-6px) scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.chip-land {
-  animation: chip-land var(--dur) var(--ease) both;
-  animation-delay: calc(var(--i, 0) * 40ms);
-}
-
-@keyframes score-hit {
-  0% {
-    transform: scale(1);
-  }
-  30% {
-    transform: scale(1.035);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.score-hit {
-  animation: score-hit 620ms var(--ease) both;
-}
-
-/* The striker's marker. A slow breath, not a blink. */
 /* ── The moment ──────────────────────────────────────────────────────────── */
 
-/*
- * A four, a six and a wicket are the only three things worth interrupting the
- * page for. Each is drawn rather than typeset: the strokes ink themselves in,
- * the word is handwritten, and the whole thing is gone in under two seconds.
- */
 .moment {
   position: fixed;
   inset: 0;
@@ -314,58 +227,92 @@
   display: grid;
   place-items: center;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .moment::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: var(--surface);
+  inset: -10%;
+  background:
+    radial-gradient(60% 50% at 50% 50%, color-mix(in oklab, var(--moment-ink) 22%, var(--surface)), var(--surface) 70%);
   opacity: 0;
-  animation: moment-wash 1.9s var(--ease) both;
+  animation: moment-wash 2.2s var(--ease) both;
+}
+
+.moment[data-kind='wicket'] {
+  animation: moment-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 120ms both;
+}
+
+@keyframes moment-shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 1px, 0); }
+  30%, 50%, 70% { transform: translate3d(-7px, -1px, 0); }
+  40%, 60% { transform: translate3d(7px, 1px, 0); }
 }
 
 @keyframes moment-wash {
-  0% {
-    opacity: 0;
-  }
-  18% {
-    opacity: 0.72;
-  }
-  70% {
-    opacity: 0.72;
-  }
-  100% {
-    opacity: 0;
-  }
+  0% { opacity: 0; }
+  14% { opacity: 0.94; }
+  72% { opacity: 0.94; }
+  100% { opacity: 0; }
+}
+
+.moment-ring {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 22rem;
+  aspect-ratio: 1;
+  margin: -11rem 0 0 -11rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--moment-ink);
+  opacity: 0;
+  animation: moment-ring 1.5s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 140ms + 80ms);
+}
+
+@keyframes moment-ring {
+  0% { opacity: 0.7; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+
+.moment-spark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 7px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--moment-ink);
+  opacity: 0;
+  transform: rotate(var(--a)) translateY(0);
+  animation: moment-spark 1.3s cubic-bezier(0.12, 0.8, 0.3, 1) both;
+  animation-delay: calc(120ms + var(--d, 0ms));
+}
+
+.moment-spark:nth-child(3n) { background: var(--accent); width: 5px; height: 12px; }
+.moment-spark:nth-child(4n) { border-radius: 50%; width: 8px; height: 8px; }
+
+@keyframes moment-spark {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(-10px) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--r, -46vmin)) scale(0.4) rotate(160deg); }
 }
 
 .moment-plate {
   position: relative;
-  width: min(88vw, 34rem);
-  animation: moment-plate 1.9s var(--ease) both;
+  width: min(88vw, 36rem);
+  animation: moment-plate 2.2s var(--ease) both;
 }
 
 @keyframes moment-plate {
-  0% {
-    opacity: 0;
-    transform: scale(0.92) rotate(-1.5deg);
-  }
-  14% {
-    opacity: 1;
-    transform: scale(1) rotate(-1.5deg);
-  }
-  74% {
-    opacity: 1;
-    transform: scale(1) rotate(-1.5deg);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.03) rotate(-1.5deg);
-  }
+  0% { opacity: 0; transform: scale(0.86) rotate(-2deg); }
+  14% { opacity: 1; transform: scale(1.02) rotate(-1.5deg); }
+  22% { transform: scale(1) rotate(-1.5deg); }
+  76% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
+  100% { opacity: 0; transform: scale(1.06) rotate(-1deg); filter: blur(4px); }
 }
 
-/* Every stroke inks itself along its own length. */
 .ink-draw {
   stroke-dasharray: var(--len, 400);
   stroke-dashoffset: var(--len, 400);
@@ -374,9 +321,7 @@
 }
 
 @keyframes ink-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+  to { stroke-dashoffset: 0; }
 }
 
 .ink-pop {
@@ -387,28 +332,39 @@
 }
 
 @keyframes ink-pop {
-  0% {
-    opacity: 0;
-    transform: scale(0.4) rotate(-12deg);
-  }
-  70% {
-    opacity: 1;
-    transform: scale(1.12) rotate(2deg);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
+  0% { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  70% { opacity: 1; transform: scale(1.12) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 .moment-word {
-  font-family: var(--font-hand);
-  font-weight: 700;
-  font-size: clamp(4rem, 16vw, 9rem);
-  line-height: 0.9;
-  letter-spacing: 0.005em;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 620;
+  font-variation-settings: 'SOFT' 100, 'WONK' 1;
+  font-size: clamp(5rem, 20vw, 11rem);
+  line-height: 0.82;
+  letter-spacing: -0.05em;
   color: var(--moment-ink);
-  animation: ink-pop 520ms var(--ease) both;
+}
+
+.moment-word > span {
+  display: inline-block;
+  animation: moment-letter 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation-delay: calc(140ms + var(--i, 0) * 55ms);
+}
+
+@keyframes moment-letter {
+  0% { opacity: 0; transform: translateY(0.4em) rotate(8deg) scale(0.6); filter: blur(6px); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+.moment-runs {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -431,5 +387,66 @@
 
   .sketch {
     filter: none;
+  }
+}
+
+.roll {
+  display: inline-flex;
+}
+
+.roll-col {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.roll-strip {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--n, 0) * -1em));
+  transition: transform 900ms cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.roll-strip > span {
+  height: 1em;
+  line-height: 1;
+}
+
+.scoreboard-field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 90% at 100% 0%, color-mix(in oklab, var(--team-a) 16%, transparent), transparent 65%),
+    radial-gradient(50% 70% at 0% 100%, color-mix(in oklab, var(--warning) 9%, transparent), transparent 70%),
+    repeating-linear-gradient(100deg, transparent 0 64px, color-mix(in oklab, var(--accent) 3.5%, transparent) 64px 128px);
+  animation: field-drift 18s linear infinite;
+  background-size: 100% 100%, 100% 100%, 256px 100%;
+}
+
+@keyframes field-drift {
+  to {
+    background-position: 0 0, 0 0, 256px 0;
+  }
+}
+
+.scoreboard::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--team-a), color-mix(in oklab, var(--team-a) 20%, transparent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-strip {
+    transition: none;
+  }
+
+  .scoreboard-field {
+    animation: none;
   }
 }

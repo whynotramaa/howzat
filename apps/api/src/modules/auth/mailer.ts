@@ -91,38 +91,59 @@ export async function sendSquadAdditionEmail(input: SquadAdditionEmail): Promise
   }
 }
 
-function squadAdditionHtml(input: SquadAdditionEmail, heading: string, lead: string): string {
+const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+function shell(body: string): string {
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:32px;background:#f5f6f8;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f1729">
-    <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e5e7eb">
-      <p style="margin:0 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280">Howzat</p>
-      <h1 style="margin:0 0 16px;font-size:20px;font-weight:600">${escapeHtml(heading)}</h1>
-      <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#374151">
-        Hey ${escapeHtml(input.name)}, you have been added to this tournament!
-      </p>
-      <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#374151">
-        ${escapeHtml(lead)}
-      </p>
-      <table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 24px">
-        <tr>
-          <td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280">Team</td>
-          <td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:14px;text-align:right;font-weight:600">${escapeHtml(input.teamName)}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280">Tournament</td>
-          <td style="padding:10px 0;border-top:1px solid #e5e7eb;font-size:14px;text-align:right;font-weight:600">${escapeHtml(input.tournamentName)}</td>
-        </tr>
-      </table>
-      <a href="${escapeHtml(input.dashboardUrl)}" style="display:inline-block;background:#14120f;color:#f4efe6;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:600">
-        Open your dashboard
-      </a>
-      <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#6b7280">
-        Every ball you face from here lands on your Howzat record.
-      </p>
-    </div>
+  <head><meta name="color-scheme" content="light"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  <body style="margin:0;padding:0;background:#ffffff;font-family:${FONT};color:#000000;-webkit-font-smoothing:antialiased">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff">
+      <tr>
+        <td align="center" style="padding:40px 20px">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border:1px solid #eaeaea;border-radius:8px;padding:40px">
+            <tr>
+              <td>
+                <p style="margin:0 0 32px;font-size:15px;font-weight:600;letter-spacing:-.01em;color:#000000">Howzat</p>
+${body}
+              </td>
+            </tr>
+          </table>
+          <p style="max-width:560px;margin:24px auto 0;font-size:12px;line-height:1.5;color:#8f8f8f;text-align:center">
+            Howzat &middot; sent from otp@ramaa.tech
+          </p>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`;
+}
+
+function squadAdditionHtml(input: SquadAdditionEmail, heading: string, lead: string): string {
+  return shell(`                <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-.02em;color:#000000">${escapeHtml(heading)}</h1>
+                <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#444444">
+                  Hey ${escapeHtml(input.name)}, you have been added to this tournament!
+                </p>
+                <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#444444">
+                  ${escapeHtml(lead)}
+                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 28px">
+                  <tr>
+                    <td style="padding:12px 0;border-top:1px solid #eaeaea;font-size:13px;color:#8f8f8f">Team</td>
+                    <td style="padding:12px 0;border-top:1px solid #eaeaea;font-size:13px;text-align:right;font-weight:500;color:#000000">${escapeHtml(input.teamName)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px 0;border-top:1px solid #eaeaea;font-size:13px;color:#8f8f8f">Tournament</td>
+                    <td style="padding:12px 0;border-top:1px solid #eaeaea;font-size:13px;text-align:right;font-weight:500;color:#000000">${escapeHtml(input.tournamentName)}</td>
+                  </tr>
+                </table>
+                <a href="${escapeHtml(input.dashboardUrl)}" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:6px;font-size:14px;font-weight:500">
+                  Open your dashboard
+                </a>
+                <hr style="border:none;border-top:1px solid #eaeaea;margin:32px 0 20px">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#8f8f8f">
+                  Every ball you face from here lands on your Howzat record.
+                </p>`);
 }
 
 function escapeHtml(value: string): string {
@@ -147,22 +168,15 @@ function otpEmailHtml(
     footer: "If you didn't create a Howzat account, you can safely ignore this email.",
   },
 ): string {
-  return `<!doctype html>
-<html>
-  <body style="margin:0;padding:32px;background:#f5f6f8;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f1729">
-    <div style="max-width:440px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;border:1px solid #e5e7eb">
-      <p style="margin:0 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280">Howzat</p>
-      <h1 style="margin:0 0 16px;font-size:20px;font-weight:600">${copy.heading}</h1>
-      <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#374151">
-        ${copy.lead}
-      </p>
-      <div style="font-size:34px;font-weight:700;letter-spacing:.28em;text-align:center;padding:18px;background:#f3f4f6;border-radius:12px;font-variant-numeric:tabular-nums">
-        ${code}
-      </div>
-      <p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#6b7280">
-        ${copy.footer}
-      </p>
-    </div>
-  </body>
-</html>`;
+  return shell(`                <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-.02em;color:#000000">${copy.heading}</h1>
+                <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#444444">
+                  ${copy.lead}
+                </p>
+                <div style="font-size:30px;font-weight:600;letter-spacing:.22em;text-indent:.22em;text-align:center;padding:20px;background:#fafafa;border:1px solid #eaeaea;border-radius:6px;color:#000000;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+                  ${code}
+                </div>
+                <hr style="border:none;border-top:1px solid #eaeaea;margin:32px 0 20px">
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#8f8f8f">
+                  ${copy.footer}
+                </p>`);
 }

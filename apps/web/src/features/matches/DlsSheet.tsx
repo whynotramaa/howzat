@@ -58,7 +58,7 @@ export function DlsSheet({
       onClose={onClose}
       size="lg"
       title="Duckworth-Lewis-Stern"
-      description="Record what the weather cost each side. The target is recomputed from the stoppages every time this list changes."
+      description="Record stoppages to recompute target overs and score."
       footer={
         <Button variant="quiet" onClick={onClose}>
           Done
@@ -117,8 +117,7 @@ export function DlsSheet({
             </>
           ) : (
             <p className="text-sm leading-relaxed text-secondary">
-              Switch DLS on when rain, bad light or anything else has already cost overs, or looks
-              like it will. Nothing changes until you record a stoppage.
+              Enable DLS to adjust targets for lost overs.
             </p>
           )}
         </div>
@@ -177,8 +176,7 @@ function G50Row({
     <div className="flex flex-col gap-3 border-t border-line pt-7">
       <p className="eyebrow">G50 — the average 50-over score at this level</p>
       <p className="text-[0.8125rem] leading-relaxed text-muted">
-        Only used when the chasing side ends up with more resource than the side batting first,
-        which in practice means a first-innings washout.
+        Average 50-over score reference for first-innings interruptions.
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -420,12 +418,7 @@ function AddStoppage({
     <div className="flex flex-col gap-4 border-t border-line pt-7">
       <p className="eyebrow">Record a stoppage</p>
       <p className="text-[0.8125rem] leading-relaxed text-muted">
-        Overs are written as cricket says them — 12.3 is twelve overs and three balls. A delayed
-        start is a stoppage with the full allotment left; an innings called off for good resumes
-        with 0.
-        {suggested
-          ? ' The first two boxes are already filled in from where the innings stands — leave them alone unless the umpires say otherwise.'
-          : ''}
+        Record stoppage details using standard overs notation (e.g. 12.3).
       </p>
 
       <div className="flex flex-wrap gap-2">

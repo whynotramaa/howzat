@@ -153,7 +153,7 @@ export function FixturesPage() {
       ) : (
         <EmptyState
           title="No fixtures on the board yet"
-          description="Once every registered side has a full squad, generate the draw and the matches will appear here."
+          description="Generate the draw once registered sides have full squads."
           action={
             <Button isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
               Generate fixtures
@@ -166,7 +166,7 @@ export function FixturesPage() {
         open={confirmRegenerate}
         onClose={() => setConfirmRegenerate(false)}
         title="Regenerate the whole draw?"
-        description="Every fixture in this tournament is replaced. Only possible while no match has started."
+        description="Every unstarted fixture in this tournament will be replaced."
         footer={
           <>
             <Button
@@ -183,8 +183,7 @@ export function FixturesPage() {
         }
       >
         <p className="text-secondary">
-          Scorer assignments on the current fixtures go with them. The circle method is
-          deterministic, so the same sides will produce the same draw.
+          Existing scorer assignments will be reset.
         </p>
       </Sheet>
     </div>

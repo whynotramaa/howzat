@@ -1994,13 +1994,7 @@ function Preface() {
       <div className="rounded-[var(--radius-md)] border border-line bg-sunken px-5 py-4">
         <p className="eyebrow mb-2">How to read this page</p>
         <p className="text-[0.875rem] text-secondary">
-          Eighteen chapters and two appendices, ordered the way you would learn the system rather
-          than the way the folders are laid out. Chapters 1 to 4 are the shape and the write path.
-          Chapters 5 to 8 are correctness under concurrency. Chapters 9 and 10 are the derived
-          layer: every cache, and the points table. Chapters 11 to 13 are the network and the edge.
-          Chapters 14 to 18 are security, the platform, scale, and the honest list of what is
-          missing. The cricket rules are in Appendix A, on purpose. Hover the right margin on a wide
-          screen for the chapter index.
+          Eighteen chapters ordered logically: write path, concurrency, derived caches, edge routing, and security. Hover right margin for index.
         </p>
       </div>
     </div>

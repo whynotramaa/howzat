@@ -222,9 +222,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
             <p className="eyebrow mb-1.5">This match</p>
             <p className="serif text-xl text-primary">How long are we playing?</p>
             <p className="mt-1.5 max-w-2xl text-[0.8125rem] text-secondary">
-              Set for this fixture alone. The tournament&rsquo;s setting is only ever the starting
-              point — a league that plays two forty-fives still plays two thirties when the pitch is
-              booked until four.
+              Set for this fixture alone.
             </p>
           </CardHeader>
 

@@ -41,8 +41,7 @@ export function MatchScorersCard({
         <p className="eyebrow">Permissions</p>
         <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
         <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-          Anyone with an account can score this match once you assign them. They do not need to be
-          in a squad or own the tournament — and each match can have its own.
+          Assign users with an account to score this match.
         </p>
       </CardHeader>
 

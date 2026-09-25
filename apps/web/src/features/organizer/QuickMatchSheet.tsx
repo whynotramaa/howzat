@@ -60,7 +60,7 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
       onClose={onClose}
       size="lg"
       title="Start a match"
-      description="Two sides, one fixture. Name them here, fill the squads, and it is ready to score."
+      description="Create a one-off match fixture."
       footer={
         <>
           <Button type="submit" form="quick-match" isLoading={createTournament.isPending}>

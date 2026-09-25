@@ -115,6 +115,23 @@ export function Panel({
 
 /* ── The board ───────────────────────────────────────────────────────────── */
 
+export function RollingNumber({ value }: { value: number }) {
+  const digits = String(value).split('');
+  return (
+    <span className="roll" aria-label={String(value)}>
+      {digits.map((digit, index) => (
+        <span key={digits.length - index} aria-hidden className="roll-col">
+          <span className="roll-strip" style={{ '--n': Number(digit) } as CSSProperties}>
+            {'0123456789'.split('').map((d) => (
+              <span key={d}>{d}</span>
+            ))}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /**
  * The score and nothing else. Every rate, average and breakdown belongs below
  * the players, which is the order a spectator actually reads in.
@@ -145,8 +162,9 @@ export function Scoreboard({
   return (
     <section
       style={{ '--team-a': team.primaryColor } as CSSProperties}
-      className="crop relative rounded-[var(--radius-lg)] border border-line bg-raised"
+      className="scoreboard crop relative isolate overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised"
     >
+      <span aria-hidden className="scoreboard-field" />
       <div
         className={cn('flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pt-6 pb-5', pad)}
       >
@@ -164,17 +182,18 @@ export function Scoreboard({
 
       <div className={cn('flex items-end justify-between gap-6 pt-7 pb-8 sm:pt-9', pad)}>
         <p
-          key={`${runs}-${wickets}`}
           className={cn(
-            'score-hit score-figure flex items-baseline text-primary',
-            size === 'lg' ? 'text-[clamp(3.75rem,17vw,7rem)]' : 'text-[clamp(3.25rem,13vw,5rem)]',
+            'score-figure flex items-baseline text-primary',
+            size === 'lg' ? 'text-[clamp(4.5rem,20vw,9rem)]' : 'text-[clamp(3.75rem,15vw,6rem)]',
           )}
         >
-          <span>{runs}</span>
-          <span aria-hidden className="font-normal text-muted">
+          <RollingNumber value={runs} />
+          <span aria-hidden className="mx-[0.04em] font-[300] text-muted italic">
             /
           </span>
-          <span className="text-muted">{wickets}</span>
+          <span className="text-muted">
+            <RollingNumber value={wickets} />
+          </span>
         </p>
 
         <div className="flex shrink-0 items-end gap-5 pb-1.5 sm:gap-7">

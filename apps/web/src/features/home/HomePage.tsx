@@ -108,42 +108,49 @@ function Opening({
     <section className="relative isolate overflow-hidden border-b border-line">
       <span aria-hidden className="field-rules" />
 
-      <div className="relative mx-auto w-full max-w-[76rem] px-5 pt-16 pb-14 sm:px-8 sm:pt-24 lg:px-12">
-        <div className="mx-auto max-w-3xl text-center">
-          <Reveal index={0}>
-            <p className="eyebrow">Local leagues, scored properly</p>
-          </Reveal>
+      <div className="relative mx-auto w-full max-w-[76rem] px-5 pt-12 pb-14 sm:px-8 sm:pt-20 lg:px-12">
+        <div className="max-w-[44rem]">
+          <div>
+            <Reveal index={0}>
+              <p className="eyebrow flex items-center gap-3">
+                <span aria-hidden className="h-px w-8 bg-line-strong" />
+                Local leagues, scored properly
+              </p>
+            </Reveal>
 
-          <Reveal index={1}>
-            <h1 className="serif mt-6 text-[3rem] text-primary sm:text-[4.25rem] lg:text-[5rem]">
-              {cricket ? 'Every ball' : 'Every minute'}
-              <span className="italic">, on the record.</span>
-            </h1>
-          </Reveal>
+            <Reveal index={1}>
+              <h1 className="serif hero-title mt-7 text-primary">
+                {cricket ? 'Every ball,' : 'Every minute,'}
+                <br />
+                <span className="italic text-accent">on the record.</span>
+              </h1>
+            </Reveal>
 
-          <Reveal index={2}>
-            <p className="mx-auto mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-secondary sm:text-lg">
-              Run the tournament, score the match from your phone at the ground, and share one link
-              anyone can open — no account, no app, the live score the moment it loads.
-            </p>
-          </Reveal>
+            <Reveal index={2}>
+              <p className="mt-7 max-w-lg text-[1.0625rem] leading-relaxed text-secondary sm:text-lg">
+                Run the tournament, score the match from your phone at the ground, and share one
+                link anyone can open. No account, no app, the live score the moment it loads.
+              </p>
+            </Reveal>
 
-          <Reveal index={3}>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link to={home}>
-                <Button size="lg">{signedIn ? 'Open your dashboard' : 'Start a tournament'}</Button>
-              </Link>
-              <a href="#sports">
-                <Button size="lg" variant="secondary">
-                  See both sports
-                </Button>
-              </a>
-            </div>
-          </Reveal>
+            <Reveal index={3}>
+              <div className="mt-9 flex flex-wrap items-center gap-3">
+                <Link to={home}>
+                  <Button size="lg">{signedIn ? 'Open your dashboard' : 'Start a tournament'}</Button>
+                </Link>
+                <a href="#sports">
+                  <Button size="lg" variant="secondary">
+                    See both sports
+                  </Button>
+                </a>
+              </div>
+            </Reveal>
+          </div>
+
         </div>
 
         <Reveal index={4}>
-          <div className="mt-14 flex justify-center">
+          <div className="mt-20 flex justify-center">
             <SportSwitch sport={sport} onSport={onSport} />
           </div>
         </Reveal>

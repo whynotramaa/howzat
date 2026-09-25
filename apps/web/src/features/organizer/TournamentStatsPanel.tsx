@@ -32,7 +32,7 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
       <SectionHeading
         eyebrow="Tournament record"
         title="The leaders board"
-        description="Aggregated from completed ball events, with a short cache so the page stays quick during a busy match day."
+        description="Aggregated tournament performance leaders."
       />
 
       <div className="grid gap-4 md:grid-cols-2">
