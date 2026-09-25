@@ -14,21 +14,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary: cn(
-    'bg-accent text-surface shadow-[var(--shadow-sm),inset_0_1px_0_rgb(255_255_255/0.14)]',
-    'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] hover:brightness-110',
+    'bg-accent text-on-accent shadow-[var(--shadow-xs)]',
+    'hover:bg-accent-strong',
   ),
   secondary: cn(
     'border border-line-strong bg-raised text-primary',
-    'hover:border-[var(--accent-line)] hover:bg-hover',
+    'hover:bg-hover',
   ),
   quiet: 'text-secondary hover:bg-hover hover:text-primary',
   danger: 'border border-[var(--alert)] bg-transparent text-alert hover:bg-alert-soft',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-9 px-3.5 text-[0.8125rem] gap-1.5',
-  md: 'h-11 px-5 text-sm gap-2',
-  lg: 'h-[3.25rem] px-7 text-[0.9375rem] gap-2.5',
+  sm: 'h-8 px-3 text-[0.8125rem] gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-12 px-6 text-[0.9375rem] gap-2.5',
 };
 
 export function Button({
@@ -47,9 +47,9 @@ export function Button({
       disabled={disabled || isLoading}
       className={cn(
         'group relative inline-flex shrink-0 select-none items-center justify-center',
-        'rounded-full font-medium tracking-[0.01em] whitespace-nowrap',
-        'transition-all duration-[var(--dur)] ease-[var(--ease)]',
-        'active:translate-y-px active:scale-[0.98]',
+        'rounded-[var(--radius-md)] font-semibold whitespace-nowrap',
+        'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+        'active:scale-[0.97]',
         'disabled:pointer-events-none disabled:opacity-40',
         variants[variant],
         sizes[size],

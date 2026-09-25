@@ -25,6 +25,7 @@ import {
   BallChip,
   CreaseCard,
   LeaderRow,
+  OverStrip,
   Panel,
   RunsPerOver,
   Scoreboard,
@@ -32,7 +33,7 @@ import {
 } from '@/components/ui/Score';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
-import { MomentOverlay, SketchFilter, useMoment } from '@/features/live/Moment';
+import { MomentOverlay, useMoment } from '@/features/live/Moment';
 import { cn } from '@/lib/cn';
 import { DlsSheet } from './DlsSheet';
 import {
@@ -90,27 +91,27 @@ export function ScoringPage() {
 
   return (
     <Shell>
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
-        <div className="flex min-w-0 items-center gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 items-center gap-3">
           <Link
             to={`/matches/${matchId}`}
-            className="text-[0.8125rem] text-muted transition-colors hover:text-primary"
+            aria-label="Back to match"
+            className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] border border-line bg-raised text-secondary transition-colors hover:bg-hover hover:text-primary"
           >
-            ← Match
+            ←
           </Link>
-          <span aria-hidden className="h-5 w-px bg-line" />
           <div className="min-w-0">
-            <p className="truncate font-medium text-primary">
-              {match.team1?.name ?? 'TBD'} <span className="text-muted">v</span>{' '}
+            <p className="truncate font-semibold text-primary">
+              {match.team1?.name ?? 'TBD'} <span className="font-normal text-muted">vs</span>{' '}
               {match.team2?.name ?? 'TBD'}
             </p>
             <p className="eyebrow mt-1.5">Scoring console</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {dlsApplied ? (
-            <span data-tone="warning" className="eyebrow">
+            <span className="rounded-[var(--radius-sm)] bg-warning-soft px-2 py-1 text-[0.6875rem] font-semibold text-warning uppercase">
               DLS applied
             </span>
           ) : null}
@@ -154,7 +155,7 @@ export function ScoringPage() {
           }
         />
       ) : match.status === 'INNINGS_BREAK' || (state?.isComplete && innings) ? (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           {state && context ? <Board state={state} context={context} /> : null}
 
           <Closed
@@ -217,8 +218,7 @@ export function ScoringPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-6 px-5 py-8 pb-16 sm:px-8 sm:py-10">
-      <SketchFilter />
+    <div className="mx-auto flex w-full max-w-[56rem] flex-col gap-4 px-4 py-6 pb-16 sm:px-6 sm:py-8">
       {children}
     </div>
   );
@@ -238,7 +238,7 @@ function Closed({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="crop relative flex flex-col items-center gap-4 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-20 text-center">
+    <section className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-14 text-center">
       {icon}
       <p className="eyebrow">{eyebrow}</p>
       <p className="serif text-[2rem] text-primary">{headline}</p>
@@ -469,7 +469,7 @@ function Console({
   const canUndo = displayState.lastEventSeq > 0 && !isSaving;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <MomentOverlay moment={moment} />
       <Board
         state={displayState}
@@ -530,15 +530,6 @@ function Console({
         }
       />
 
-      <InningsNumbers state={displayState} context={context} par={par} />
-
-      <Momentum state={displayState} />
-
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <EventsCard state={displayState} />
-        <WicketsCard state={displayState} />
-      </div>
-
       <Pad
         state={displayState}
         crease={crease}
@@ -560,6 +551,15 @@ function Console({
         onUndo={() => void onUndo()}
         onRetryQueue={onRetryQueue}
       />
+
+      <InningsNumbers state={displayState} context={context} par={par} />
+
+      <Momentum state={displayState} />
+
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <EventsCard state={displayState} />
+        <WicketsCard state={displayState} />
+      </div>
 
       <WicketSheet
         key={extraType ?? 'none'}
@@ -607,27 +607,33 @@ function Board({
   const quota = quotaBalls(context);
   const ballsLeft = Math.max(0, quota - state.legalBalls);
   const needed = context.targetRuns !== null ? context.targetRuns - state.runs : null;
+  const crr = state.legalBalls > 0 ? (state.runs * 6) / state.legalBalls : 0;
+  const rrr = needed !== null && ballsLeft > 0 ? (Math.max(0, needed) * 6) / ballsLeft : null;
 
   return (
     <Scoreboard
       size="md"
       team={context.battingTeam}
-      eyebrow={`Innings ${context.number} · v ${context.bowlingTeam.shortName}`}
+      eyebrow={`Innings ${context.number} · vs ${context.bowlingTeam.shortName}`}
       status={status}
       runs={state.runs}
       wickets={state.wickets}
       overs={formatOvers(state.legalBalls)}
       quota={formatOvers(quota)}
+      stats={[
+        { label: 'CRR', value: crr.toFixed(2) },
+        ...(rrr !== null ? [{ label: 'RRR', value: rrr.toFixed(2) }] : []),
+      ]}
     >
       {needed !== null && needed > 0 && context.targetRuns ? (
-        <div className="px-5 py-5 sm:px-7">
-          <p className="text-[1.0625rem] text-primary">
-            Need <span className="mono font-medium text-accent">{needed}</span> from{' '}
-            <span className="mono font-medium">{ballsLeft}</span>{' '}
+        <div className="px-4 py-3 sm:px-6">
+          <p className="text-sm text-secondary">
+            Need <span className="font-bold text-accent">{needed}</span> runs from{' '}
+            <span className="font-bold text-primary">{ballsLeft}</span>{' '}
             {ballsLeft === 1 ? 'ball' : 'balls'}
           </p>
 
-          <div className="chase-track mt-3.5">
+          <div className="chase-track mt-2.5">
             <span
               className="chase-fill"
               style={{ width: `${Math.min(100, (state.runs / context.targetRuns) * 100)}%` }}
@@ -641,7 +647,7 @@ function Board({
             />
           </div>
 
-          <div className="mono mt-3 flex justify-between text-[0.6875rem] text-muted">
+          <div className="tabular mt-2 flex justify-between text-[0.6875rem] text-muted">
             <span>
               {state.runs} of {context.targetRuns}
             </span>
@@ -692,12 +698,13 @@ function SyncStatus({
 
 /* ── The pad ─────────────────────────────────────────────────────────────── */
 
-/*
- * The instrument. It takes the opposite tone to the page and it never leaves
- * the screen: once you scroll past it, it pins to the bottom, so the keys are
- * always under the thumb no matter how far down the scorer has read.
- */
 const RUNS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+function runTone(runs: number): string | undefined {
+  if (runs === 4) return 'four';
+  if (runs === 6) return 'six';
+  return undefined;
+}
 
 function Pad({
   state,
@@ -743,46 +750,52 @@ function Pad({
   const legal = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
   const failedInQueue = queueItems.some((item) => item.status === 'failed');
   const notice = padNotice({ localError, saveError, isOnline, failedInQueue, queueItems });
+  const [hit, setHit] = useState<{ key: string; n: number } | null>(null);
+
+  function press(key: string, action: () => void) {
+    setHit((current) => ({ key, n: (current?.n ?? 0) + 1 }));
+    action();
+  }
+
+  const ripple = (key: string) =>
+    hit?.key === key ? <span key={hit.n} aria-hidden className="key-ripple" /> : null;
 
   return (
-    <div className="pad sticky bottom-0 z-20 flex flex-col gap-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:p-5">
-      <div className="flex items-center justify-between gap-4">
+    <div className="pad sticky bottom-2 z-20 flex flex-col gap-3 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-4 sm:p-4">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <p className="eyebrow pad-label shrink-0">Over {state.currentOverNumber + 1}</p>
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            {state.thisOver.length === 0 ? (
-              <span className="pad-label text-[0.8125rem]">first ball</span>
-            ) : (
-              state.thisOver.map((ball, index) => (
-                <span
-                  key={ball.seq}
-                  className="chip-land"
-                  style={{ '--i': index } as React.CSSProperties}
-                >
-                  <PadChip display={ball.display} isWicket={ball.isWicket} />
-                </span>
-              ))
-            )}
+          <div className="shrink-0">
+            <p className="eyebrow">Over {state.currentOverNumber + 1}</p>
+            <p className="mono mt-1 text-[0.6875rem] text-muted">{legal} of 6</p>
           </div>
+          <span aria-hidden className="h-8 w-px shrink-0 bg-line" />
+          <OverStrip
+            size="sm"
+            balls={state.thisOver.map((ball) => ({
+              key: ball.seq,
+              display: ball.display,
+              isWicket: ball.isWicket,
+            }))}
+            emptyLabel="First ball of the over"
+          />
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="mono pad-label hidden text-[0.6875rem] sm:block">{legal} of 6</span>
-          <button
-            type="button"
-            disabled={!canUndo}
-            onClick={onUndo}
-            className="pad-key h-9 px-3 text-[0.8125rem] font-medium"
-          >
-            <UndoIcon />
-            Undo
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={!canUndo}
+          onClick={() => press('undo', onUndo)}
+          data-tone="quiet"
+          className="pad-key h-9 shrink-0 px-3 text-[0.8125rem]"
+        >
+          {ripple('undo')}
+          <UndoIcon />
+          Undo
+        </button>
       </div>
 
       {crease.striker === null || crease.nonStriker === null ? (
         <PickerRow
-          label={state.legalBalls === 0 && !state.needsNewBatsman ? 'Openers' : 'New batter'}
+          label={state.legalBalls === 0 && !state.needsNewBatsman ? 'Select openers' : 'Select new batter'}
           players={availableBatsmen}
           onPick={(playerId) =>
             onOverride(crease.striker === null ? { striker: playerId } : { nonStriker: playerId })
@@ -792,20 +805,21 @@ function Pad({
 
       {crease.bowler === null ? (
         <PickerRow
-          label={state.legalBalls === 0 ? 'Opening bowler' : 'Next bowler'}
+          label={state.legalBalls === 0 ? 'Select opening bowler' : 'Select next bowler'}
           players={availableBowlers}
           onPick={(playerId) => onOverride({ bowler: playerId })}
         />
       ) : null}
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="pad-seg" role="group" aria-label="Extras">
         {EXTRAS.map((option) => (
           <button
             key={option.value}
             type="button"
+            aria-pressed={extraType === option.value}
             data-armed={extraType === option.value}
             onClick={() => onExtra(option.value)}
-            className="pad-key h-11 text-[0.8125rem] font-medium"
+            className="pad-key h-9 text-[0.8125rem]"
           >
             <span aria-hidden className="key-legend uppercase">
               {option.key}
@@ -815,16 +829,17 @@ function Pad({
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
         {RUNS.map((runs) => (
           <button
             key={runs}
             type="button"
             disabled={!ready || isSaving || (byeLike && runs === 0)}
-            onClick={() => onRuns(runs)}
-            data-tone={runs === 4 || runs === 6 ? 'boundary' : undefined}
-            className="pad-key h-[3.5rem] text-[1.625rem] font-semibold sm:h-[4rem]"
+            onClick={() => press(`r${runs}`, () => onRuns(runs))}
+            data-tone={runTone(runs)}
+            className="pad-key h-14 text-2xl sm:h-16"
           >
+            {ripple(`r${runs}`)}
             {runs}
           </button>
         ))}
@@ -832,37 +847,40 @@ function Pad({
         <button
           type="button"
           disabled={!ready || isSaving}
-          onClick={onWicket}
+          onClick={() => press('w', onWicket)}
           data-tone="wicket"
-          className="pad-key col-span-4 h-12 text-[0.9375rem] font-bold tracking-[0.16em] uppercase sm:col-span-7"
+          className="pad-key h-14 text-lg tracking-[0.04em] sm:h-16"
         >
+          {ripple('w')}
           <span aria-hidden className="key-legend">
             W
           </span>
-          Wicket
+          OUT
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
         <p
           role={notice.alert ? 'alert' : undefined}
-          className={cn('text-[0.8125rem]', notice.alert ? 'text-[var(--pad-live)]' : 'pad-label')}
+          className={cn('text-[0.8125rem]', notice.alert ? 'font-medium text-live' : 'text-muted')}
         >
-          {notice.message}
+          {extraType && !notice.alert
+            ? `${EXTRAS.find((option) => option.value === extraType)?.label} armed. Tap the runs.`
+            : notice.message}
         </p>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {failedInQueue ? (
             <button
               type="button"
               onClick={() => void onRetryQueue()}
-              className="pad-key h-8 px-3 text-[0.75rem] font-medium"
+              className="pad-key h-8 px-3 text-xs"
             >
               Retry queue
             </button>
           ) : null}
-          <p className="mono pad-label hidden text-[0.625rem] lg:block">
-            0–6 · W wicket · D wide · N no ball · B bye · L leg bye · ⌫ undo
+          <p className="hidden text-[0.6875rem] text-muted lg:block">
+            0–6 runs · W out · D wide · N no ball · B bye · L leg bye · ⌫ undo
           </p>
         </div>
       </div>
@@ -896,30 +914,6 @@ function padNotice({
   return { message: 'Tap the runs off the bat.', alert: false };
 }
 
-/** The over inside the pad, in the pad's own palette rather than the page's. */
-function PadChip({ display, isWicket }: { display: string; isWicket?: boolean }) {
-  const wicket = isWicket || display.includes('W');
-  const boundary = display === '4' || display === '6';
-  const extra = /[a-z]/.test(display) && !wicket;
-
-  return (
-    <span
-      className={cn(
-        'mono grid size-8 shrink-0 place-items-center rounded-full border text-[0.75rem]',
-        wicket
-          ? 'border-[var(--pad-live)] bg-[var(--pad-live)] text-[#2b0d09]'
-          : boundary
-            ? 'border-[var(--pad-accent)] bg-[var(--pad-accent-soft)] text-[var(--pad-accent)]'
-            : extra
-              ? 'border-dashed border-[var(--pad-line)] text-[var(--pad-ink-soft)]'
-              : 'border-[var(--pad-line)] text-[var(--pad-ink-soft)]',
-      )}
-    >
-      {display === '0' ? '·' : display}
-    </span>
-  );
-}
-
 function PickerRow({
   label,
   players,
@@ -930,21 +924,19 @@ function PickerRow({
   onPick: (playerId: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2.5 rounded-[var(--radius-md)] border border-dashed border-[var(--pad-line)] p-3.5">
-      <p className="eyebrow" style={{ color: 'var(--pad-accent)' }}>
-        {label}
-      </p>
+    <div className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-accent-line bg-accent-soft p-3">
+      <p className="text-xs font-semibold text-accent">{label}</p>
 
       {players.length === 0 ? (
-        <p className="pad-label text-sm">Nobody is available.</p>
+        <p className="text-sm text-muted">Nobody is available.</p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {players.map((player) => (
             <button
               key={player.id}
               type="button"
               onClick={() => onPick(player.id)}
-              className="pad-key h-10 px-3.5 text-[0.8125rem] font-medium"
+              className="pad-key h-9 px-3 text-[0.8125rem] font-medium"
             >
               {player.name}
             </button>
@@ -968,26 +960,20 @@ function InningsNumbers({
 }) {
   const quota = quotaBalls(context);
   const ballsLeft = Math.max(0, quota - state.legalBalls);
-  const crr = state.legalBalls > 0 ? (state.runs * 6) / state.legalBalls : 0;
-  const needed = context.targetRuns !== null ? context.targetRuns - state.runs : null;
-  const rrr = needed !== null && ballsLeft > 0 ? (needed * 6) / ballsLeft : null;
   const partnership = state.partnerships.find((entry) => entry.isCurrent);
   const { extras } = state;
 
   return (
     <StatLine
       items={[
-        { label: 'Run rate', value: crr.toFixed(2) },
-        ...(rrr !== null
-          ? [{ label: 'Required', value: rrr.toFixed(2), tone: 'live' as const }]
-          : []),
         ...(partnership
           ? [{ label: 'Partnership', value: `${partnership.runs} (${partnership.balls})` }]
           : []),
         {
           label: 'Extras',
-          value: `${extras.total} · w${extras.wides} nb${extras.noBalls} b${extras.byes} lb${extras.legByes}`,
+          value: `${extras.total} (w ${extras.wides}, nb ${extras.noBalls}, b ${extras.byes}, lb ${extras.legByes})`,
         },
+        { label: 'Balls left', value: ballsLeft },
         ...(par
           ? [
               {
@@ -1004,7 +990,6 @@ function InningsNumbers({
             ]
           : []),
       ]}
-      note={`${ballsLeft} balls left`}
     />
   );
 }
@@ -1017,11 +1002,11 @@ function Momentum({ state }: { state: MatchState }) {
       title="Momentum"
       icon={<TrendIcon />}
       meta={<span className="mono text-[0.6875rem] text-muted">runs per over</span>}
-      bodyClassName="flex flex-col gap-5 p-5"
+      bodyClassName="flex flex-col gap-4"
     >
       <RunsPerOver balls={state.recentBalls} />
 
-      <div className="flex flex-col gap-2.5 border-t border-line pt-4">
+      <div className="flex flex-col gap-2 border-t border-line pt-3">
         <LeaderRow
           label={`Last ${window.balls} balls`}
           value={`${window.runs} runs · ${window.wickets}w`}
@@ -1039,7 +1024,7 @@ function Momentum({ state }: { state: MatchState }) {
 
 function WicketsCard({ state }: { state: MatchState }) {
   return (
-    <Panel title="Fall of wickets" icon={<StumpsIcon />} bodyClassName="flex flex-col gap-2.5 p-5">
+    <Panel title="Fall of wickets" icon={<StumpsIcon />} bodyClassName="flex flex-col gap-2.5">
       {state.fallOfWickets.length === 0 ? (
         <p className="text-sm text-muted">No wickets down.</p>
       ) : (
@@ -1064,13 +1049,13 @@ function EventsCard({ state }: { state: MatchState }) {
   return (
     <Panel title="Deliveries" icon={<ClockIcon />} bodyClassName="p-0">
       {events.length === 0 ? (
-        <p className="p-5 text-sm text-muted">Nothing bowled yet.</p>
+        <p className="p-4 text-sm text-muted">Nothing bowled yet.</p>
       ) : (
         <ol className="flex flex-col">
           {events.map((ball) => (
             <li
               key={ball.seq}
-              className="flex items-center gap-3.5 border-b border-line px-5 py-3 last:border-b-0"
+              className="flex items-center gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
             >
               <BallChip display={ball.display} isWicket={ball.isWicket} />
               <span className="mono w-10 shrink-0 text-[0.6875rem] text-muted">

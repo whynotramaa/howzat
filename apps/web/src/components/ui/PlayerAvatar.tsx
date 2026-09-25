@@ -30,7 +30,7 @@ export function PlayerAvatar({
       role="img"
       aria-label={`${name} avatar`}
       className={cn(
-        'avatar-ring shrink-0 rounded-full bg-[#e9e2d3] bg-cover bg-center bg-no-repeat',
+        'avatar-ring shrink-0 rounded-full bg-sunken bg-cover bg-center bg-no-repeat',
         size === 'xs' && 'size-7',
         size === 'sm' && 'size-9',
         size === 'md' && 'size-12',

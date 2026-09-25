@@ -11,7 +11,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ClockIcon, EyeIcon, StumpsIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
+import { EyeIcon, StumpsIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
 import {
   BallChip,
   CreaseCard,
@@ -23,7 +23,7 @@ import {
   StatLine,
 } from '@/components/ui/Score';
 import { cn } from '@/lib/cn';
-import { MomentOverlay, SketchFilter, useMoment } from './Moment';
+import { MomentOverlay, useMoment } from './Moment';
 import { useLiveMatch, type ConnectionState } from './useLiveMatch';
 
 /*
@@ -60,11 +60,10 @@ export function LiveMatchPage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <SketchFilter />
       <MomentOverlay moment={moment} />
 
       <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_oklab,var(--surface)_84%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-[72rem] items-center gap-4 px-5 sm:px-8">
+        <div className="mx-auto flex h-14 w-full max-w-[60rem] items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="shrink-0 transition-opacity hover:opacity-70">
             <Wordmark size="sm" />
           </Link>
@@ -82,9 +81,8 @@ export function LiveMatchPage() {
                 size="sm"
               />
               <p className="score-figure text-lg text-primary">
-                {snapshot.batting.runs}
-                <span className="text-muted">/{snapshot.batting.wickets}</span>
-                <span className="mono ml-2 text-[0.8125rem] font-normal text-muted">
+                {snapshot.batting.runs}-{snapshot.batting.wickets}
+                <span className="tabular ml-2 text-[0.8125rem] font-medium text-muted">
                   ({snapshot.batting.overs})
                 </span>
               </p>
@@ -113,7 +111,7 @@ export function LiveMatchPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[72rem] flex-1 px-5 py-7 sm:px-8 sm:py-10">
+      <main className="mx-auto w-full max-w-[60rem] flex-1 px-4 py-5 sm:px-6 sm:py-8">
         {isLoading ? (
           <div className="flex flex-col gap-6">
             <Skeleton className="h-72" />
@@ -129,7 +127,7 @@ export function LiveMatchPage() {
         ) : notStarted ? (
           <NotStarted />
         ) : snapshot ? (
-          <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-4">
             <Board snapshot={snapshot} slug={slug} />
 
             <Tabs items={VIEWS} value={view} onChange={setView} />
@@ -146,7 +144,7 @@ export function LiveMatchPage() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-[72rem] flex-wrap items-center justify-between gap-3 px-5 py-7 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[60rem] flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-6">
           <p className="text-[0.8125rem] text-muted">
             Scored ball by ball on <span className="text-primary">Howzat</span>.
           </p>
@@ -163,50 +161,14 @@ const EMPTY_BALLS: BallSummary[] = [];
 
 function NotStarted() {
   return (
-    <section className="crop relative flex flex-col items-center gap-5 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-20 text-center">
-      <DrawnBall />
+    <section className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-16 text-center">
+      <StumpsIcon className="size-7 text-muted" />
       <p className="eyebrow">Not a ball bowled yet</p>
-      <p className="hand text-[2.5rem] text-primary">the first delivery lands here</p>
-      <p className="max-w-md text-secondary">
-        Score updates automatically when recorded.
+      <p className="serif text-[2rem] text-primary">Match yet to begin</p>
+      <p className="max-w-md text-sm text-secondary">
+        The score updates here automatically once the first ball is recorded.
       </p>
     </section>
-  );
-}
-
-/** A ball, drawn rather than iconified. Seam first, then the shine. */
-function DrawnBall() {
-  return (
-    <svg viewBox="0 0 80 80" aria-hidden className="sketch size-16 text-muted">
-      <circle
-        cx="40"
-        cy="40"
-        r="26"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="ink-draw"
-        style={{ '--len': 180 } as React.CSSProperties}
-      />
-      <path
-        d="M26 24 C 34 38, 34 44, 26 56"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        className="ink-draw"
-        style={{ '--len': 60, '--i': 1 } as React.CSSProperties}
-      />
-      <path
-        d="M54 24 C 46 38, 46 44, 54 56"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        className="ink-draw"
-        style={{ '--len': 60, '--i': 2 } as React.CSSProperties}
-      />
-    </svg>
   );
 }
 
@@ -237,11 +199,15 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
       wickets={batting.wickets}
       overs={batting.overs}
       quota={quota}
+      stats={[
+        { label: 'CRR', value: batting.runRate.toFixed(2) },
+        ...(required ? [{ label: 'RRR', value: required.rrr.toFixed(2) }] : []),
+      ]}
     >
       {snapshot.resultText ? (
-        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-5 py-6 sm:px-9">
-          <p className="serif flex min-w-0 items-center gap-3 text-[1.5rem] text-primary">
-            <TrophyIcon className="size-6 shrink-0 text-muted" />
+        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-3 sm:px-6">
+          <p className="serif flex min-w-0 items-center gap-2.5 text-[1.375rem] text-primary">
+            <TrophyIcon className="size-5 shrink-0" />
             {snapshot.resultText}
           </p>
           <PdfButton
@@ -251,15 +217,15 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
           />
         </div>
       ) : required && target !== null ? (
-        <div className="px-5 py-6 sm:px-9">
-          <p className="text-[1.125rem] text-primary">
-            <span className="font-medium">{batting.short}</span> need{' '}
-            <span className="mono font-medium text-accent">{required.runs}</span> from{' '}
-            <span className="mono font-medium">{required.balls}</span>{' '}
+        <div className="px-4 py-3 sm:px-6">
+          <p className="text-sm text-secondary">
+            <span className="font-semibold text-primary">{batting.short}</span> need{' '}
+            <span className="font-bold text-accent">{required.runs}</span> runs from{' '}
+            <span className="font-bold text-primary">{required.balls}</span>{' '}
             {required.balls === 1 ? 'ball' : 'balls'}
           </p>
 
-          <div className="chase-track mt-4">
+          <div className="chase-track mt-2.5">
             <span
               className="chase-fill"
               style={{ width: `${Math.min(100, (batting.runs / Math.max(1, target)) * 100)}%` }}
@@ -277,7 +243,7 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
             />
           </div>
 
-          <div className="mono mt-3 flex justify-between text-[0.6875rem] text-muted">
+          <div className="tabular mt-2 flex justify-between text-[0.6875rem] text-muted">
             <span>
               {batting.runs} of {target}
             </span>
@@ -286,12 +252,10 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line px-5 py-4 sm:px-9">
-        <p className="eyebrow flex items-center gap-2">
-          <ClockIcon />
-          This over
-        </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 sm:px-6">
+        <p className="eyebrow">This over</p>
         <OverStrip
+          size="sm"
           balls={snapshot.thisOver.map((ball, index) => ({
             key: `${index}-${ball}`,
             display: ball,
@@ -309,9 +273,10 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   const window = recentWindow(snapshot.recentBalls);
   const partnership = currentPartnership(snapshot);
   const { extras } = snapshot;
+  const lastWicket = snapshot.fallOfWickets[snapshot.fallOfWickets.length - 1];
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-4">
       <CreaseCard
         batters={snapshot.batsmen.map((batsman) => ({
           id: batsman.playerId,
@@ -338,34 +303,28 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
 
       <StatLine
         items={[
-          { label: 'Run rate', value: snapshot.batting.runRate.toFixed(2) },
-          ...(snapshot.required
-            ? [
-                {
-                  label: 'Required',
-                  value: snapshot.required.rrr.toFixed(2),
-                  tone: 'live' as const,
-                },
-              ]
-            : []),
           { label: 'Partnership', value: `${partnership.runs} (${partnership.balls})` },
           {
             label: 'Extras',
-            value: `${extras.total} · w${extras.wides} nb${extras.noBalls} b${extras.byes} lb${extras.legByes}`,
+            value: `${extras.total} (w ${extras.wides}, nb ${extras.noBalls}, b ${extras.byes}, lb ${extras.legByes})`,
+          },
+          {
+            label: 'Last wicket',
+            value: lastWicket ? `${lastWicket.name} at ${lastWicket.teamRuns}-${lastWicket.wicket}` : 'None',
           },
         ]}
-        note={`${window.fours}×4 and ${window.sixes}×6 in the last ${window.balls}`}
+        note={`Last ${window.balls} balls: ${window.runs} runs, ${window.fours} fours, ${window.sixes} sixes`}
       />
 
       <Panel
         title="Momentum"
         icon={<TrendIcon />}
         meta={<span className="mono text-[0.6875rem] text-muted">runs per over</span>}
-        bodyClassName="flex flex-col gap-5 p-5"
+        bodyClassName="flex flex-col gap-4"
       >
         <RunsPerOver balls={snapshot.recentBalls} />
 
-        <div className="flex flex-col gap-2.5 border-t border-line pt-4">
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
           <LeaderRow
             label={`Last ${window.balls} balls`}
             value={`${window.runs} runs · ${window.wickets}w`}
@@ -382,7 +341,7 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
         <Panel
           title="Fall of wickets"
           icon={<StumpsIcon />}
-          bodyClassName="flex flex-col gap-2.5 p-5"
+          bodyClassName="flex flex-col gap-2.5"
         >
           {snapshot.fallOfWickets
             .slice()
@@ -500,136 +459,163 @@ function ScorecardView({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      {data.innings.map((innings) => (
-        <section
-          key={innings.number}
-          className="rounded-[var(--radius-lg)] border border-line bg-raised"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-5 py-5 sm:px-7">
-            <div className="flex items-center gap-3">
-              <TeamMark
-                shortName={innings.battingTeam.shortName}
-                color={innings.battingTeam.primaryColor}
-                size="sm"
-              />
-              <div>
-                <p className="eyebrow">Innings {innings.number}</p>
-                <h3 className="mt-2 font-medium text-primary">{innings.battingTeam.name}</h3>
+    <div className="flex flex-col gap-4">
+      {data.innings.map((innings) => {
+        const balls = oversToBalls(innings.overs);
+        const rate = balls > 0 ? ((innings.runs * 6) / balls).toFixed(2) : '0.00';
+
+        return (
+          <section
+            key={innings.number}
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised"
+          >
+            <div className="flex items-center justify-between gap-4 bg-inverse px-4 py-3 text-on-inverse sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <TeamMark
+                  shortName={innings.battingTeam.shortName}
+                  color={innings.battingTeam.primaryColor}
+                  size="sm"
+                />
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold">{innings.battingTeam.name}</h3>
+                  <p className="text-[0.6875rem] text-muted-on-inverse">Innings {innings.number}</p>
+                </div>
               </div>
+
+              <p className="score-figure shrink-0 text-xl">
+                {innings.runs}-{innings.wickets}
+                <span className="tabular ml-1.5 text-[0.8125rem] font-medium text-muted-on-inverse">
+                  ({innings.overs})
+                </span>
+              </p>
             </div>
 
-            <p className="score-figure text-[1.875rem] text-primary">
-              {innings.runs}
-              <span className="text-muted">/{innings.wickets}</span>
-              <span className="mono ml-2.5 text-[0.8125rem] font-normal text-muted">
-                ({innings.overs} ov)
+            <div className="overflow-x-auto">
+              <Table density="compact" className="min-w-[32rem]">
+                <thead>
+                  <tr className="border-b border-line bg-sunken">
+                    <Th align="left" className="pl-4 sm:pl-5">
+                      Batter
+                    </Th>
+                    <Th align="right">R</Th>
+                    <Th align="right">B</Th>
+                    <Th align="right">4s</Th>
+                    <Th align="right">6s</Th>
+                    <Th align="right" className="pr-4 sm:pr-5">
+                      SR
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {innings.batting.map((batter) => (
+                    <tr key={batter.playerId} className="border-b border-line">
+                      <td className="py-2.5 pl-4 sm:pl-5">
+                        <p
+                          className={cn(
+                            'text-sm font-semibold',
+                            batter.isOut ? 'text-primary' : 'text-accent',
+                          )}
+                        >
+                          {batter.name}
+                          {!batter.isOut ? <span className="font-normal"> *</span> : null}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {batter.isOut ? batter.dismissal : 'not out'}
+                        </p>
+                      </td>
+                      <Td align="right" emphasis className="font-bold">
+                        {batter.runs}
+                      </Td>
+                      <Td align="right">{batter.balls}</Td>
+                      <Td align="right">{batter.fours}</Td>
+                      <Td align="right">{batter.sixes}</Td>
+                      <Td align="right" className="pr-4 sm:pr-5">
+                        {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(2) : '0.00'}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5 text-sm sm:px-5">
+              <span className="font-semibold text-primary">Extras</span>
+              <span className="tabular text-secondary">
+                <span className="font-bold text-primary">{innings.extras.total}</span> (w{' '}
+                {innings.extras.wides}, nb {innings.extras.noBalls}, b {innings.extras.byes}, lb{' '}
+                {innings.extras.legByes})
               </span>
-            </p>
-          </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 bg-sunken px-4 py-2.5 text-sm sm:px-5">
+              <span className="font-semibold text-primary">Total</span>
+              <span className="tabular text-secondary">
+                <span className="font-bold text-primary">
+                  {innings.runs}-{innings.wickets}
+                </span>{' '}
+                ({innings.overs} Ov, RR {rate})
+              </span>
+            </div>
 
-          <div className="overflow-x-auto">
-            <Table className="min-w-[34rem]">
-              <thead>
-                <tr className="border-b border-line">
-                  <Th align="left" className="pl-5 sm:pl-7">
-                    Batter
-                  </Th>
-                  <Th align="right">R</Th>
-                  <Th align="right">B</Th>
-                  <Th align="right">4s</Th>
-                  <Th align="right">6s</Th>
-                  <Th align="right" className="pr-5 sm:pr-7">
-                    SR
-                  </Th>
-                </tr>
-              </thead>
-              <tbody>
-                {innings.batting.map((batter) => (
-                  <tr key={batter.playerId} className="border-b border-line last:border-b-0">
-                    <td className="py-3.5 pl-5 sm:pl-7">
-                      <p className="flex items-center gap-2 text-sm text-primary">
-                        <span className="font-medium">{batter.name}</span>
-                        {!batter.isOut ? (
-                          <span className="mono text-[0.6875rem] text-success" title="Not out">
-                            not out
-                          </span>
-                        ) : null}
-                      </p>
-                      {batter.isOut ? (
-                        <p className="mt-1 text-[0.6875rem] text-muted">{batter.dismissal}</p>
-                      ) : null}
-                    </td>
-                    <Td align="right" emphasis>
-                      {batter.runs}
-                    </Td>
-                    <Td align="right">{batter.balls}</Td>
-                    <Td align="right">{batter.fours}</Td>
-                    <Td align="right">{batter.sixes}</Td>
-                    <Td align="right" className="pr-5 sm:pr-7">
-                      {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '—'}
-                    </Td>
+            <div className="overflow-x-auto border-t border-line">
+              <Table density="compact" className="min-w-[30rem]">
+                <thead>
+                  <tr className="border-b border-line bg-sunken">
+                    <Th align="left" className="pl-4 sm:pl-5">
+                      Bowler
+                    </Th>
+                    <Th align="right">O</Th>
+                    <Th align="right">M</Th>
+                    <Th align="right">R</Th>
+                    <Th align="right">W</Th>
+                    <Th align="right" className="pr-4 sm:pr-5">
+                      ECO
+                    </Th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+                </thead>
+                <tbody>
+                  {innings.bowling.map((bowler) => {
+                    const bowled = oversToBalls(bowler.overs);
+                    return (
+                      <tr key={bowler.playerId} className="border-b border-line last:border-b-0">
+                        <td className="py-2.5 pl-4 text-sm font-semibold text-primary sm:pl-5">
+                          {bowler.name}
+                        </td>
+                        <Td align="right">{bowler.overs}</Td>
+                        <Td align="right">{bowler.maidens}</Td>
+                        <Td align="right">{bowler.runs}</Td>
+                        <Td align="right" emphasis className="font-bold">
+                          {bowler.wickets}
+                        </Td>
+                        <Td align="right" className="pr-4 sm:pr-5">
+                          {bowled > 0 ? ((bowler.runs * 6) / bowled).toFixed(2) : '0.00'}
+                        </Td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </div>
 
-          <p className="border-t border-line px-5 py-4 text-[0.8125rem] text-secondary sm:px-7">
-            <span className="eyebrow mr-3">Extras</span>
-            <span className="mono text-primary">{innings.extras.total}</span>
-            <span className="mono ml-2 text-muted">
-              (w {innings.extras.wides}, nb {innings.extras.noBalls}, b {innings.extras.byes}, lb{' '}
-              {innings.extras.legByes})
-            </span>
-          </p>
-
-          <div className="overflow-x-auto border-t border-line">
-            <Table className="min-w-[30rem]">
-              <thead>
-                <tr className="border-b border-line">
-                  <Th align="left" className="pl-5 sm:pl-7">
-                    Bowler
-                  </Th>
-                  <Th align="right">O</Th>
-                  <Th align="right">M</Th>
-                  <Th align="right">R</Th>
-                  <Th align="right" className="pr-5 sm:pr-7">
-                    W
-                  </Th>
-                </tr>
-              </thead>
-              <tbody>
-                {innings.bowling.map((bowler) => (
-                  <tr key={bowler.playerId} className="border-b border-line last:border-b-0">
-                    <td className="py-3.5 pl-5 text-sm font-medium text-primary sm:pl-7">
-                      {bowler.name}
-                    </td>
-                    <Td align="right">{bowler.overs}</Td>
-                    <Td align="right">{bowler.maidens}</Td>
-                    <Td align="right">{bowler.runs}</Td>
-                    <Td align="right" emphasis className="pr-5 sm:pr-7">
-                      {bowler.wickets}
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-
-          {innings.fallOfWickets.length > 0 ? (
-            <p className="border-t border-line px-5 py-4 text-[0.8125rem] text-secondary sm:px-7">
-              <span className="eyebrow mr-3">Fall of wickets</span>
-              {innings.fallOfWickets
-                .map(
-                  (wicket) =>
-                    `${wicket.teamRuns}-${wicket.wicket} (${wicket.name}, ${wicket.overs})`,
-                )
-                .join(' · ')}
-            </p>
-          ) : null}
-        </section>
-      ))}
+            {innings.fallOfWickets.length > 0 ? (
+              <div className="border-t border-line">
+                <p className="bg-sunken px-4 py-2 text-[0.6875rem] font-semibold text-muted uppercase sm:px-5">
+                  Fall of wickets
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-4 py-3 text-[0.8125rem] sm:px-5">
+                  {innings.fallOfWickets.map((wicket) => (
+                    <span key={wicket.wicket} className="tabular text-secondary">
+                      <span className="font-bold text-primary">
+                        {wicket.teamRuns}-{wicket.wicket}
+                      </span>{' '}
+                      ({wicket.name}, {wicket.overs})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -642,7 +628,7 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
   }
 
   return (
-    <ol className="rounded-[var(--radius-lg)] border border-line bg-raised">
+    <ol className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
       {snapshot.recentBalls
         .slice()
         .reverse()
@@ -652,23 +638,31 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
           return (
             <li
               key={ball.seq}
-              className="flex items-start gap-4 border-b border-line px-5 py-4 last:border-b-0"
+              className={cn(
+                'flex items-start gap-3 border-b border-line px-4 py-3 last:border-b-0',
+                ball.isWicket && 'bg-live-soft',
+              )}
             >
-              <BallChip display={ball.display} isWicket={ball.isWicket} />
+              <div className="flex w-10 shrink-0 flex-col items-center gap-1.5">
+                <span className="tabular text-xs font-semibold text-muted">
+                  {ball.overNumber}.{ball.ballNumber}
+                </span>
+                <BallChip display={ball.display} isWicket={ball.isWicket} size="sm" />
+              </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="mono text-[0.6875rem] text-muted">
-                    {ball.overNumber}.{ball.ballNumber}
-                  </span>
-                  <span data-tone={ball.isWicket ? 'live' : undefined} className="eyebrow">
-                    {eventLabel(ball)}
-                  </span>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p
+                  className={cn(
+                    'text-sm font-semibold',
+                    ball.isWicket ? 'text-live' : 'text-primary',
+                  )}
+                >
+                  {eventLabel(ball)}
                 </p>
                 <p
                   className={cn(
-                    'mt-1.5 leading-snug',
-                    big ? 'text-primary' : 'text-[0.9375rem] text-secondary',
+                    'mt-0.5 text-sm leading-snug',
+                    big ? 'text-primary' : 'text-secondary',
                   )}
                 >
                   {commentaryLine(ball)}

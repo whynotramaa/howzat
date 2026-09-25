@@ -31,8 +31,8 @@ export function Tabs<T extends string>({
             aria-selected={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              'relative -mb-px inline-flex items-center gap-2 px-4 pt-2 pb-3.5',
-              'text-sm font-medium whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
+              'relative -mb-px inline-flex items-center gap-2 px-4 pt-2 pb-3',
+              'text-sm font-semibold whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
               active ? 'text-primary' : 'text-muted hover:text-secondary',
             )}
           >
@@ -45,7 +45,7 @@ export function Tabs<T extends string>({
               aria-hidden
               className={cn(
                 'absolute inset-x-0 bottom-0 h-[2px] transition-opacity duration-[var(--dur)]',
-                active ? 'bg-[var(--accent-strong)] opacity-100' : 'opacity-0',
+                active ? 'bg-accent opacity-100' : 'opacity-0',
               )}
             />
           </button>

@@ -3,27 +3,32 @@ import type { BallSummary } from '@howzat/shared';
 import { TeamMark } from '@/components/ui/Pill';
 import { cn } from '@/lib/cn';
 
-/* ── Deliveries ──────────────────────────────────────────────────────────── */
+type BallKind = 'dot' | 'run' | 'four' | 'six' | 'wicket' | 'extra';
 
-export function BallChip({ display, isWicket }: { display: string; isWicket?: boolean }) {
-  const wicket = isWicket || display.includes('W');
-  const boundary = display === '4' || display === '6';
-  const extra = /[a-z]/.test(display) && !wicket;
+function ballKind(display: string, isWicket?: boolean): BallKind {
+  if (isWicket || display.includes('W')) return 'wicket';
+  if (/[a-z]/.test(display)) return 'extra';
+  if (display === '4') return 'four';
+  if (display === '6') return 'six';
+  if (display === '0') return 'dot';
+  return 'run';
+}
 
+export function BallChip({
+  display,
+  isWicket,
+  size = 'md',
+}: {
+  display: string;
+  isWicket?: boolean;
+  size?: 'sm' | 'md';
+}) {
   return (
     <span
-      className={cn(
-        'mono grid size-9 shrink-0 place-items-center rounded-full border text-[0.8125rem] font-medium',
-        wicket
-          ? 'border-[var(--live)] bg-live text-white'
-          : boundary
-            ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
-            : extra
-              ? 'border-dashed border-line-strong bg-transparent text-secondary'
-              : 'border-line bg-sunken text-secondary',
-      )}
+      data-kind={ballKind(display, isWicket)}
+      className={cn('ball', size === 'sm' ? 'size-7 text-[0.6875rem]' : 'size-9 text-[0.8125rem]')}
     >
-      {display === '0' ? '·' : display}
+      {display === '0' ? '•' : display}
     </span>
   );
 }
@@ -31,26 +36,26 @@ export function BallChip({ display, isWicket }: { display: string; isWicket?: bo
 export function OverStrip({
   balls,
   emptyLabel = 'No balls bowled yet this over',
+  size,
 }: {
   balls: Array<{ key: string | number; display: string; isWicket?: boolean }>;
   emptyLabel?: string;
+  size?: 'sm' | 'md';
 }) {
   if (balls.length === 0) {
     return <p className="text-sm text-muted">{emptyLabel}</p>;
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {balls.map((ball, index) => (
-        <span key={ball.key} className="chip-land" style={{ '--i': index } as CSSProperties}>
-          <BallChip display={ball.display} isWicket={ball.isWicket} />
+    <div className="flex flex-wrap items-center gap-1.5">
+      {balls.map((ball) => (
+        <span key={ball.key} className="chip-land">
+          <BallChip display={ball.display} isWicket={ball.isWicket} size={size} />
         </span>
       ))}
     </div>
   );
 }
-
-/* ── Rows ────────────────────────────────────────────────────────────────── */
 
 export function LeaderRow({
   label,
@@ -62,15 +67,14 @@ export function LeaderRow({
   emphasis?: boolean;
 }) {
   return (
-    <div className="flex items-baseline gap-3">
-      <span className={cn('shrink-0 text-sm', emphasis ? 'text-primary' : 'text-secondary')}>
+    <div className="flex items-baseline justify-between gap-3">
+      <span className={cn('min-w-0 truncate text-sm', emphasis ? 'text-primary' : 'text-secondary')}>
         {label}
       </span>
-      <span aria-hidden className="h-px min-w-4 flex-1 bg-line" />
       <span
         className={cn(
           'tabular shrink-0 text-sm',
-          emphasis ? 'font-semibold text-primary' : 'text-primary',
+          emphasis ? 'font-semibold text-primary' : 'font-medium text-primary',
         )}
       >
         {value}
@@ -79,9 +83,6 @@ export function LeaderRow({
   );
 }
 
-/* ── Containers ──────────────────────────────────────────────────────────── */
-
-/** One hairline box with a labelled head. The only container these pages use. */
 export function Panel({
   title,
   meta,
@@ -99,21 +100,22 @@ export function Panel({
 }) {
   return (
     <section
-      className={cn('min-w-0 rounded-[var(--radius-lg)] border border-line bg-raised', className)}
+      className={cn(
+        'min-w-0 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
+        className,
+      )}
     >
-      <div className="flex min-h-[3.25rem] items-center justify-between gap-4 border-b border-line px-5 py-3">
+      <div className="flex min-h-11 items-center justify-between gap-4 border-b border-line px-4 py-2.5">
         <p className="eyebrow flex items-center gap-2">
-          {icon}
+          {icon ? <span className="text-muted">{icon}</span> : null}
           {title}
         </p>
         {meta !== undefined ? <div className="flex items-center gap-2">{meta}</div> : null}
       </div>
-      <div className={cn('p-5', bodyClassName)}>{children}</div>
+      <div className={cn('p-4', bodyClassName)}>{children}</div>
     </section>
   );
 }
-
-/* ── The board ───────────────────────────────────────────────────────────── */
 
 export function RollingNumber({ value }: { value: number }) {
   const digits = String(value).split('');
@@ -132,10 +134,6 @@ export function RollingNumber({ value }: { value: number }) {
   );
 }
 
-/**
- * The score and nothing else. Every rate, average and breakdown belongs below
- * the players, which is the order a spectator actually reads in.
- */
 export function Scoreboard({
   team,
   eyebrow,
@@ -144,6 +142,7 @@ export function Scoreboard({
   wickets,
   overs,
   quota,
+  stats,
   size = 'lg',
   children,
 }: {
@@ -154,68 +153,63 @@ export function Scoreboard({
   wickets: number;
   overs: string;
   quota?: string | null;
+  stats?: ReadonlyArray<{ label: string; value: ReactNode }>;
   size?: 'md' | 'lg';
   children?: ReactNode;
 }) {
-  const pad = size === 'lg' ? 'px-5 sm:px-9' : 'px-5 sm:px-7';
-
   return (
-    <section
-      style={{ '--team-a': team.primaryColor } as CSSProperties}
-      className="scoreboard crop relative isolate overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised"
-    >
-      <span aria-hidden className="scoreboard-field" />
-      <div
-        className={cn('flex flex-wrap items-center justify-between gap-x-5 gap-y-3 pt-6 pb-5', pad)}
-      >
+    <section className="board overflow-hidden rounded-[var(--radius-xl)]">
+      <div className="flex items-center justify-between gap-4 px-4 pt-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
           <div className="min-w-0">
-            <p className="truncate font-medium text-primary">{team.name}</p>
-            <p className="eyebrow mt-2">{eyebrow}</p>
+            <p className="truncate text-[0.9375rem] font-semibold text-primary">{team.name}</p>
+            <p className="text-xs text-muted">{eyebrow}</p>
           </div>
         </div>
         {status}
       </div>
 
-      <div className={cn('dot-rule', size === 'lg' ? 'mx-5 sm:mx-9' : 'mx-5 sm:mx-7')} />
-
-      <div className={cn('flex items-end justify-between gap-6 pt-7 pb-8 sm:pt-9', pad)}>
-        <p
-          className={cn(
-            'score-figure flex items-baseline text-primary',
-            size === 'lg' ? 'text-[clamp(4.5rem,20vw,9rem)]' : 'text-[clamp(3.75rem,15vw,6rem)]',
-          )}
-        >
-          <RollingNumber value={runs} />
-          <span aria-hidden className="mx-[0.04em] font-[300] text-muted italic">
-            /
-          </span>
-          <span className="text-muted">
-            <RollingNumber value={wickets} />
-          </span>
-        </p>
-
-        <div className="flex shrink-0 items-end gap-5 pb-1.5 sm:gap-7">
-          <span aria-hidden className="dot-rule-v hidden self-stretch sm:block" />
-          <div>
-            <p className="mono flex items-baseline text-[1.375rem] font-medium text-primary">
-              <span key={overs} className="figure-in">
-                {overs}
-              </span>
-              {quota ? <span className="text-base text-muted">/{quota}</span> : null}
-            </p>
-            <p className="eyebrow mt-2.5">Overs</p>
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 px-4 pt-4 pb-5 sm:px-6">
+        <div className="flex items-baseline gap-3">
+          <p
+            className={cn(
+              'score-figure flex items-baseline text-primary',
+              size === 'lg' ? 'text-[3.5rem] sm:text-[4.25rem]' : 'text-[3rem] sm:text-[3.5rem]',
+            )}
+          >
+            <RollingNumber value={runs} />
+            <span aria-hidden className="mx-[0.04em] font-[300] text-muted italic">
+              /
+            </span>
+            <span className="text-muted">
+              <RollingNumber value={wickets} />
+            </span>
+          </p>
+          <p className="mono text-lg font-medium text-secondary">
+            <span key={overs} className="figure-in inline-block">
+              ({overs}
+            </span>
+            {quota ? <span className="text-muted">/{quota}</span> : null})
+          </p>
         </div>
+
+        {stats && stats.length > 0 ? (
+          <dl className="flex gap-6">
+            {stats.map((stat) => (
+              <div key={stat.label} className="board-stat">
+                <dt>{stat.label}</dt>
+                <dd>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
 
       {children ? <div className="border-t border-line">{children}</div> : null}
     </section>
   );
 }
-
-/* ── The crease ──────────────────────────────────────────────────────────── */
 
 export interface CreaseBatter {
   id: string;
@@ -236,11 +230,24 @@ export interface CreaseBowler {
   econ: number | null;
 }
 
-/**
- * The scorebook page. Feint ruling behind it, the striker's row lit and
- * annotated by hand, the bowler's figures given the same weight as a batter's
- * score because the scorer needs both at a glance.
- */
+const GRID = 'grid grid-cols-[minmax(0,1fr)_repeat(5,2.75rem)] items-center gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,3.5rem)]';
+
+function HeadRow({ first, cols, action }: { first: string; cols: string[]; action?: ReactNode }) {
+  return (
+    <div className={cn(GRID, 'eyebrow bg-sunken px-4 py-2.5')}>
+      <span className="flex items-center gap-3">
+        {first}
+        {action}
+      </span>
+      {cols.map((col) => (
+        <span key={col} className="text-right">
+          {col}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function CreaseCard({
   batters,
   bowler,
@@ -255,77 +262,53 @@ export function CreaseCard({
   bowlerAction?: ReactNode;
 }) {
   return (
-    <Panel title="At the crease" meta={action} bodyClassName="p-0">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+      <HeadRow first="Batter" cols={['R', 'B', '4s', '6s', 'SR']} action={action} />
       {batters.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-muted">{emptyLabel}</p>
+        <p className="px-4 py-4 text-sm text-muted">{emptyLabel}</p>
       ) : (
-        <ul className="flex flex-col">
-          {batters.map((batter) => (
-            <li key={batter.id} className="flex items-center gap-4 border-b border-line px-5 py-4">
-              <div className="min-w-0 flex-1">
-                <p
-                  className={cn(
-                    'truncate',
-                    batter.onStrike ? 'font-semibold text-primary' : 'text-secondary',
-                  )}
-                >
-                  {batter.name}
-                  {batter.onStrike ? (
-                    <>
-                      <span aria-hidden>*</span>
-                      <span className="sr-only"> on strike</span>
-                    </>
-                  ) : null}
-                </p>
-                <p className="mono mt-1 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted">
-                  <span>{batter.fours}×4</span>
-                  <span>{batter.sixes}×6</span>
-                  <span>
-                    SR {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '—'}
-                  </span>
-                </p>
-              </div>
-
-              <p className="score-figure shrink-0 text-[1.75rem] text-primary">
-                {batter.runs}
-                <span className="mono ml-1 text-[0.8125rem] font-normal text-muted">
-                  ({batter.balls})
-                </span>
-              </p>
-            </li>
-          ))}
-        </ul>
+        batters.map((batter) => (
+          <div key={batter.id} className={cn(GRID, 'border-b border-line px-4 py-3 text-sm')}>
+            <span
+              className={cn(
+                'flex min-w-0 items-center gap-2',
+                batter.onStrike ? 'font-semibold text-primary' : 'text-secondary',
+              )}
+            >
+              <span className="truncate">{batter.name}</span>
+              {batter.onStrike ? (
+                <>
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-accent" />
+                  <span className="sr-only">on strike</span>
+                </>
+              ) : null}
+            </span>
+            <span className="score-figure text-right text-lg text-primary">{batter.runs}</span>
+            <span className="mono text-right text-secondary">{batter.balls}</span>
+            <span className="mono text-right text-secondary">{batter.fours}</span>
+            <span className="mono text-right text-secondary">{batter.sixes}</span>
+            <span className="mono text-right text-secondary">
+              {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '0.0'}
+            </span>
+          </div>
+        ))
       )}
 
-      <div className="flex items-center gap-4 bg-sunken px-5 py-4">
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow">Bowling</p>
-          <p className="mt-1.5 truncate font-medium text-primary">{bowler?.name ?? 'Not named'}</p>
-        </div>
-
-        {bowlerAction}
-
-        <div className="shrink-0 text-right">
-          <p className="score-figure text-[1.75rem] text-primary">
-            {bowler?.wickets ?? 0}
-            <span className="text-muted">/{bowler?.runs ?? 0}</span>
-          </p>
-          <p className="mono mt-1 text-[0.6875rem] text-muted">
-            {bowler ? `${bowler.overs} ov · ${bowler.maidens} mdn` : '0.0 ov'}
-            {bowler?.econ != null ? ` · econ ${bowler.econ.toFixed(2)}` : ''}
-          </p>
-        </div>
+      <HeadRow first="Bowler" cols={['O', 'M', 'R', 'W', 'ECO']} action={bowlerAction} />
+      <div className={cn(GRID, 'px-4 py-3 text-sm')}>
+        <span className="truncate font-semibold text-primary">{bowler?.name ?? 'Not named'}</span>
+        <span className="mono text-right text-secondary">{bowler?.overs ?? '0.0'}</span>
+        <span className="mono text-right text-secondary">{bowler?.maidens ?? 0}</span>
+        <span className="mono text-right text-secondary">{bowler?.runs ?? 0}</span>
+        <span className="score-figure text-right text-lg text-primary">{bowler?.wickets ?? 0}</span>
+        <span className="mono text-right text-secondary">
+          {bowler?.econ != null ? bowler.econ.toFixed(2) : '0.00'}
+        </span>
       </div>
-    </Panel>
+    </section>
   );
 }
 
-/* ── The numbers, in a sentence ──────────────────────────────────────────── */
-
-/**
- * The rates and the breakdown, set as text on a ruled line rather than boxed
- * up as tiles. They are supporting figures and they should read like it.
- */
 export function StatLine({
   items,
   note,
@@ -334,11 +317,16 @@ export function StatLine({
   note?: string;
 }) {
   return (
-    <div className="border-y border-line py-4">
-      <dl className="flex flex-wrap items-baseline gap-x-7 gap-y-3">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+      <dl className="grid grid-cols-2 sm:grid-flow-col sm:grid-cols-none">
         {items.map((item) => (
-          <div key={item.label} className="flex items-baseline gap-2.5">
-            <dt className="eyebrow">{item.label}</dt>
+          <div
+            key={item.label}
+            className="flex flex-col gap-1 border-line px-4 py-3 not-last:border-r max-sm:border-b"
+          >
+            <dt className="eyebrow">
+              {item.label}
+            </dt>
             <dd
               className={cn(
                 'mono text-[0.9375rem] font-medium',
@@ -353,20 +341,12 @@ export function StatLine({
             </dd>
           </div>
         ))}
-
-        {note ? <span className="hand ml-auto text-xl text-muted">{note}</span> : null}
       </dl>
-    </div>
+      {note ? <p className="border-t border-line px-4 py-2 text-xs text-muted">{note}</p> : null}
+    </section>
   );
 }
 
-/* ── The momentum ────────────────────────────────────────────────────────── */
-
-/**
- * Runs in each over as a row of hollow bars. Wicket overs are drawn in the
- * live colour, the peak is called out by hand, and hovering an over gives you
- * the ball-by-ball total without a legend.
- */
 export function RunsPerOver({
   balls,
   className,
@@ -381,63 +361,44 @@ export function RunsPerOver({
   }
 
   const peak = Math.max(6, ...overs.map((over) => over.runs));
-  const best = overs.reduce((top, over) => (over.runs > top.runs ? over : top), overs[0]!);
 
   return (
     <div className={className}>
-      <div className="flex h-32 items-end gap-1.5">
+      <div className="flex h-32 items-end gap-1 border-b border-line">
         {overs.map((over, index) => (
           <div
             key={over.number}
-            data-wicket={over.wickets > 0}
-            className="rpo-col flex h-full min-w-0 flex-1 flex-col justify-end gap-1.5"
+            className="rpo-col flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
           >
-            <span className="rpo-tip rounded-[var(--radius-xs)] border border-line bg-raised px-2 py-1">
-              <span className="mono text-[0.625rem] text-primary">
-                ov {over.number + 1} · {over.runs}
-                {over.wickets > 0 ? ` · ${over.wickets}w` : ''}
-              </span>
+            <span className="rpo-tip rounded-[var(--radius-xs)] bg-inverse px-2 py-1 text-[0.6875rem] font-medium text-on-inverse">
+              Ov {over.number + 1}: {over.runs}
+              {over.wickets > 0 ? `, ${over.wickets}w` : ''}
             </span>
-
-            {over.number === best.number && best.runs > 0 ? (
-              <span className="hand text-center text-lg leading-none text-muted">best</span>
+            {over.wickets > 0 ? (
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-live" />
             ) : null}
-
-            <span
-              className={cn(
-                'mono text-center text-[0.625rem] leading-none',
-                over.wickets > 0 ? 'text-live' : 'text-muted',
-              )}
-            >
-              {over.runs}
-            </span>
-
             <span
               aria-hidden
               style={
                 {
-                  height: `${Math.max(4, (over.runs / peak) * 78)}%`,
+                  height: `${Math.max(3, (over.runs / peak) * 88)}%`,
                   '--i': index,
                 } as CSSProperties
               }
               className={cn(
-                'rpo-bar w-full rounded-t-[3px] border border-b-0',
-                over.wickets > 0
-                  ? 'border-[var(--live)] bg-live-soft'
-                  : 'border-[var(--accent-line)] bg-accent-soft',
+                'rpo-bar w-full max-w-6 rounded-t-[3px]',
+                over.wickets > 0 ? 'bg-live' : 'bg-accent',
               )}
             />
           </div>
         ))}
       </div>
 
-      <div className="dot-rule" />
-
-      <div className="mt-2 flex gap-1.5">
+      <div className="mt-1.5 flex gap-1">
         {overs.map((over) => (
           <span
             key={over.number}
-            className="mono min-w-0 flex-1 text-center text-[0.625rem] text-muted"
+            className="tabular min-w-0 flex-1 text-center text-[0.625rem] text-muted"
           >
             {overs.length > 12 && over.number % 2 === 1 ? '' : over.number + 1}
           </span>

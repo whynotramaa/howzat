@@ -1,14 +1,3 @@
-/*
- * The scoring surfaces: the scorer's console and the public live page.
- *
- * Both run on the app's own tokens, so light and dark come free. The rules
- * are: hairlines carry the layout, the score is the only loud figure, the pad
- * is the only coloured object, and every celebration is drawn by hand.
- */
-
-/* ── Ink ─────────────────────────────────────────────────────────────────── */
-
-/* Handwriting. Annotations and celebrations only, never body copy. */
 .hand {
   font-family: var(--font-hand);
   font-weight: 600;
@@ -16,59 +5,10 @@
   line-height: 1.05;
 }
 
-/*
- * The wobble. feTurbulence drives feDisplacementMap, so one filter roughens a
- * whole drawing at once and nothing sits on a true path.
- */
 .sketch {
   filter: url(#ink-sketch);
 }
 
-/* Crop marks. Two corners, the way a scoreboard is cropped on paper. */
-.crop::before,
-.crop::after {
-  content: '';
-  position: absolute;
-  width: 13px;
-  height: 13px;
-  border: 1px solid var(--line-strong);
-  pointer-events: none;
-}
-
-.crop::before {
-  inset-block-start: 9px;
-  inset-inline-start: 9px;
-  border-inline-end: 0;
-  border-block-end: 0;
-}
-
-.crop::after {
-  inset-block-end: 9px;
-  inset-inline-end: 9px;
-  border-inline-start: 0;
-  border-block-start: 0;
-}
-
-/* A dotted rule reads as a scoreboard seam where a solid one reads as a box. */
-.dot-rule {
-  height: 1px;
-  background-image: repeating-linear-gradient(90deg, var(--line-strong) 0 2px, transparent 2px 6px);
-}
-
-/* The scorebook: feint ruling behind the players, as the book is printed. */
-.ruled {
-  background-image: repeating-linear-gradient(
-    180deg,
-    transparent 0 calc(var(--rule-step, 3rem) - 1px),
-    color-mix(in oklab, var(--line) 70%, transparent) calc(var(--rule-step, 3rem) - 1px)
-      var(--rule-step, 3rem)
-  );
-}
-
-/*
- * `.eyebrow` in index.css owns its colour, so a Tailwind text utility on the
- * same element loses to it. These are the tones the scoring pages need.
- */
 .eyebrow[data-tone='live'] {
   color: var(--live);
 }
@@ -85,140 +25,303 @@
   color: var(--warning);
 }
 
-/* ── The pad ─────────────────────────────────────────────────────────────── */
+/* ── Board ───────────────────────────────────────────────────────────────── */
 
-/*
- * The pad is an instrument, not a panel, so it takes the opposite tone to the
- * page it floats over. Dark slate on the light theme, lifted slate on the
- * dark one. A scorer looking for the keys never has to search.
- */
-.pad {
-  --pad-bg: #1b1f17;
-  --pad-face: #272c21;
-  --pad-face-hi: #313729;
-  --pad-line: #444b3a;
-  --pad-edge: #0b0d08;
-  --pad-ink: #f0eadc;
-  --pad-ink-soft: #a8a18d;
-  --pad-accent: #dcb86d;
-  --pad-accent-soft: #2e2614;
-  --pad-live: #ec6f55;
-  --pad-live-soft: #3a1a12;
+.board {
+  --surface-raised: var(--board-raised);
+  --surface-sunken: var(--board-raised);
+  --surface-hover: var(--board-raised);
+  --line: var(--board-line);
+  --line-strong: rgb(255 255 255 / 0.2);
+  --text-primary: var(--board-ink);
+  --text-secondary: var(--board-ink-soft);
+  --text-muted: var(--board-muted);
+  --accent: var(--board-accent);
+  --accent-strong: var(--board-accent);
+  --accent-soft: rgb(108 182 245 / 0.16);
+  --accent-line: rgb(108 182 245 / 0.45);
+  --on-accent: #06121f;
+  --live: #ff6b66;
+  --live-soft: rgb(255 107 102 / 0.16);
+  --warning: #f2b64a;
+  --warning-soft: rgb(242 182 74 / 0.16);
 
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--pad-accent) 7%, transparent), transparent 60%),
-    repeating-linear-gradient(90deg, transparent 0 48px, rgb(255 255 255 / 0.012) 48px 96px),
-    var(--pad-bg);
-  box-shadow:
-    0 0 0 1px var(--pad-line),
-    0 20px 44px -26px rgb(0 0 0 / 0.75);
-  color: var(--pad-ink);
+  background: var(--board);
+  color: var(--board-ink);
 }
 
-/* On the dark theme the instrument lifts out of the page instead of sinking. */
-:root[data-theme='dark'] .pad {
-  --pad-bg: #22271d;
-  --pad-face: #2e3427;
-  --pad-face-hi: #384030;
-  --pad-line: #4d5542;
-  --pad-edge: #131610;
+.board-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .pad {
-    --pad-bg: #22271d;
-    --pad-face: #2e3427;
-    --pad-face-hi: #384030;
-    --pad-line: #4d5542;
-    --pad-edge: #131610;
+.board-stat dt {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--board-muted);
+}
+
+.board-stat dd {
+  font-family: var(--font-mono);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Ball chips ──────────────────────────────────────────────────────────── */
+
+.ball {
+  font-family: var(--font-mono);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ball[data-kind='dot'] {
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  border-color: var(--line);
+}
+
+.ball[data-kind='four'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ball[data-kind='six'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.ball[data-kind='wicket'] {
+  border-color: var(--live);
+  background: var(--live);
+  color: #fff;
+}
+
+.ball[data-kind='extra'] {
+  border-color: color-mix(in oklab, var(--warning) 55%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 0.8em;
+}
+
+@keyframes chip-land {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.12);
+  }
+  100% {
+    transform: none;
   }
 }
 
-.pad-label {
-  color: var(--pad-ink-soft);
+.chip-land {
+  display: inline-flex;
+  animation: chip-land 380ms var(--ease) both;
 }
 
-/*
- * A key with a hard offset edge and no blur. It reads as a moulded button
- * rather than a rectangle with a shadow, and the travel on press is the whole
- * point: the thumb has to feel the delivery land.
- */
+/* ── Pad ─────────────────────────────────────────────────────────────────── */
+
+.pad {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+  box-shadow: 0 -10px 30px -18px rgb(16 24 40 / 0.25), var(--shadow-sm);
+}
+
 .pad-key {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid var(--pad-line);
-  border-radius: 12px;
-  background: var(--pad-face);
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.045), transparent 55%);
-  box-shadow:
-    0 3px 0 0 var(--pad-edge),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  color: var(--pad-ink);
+  gap: 0.375rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
   font-family: var(--font-serif);
+  font-weight: 600;
   font-variation-settings: 'SOFT' 40;
   font-variant-numeric: tabular-nums lining-nums;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 90ms var(--ease),
-    box-shadow 90ms var(--ease),
+    transform 110ms var(--ease),
     background-color var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease);
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
 }
 
 .pad-key:hover:not(:disabled) {
-  background: var(--pad-face-hi);
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
 }
 
 .pad-key:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 0 var(--pad-edge);
+  transform: scale(0.93);
+  transition-duration: 60ms;
 }
 
 .pad-key:disabled {
-  opacity: 0.32;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-/* Four and six are the keys most often wanted, so they carry the accent. */
-.pad-key[data-tone='boundary'] {
-  border-color: color-mix(in oklab, var(--pad-accent) 55%, transparent);
-  background: var(--pad-accent-soft);
-  color: var(--pad-accent);
+.pad-key[data-tone='four'] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.pad-key[data-tone='six'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pad-key[data-tone='six']:hover:not(:disabled) {
+  background: var(--accent-strong);
 }
 
 .pad-key[data-tone='wicket'] {
-  border-color: color-mix(in oklab, var(--pad-live) 60%, transparent);
-  background: var(--pad-live-soft);
-  color: var(--pad-live);
+  border-color: var(--live);
+  background: var(--live);
+  color: #fff;
+}
+
+.pad-key[data-tone='wicket']:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--live) 88%, #000);
+}
+
+.pad-key[data-tone='quiet'] {
+  background: transparent;
 }
 
 .pad-key[data-armed='true'] {
-  border-color: var(--pad-accent);
-  background: var(--pad-accent-soft);
-  color: var(--pad-accent);
-  box-shadow:
-    0 3px 0 0 var(--pad-edge),
-    inset 0 0 0 1px var(--pad-accent);
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
-/* The keycap legend, printed the way it is on a key. */
 .key-legend {
   position: absolute;
-  inset-block-start: 0.375rem;
-  inset-inline-end: 0.5rem;
   font-family: var(--font-mono);
+  inset-block-start: 0.25rem;
+  inset-inline-end: 0.375rem;
   font-size: 0.5625rem;
-  letter-spacing: 0.02em;
-  opacity: 0.5;
+  font-weight: 600;
+  opacity: 0.45;
 }
 
-/* ── The moment ──────────────────────────────────────────────────────────── */
+@keyframes key-ripple {
+  from {
+    opacity: 0.45;
+    transform: scale(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+.key-ripple {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-inline-start: -50%;
+  margin-block-start: -50%;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+  animation: key-ripple 520ms var(--ease) forwards;
+}
+
+.pad-seg {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+}
+
+.pad-seg .pad-key {
+  border-color: transparent;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+.pad-seg .pad-key:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+.pad-seg .pad-key[data-armed='true'] {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+/* ── Momentum bars ───────────────────────────────────────────────────────── */
+
+@keyframes rpo-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.rpo-bar {
+  transform-origin: bottom;
+  animation: rpo-grow 520ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 25ms);
+}
+
+.rpo-col {
+  position: relative;
+}
+
+.rpo-tip {
+  position: absolute;
+  inset-block-end: calc(100% + 4px);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.rpo-col:hover .rpo-tip {
+  opacity: 1;
+}
+
+/* ── Moment ──────────────────────────────────────────────────────────────── */
 
 .moment {
   position: fixed;
@@ -233,162 +336,202 @@
 .moment::before {
   content: '';
   position: absolute;
-  inset: -10%;
-  background:
-    radial-gradient(60% 50% at 50% 50%, color-mix(in oklab, var(--moment-ink) 22%, var(--surface)), var(--surface) 70%);
+  inset: 0;
+  background: color-mix(in oklab, var(--surface) 82%, transparent);
+  backdrop-filter: blur(3px);
   opacity: 0;
-  animation: moment-wash 2.2s var(--ease) both;
+  animation: moment-wash 2s var(--ease) both;
 }
 
-.moment[data-kind='wicket'] {
-  animation: moment-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 120ms both;
+.moment[data-kind='wicket'] .moment-plate {
+  animation:
+    moment-plate 2s var(--ease) both,
+    moment-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) 180ms both;
 }
 
 @keyframes moment-shake {
-  10%, 90% { transform: translate3d(-2px, 0, 0); }
-  20%, 80% { transform: translate3d(4px, 1px, 0); }
-  30%, 50%, 70% { transform: translate3d(-7px, -1px, 0); }
-  40%, 60% { transform: translate3d(7px, 1px, 0); }
+  10%,
+  90% {
+    translate: -2px 0;
+  }
+  20%,
+  80% {
+    translate: 4px 0;
+  }
+  30%,
+  50%,
+  70% {
+    translate: -6px 0;
+  }
+  40%,
+  60% {
+    translate: 6px 0;
+  }
 }
 
 @keyframes moment-wash {
-  0% { opacity: 0; }
-  14% { opacity: 0.94; }
-  72% { opacity: 0.94; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  12%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .moment-ring {
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
-  width: 22rem;
+  width: 16rem;
   aspect-ratio: 1;
-  margin: -11rem 0 0 -11rem;
+  margin: -8rem 0 0 -8rem;
   border-radius: 50%;
-  border: 1.5px solid var(--moment-ink);
+  border: 2px solid var(--moment-ink);
   opacity: 0;
-  animation: moment-ring 1.5s var(--ease) both;
+  animation: moment-ring 1.4s var(--ease) both;
   animation-delay: calc(var(--i, 0) * 140ms + 80ms);
 }
 
 @keyframes moment-ring {
-  0% { opacity: 0.7; transform: scale(0.2); }
-  100% { opacity: 0; transform: scale(3.2); }
+  0% {
+    opacity: 0.6;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
 }
 
 .moment-spark {
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
-  width: 7px;
-  height: 18px;
-  border-radius: 2px;
+  width: 6px;
+  height: 14px;
+  border-radius: 3px;
   background: var(--moment-ink);
   opacity: 0;
   transform: rotate(var(--a)) translateY(0);
-  animation: moment-spark 1.3s cubic-bezier(0.12, 0.8, 0.3, 1) both;
+  animation: moment-spark 1.2s cubic-bezier(0.12, 0.8, 0.3, 1) both;
   animation-delay: calc(120ms + var(--d, 0ms));
 }
 
-.moment-spark:nth-child(3n) { background: var(--accent); width: 5px; height: 12px; }
-.moment-spark:nth-child(4n) { border-radius: 50%; width: 8px; height: 8px; }
+.moment-spark:nth-child(4n) {
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+}
 
 @keyframes moment-spark {
-  0% { opacity: 1; transform: rotate(var(--a)) translateY(-10px) scale(1); }
-  100% { opacity: 0; transform: rotate(var(--a)) translateY(var(--r, -46vmin)) scale(0.4) rotate(160deg); }
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(-10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(var(--r, -40vmin)) scale(0.4);
+  }
 }
 
 .moment-plate {
   position: relative;
-  width: min(88vw, 36rem);
-  animation: moment-plate 2.2s var(--ease) both;
+  animation: moment-plate 2s var(--ease) both;
 }
 
 @keyframes moment-plate {
-  0% { opacity: 0; transform: scale(0.86) rotate(-2deg); }
-  14% { opacity: 1; transform: scale(1.02) rotate(-1.5deg); }
-  22% { transform: scale(1) rotate(-1.5deg); }
-  76% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
-  100% { opacity: 0; transform: scale(1.06) rotate(-1deg); filter: blur(4px); }
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  22%,
+  76% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 
 .ink-draw {
   stroke-dasharray: var(--len, 400);
   stroke-dashoffset: var(--len, 400);
-  animation: ink-draw 620ms var(--ease) both;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  animation: ink-draw 560ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
 }
 
 @keyframes ink-draw {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .ink-pop {
   animation: ink-pop 420ms var(--ease) both;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  animation-delay: calc(var(--i, 0) * 80ms);
   transform-box: fill-box;
   transform-origin: center;
 }
 
 @keyframes ink-pop {
-  0% { opacity: 0; transform: scale(0.4) rotate(-12deg); }
-  70% { opacity: 1; transform: scale(1.12) rotate(2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.moment-word {
+.moment-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--moment-ink);
+  color: #fff;
   font-family: var(--font-serif);
   font-style: italic;
+  font-size: clamp(3rem, 12vw, 5.5rem);
   font-weight: 620;
   font-variation-settings: 'SOFT' 100, 'WONK' 1;
-  font-size: clamp(5rem, 20vw, 11rem);
-  line-height: 0.82;
-  letter-spacing: -0.05em;
-  color: var(--moment-ink);
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
-.moment-word > span {
+.moment-badge > span {
   display: inline-block;
-  animation: moment-letter 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  animation-delay: calc(140ms + var(--i, 0) * 55ms);
+  animation: moment-letter 560ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 45ms);
 }
 
 @keyframes moment-letter {
-  0% { opacity: 0; transform: translateY(0.4em) rotate(8deg) scale(0.6); filter: blur(6px); }
-  100% { opacity: 1; transform: none; filter: none; }
-}
-
-.moment-runs {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .moment {
-    display: none;
+  0% {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.7);
   }
-
-  .score-hit,
-  .chip-land,
-  .rpo-bar,
-  .ink-draw,
-  .ink-pop,
-  .moment-word {
-    animation: none;
-  }
-
-  .ink-draw {
-    stroke-dashoffset: 0;
-  }
-
-  .sketch {
-    filter: none;
+  100% {
+    opacity: 1;
+    transform: none;
   }
 }
+
+/* ── Rolling figures ─────────────────────────────────────────────────────── */
 
 .roll {
   display: inline-flex;
@@ -405,7 +548,7 @@
   display: flex;
   flex-direction: column;
   transform: translateY(calc(var(--n, 0) * -1em));
-  transition: transform 900ms cubic-bezier(0.22, 1.2, 0.36, 1);
+  transition: transform 700ms cubic-bezier(0.22, 1.2, 0.36, 1);
 }
 
 .roll-strip > span {
@@ -413,40 +556,25 @@
   line-height: 1;
 }
 
-.scoreboard-field {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(70% 90% at 100% 0%, color-mix(in oklab, var(--team-a) 16%, transparent), transparent 65%),
-    radial-gradient(50% 70% at 0% 100%, color-mix(in oklab, var(--warning) 9%, transparent), transparent 70%),
-    repeating-linear-gradient(100deg, transparent 0 64px, color-mix(in oklab, var(--accent) 3.5%, transparent) 64px 128px);
-  animation: field-drift 18s linear infinite;
-  background-size: 100% 100%, 100% 100%, 256px 100%;
-}
-
-@keyframes field-drift {
-  to {
-    background-position: 0 0, 0 0, 256px 0;
-  }
-}
-
-.scoreboard::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--team-a), color-mix(in oklab, var(--team-a) 20%, transparent));
-}
-
 @media (prefers-reduced-motion: reduce) {
+  .moment {
+    display: none;
+  }
+
+  .chip-land,
+  .rpo-bar,
+  .ink-draw,
+  .ink-pop,
+  .key-ripple,
+  .moment-badge > span {
+    animation: none;
+  }
+
+  .ink-draw {
+    stroke-dashoffset: 0;
+  }
+
   .roll-strip {
     transition: none;
-  }
-
-  .scoreboard-field {
-    animation: none;
   }
 }

@@ -62,9 +62,9 @@ export function useMoment(
  */
 
 const COPY: Record<MomentKind, { word: string; note: string; ink: string }> = {
-  four: { word: 'Four', note: 'along the carpet', ink: 'var(--warning)' },
-  six: { word: 'Six!', note: 'out of the ground', ink: 'var(--success)' },
-  wicket: { word: 'Howzat', note: 'and he has to go', ink: 'var(--live)' },
+  four: { word: 'Four', note: 'Boundary', ink: 'var(--accent)' },
+  six: { word: 'Six', note: 'Maximum', ink: 'var(--accent)' },
+  wicket: { word: 'Wicket', note: 'Out', ink: 'var(--live)' },
 };
 
 function Stroke({
@@ -210,11 +210,11 @@ export function MomentOverlay({ moment }: { moment: Moment | null }) {
         : null}
 
       <div className="moment-plate flex flex-col items-center">
-        <svg viewBox="0 0 320 220" aria-hidden className="sketch w-3/4" style={{ color: ink }}>
+        <svg viewBox="0 0 320 220" aria-hidden className="w-56 sm:w-64" style={{ color: ink }}>
           <Drawing />
         </svg>
 
-        <p className="moment-word -mt-4" aria-label={word}>
+        <p className="moment-badge -mt-2" aria-label={word}>
           {[...word].map((letter, i) => (
             <span key={i} aria-hidden style={{ '--i': i } as React.CSSProperties}>
               {letter}
@@ -223,7 +223,7 @@ export function MomentOverlay({ moment }: { moment: Moment | null }) {
         </p>
 
         <p className="hand mt-3 text-[1.75rem] text-secondary">{note}</p>
-        <p className="moment-runs mt-2">Over {moment.sub}</p>
+        <p className="mono mt-1 text-xs tracking-[0.3em] text-muted uppercase">Over {moment.sub}</p>
       </div>
     </div>
   );
