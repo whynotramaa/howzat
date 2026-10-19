@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ErrorText } from '@/components/ui/Feedback';
 import { Input } from '@/components/ui/Input';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { useTournament } from '@/features/organizer/queries';
 import { useAssignScorer, useRemoveScorer } from './queries';
 
@@ -37,10 +38,10 @@ export function MatchScorersCard({
 
   return (
     <Card>
-      <CardHeader>
-        <h2 className="font-semibold tracking-[-0.02em] mt-2.5 text-base text-primary">Scorers</h2>
-        <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-          Assign users with an account to score this match.
+      <CardHeader className="border-0 px-6 pt-6 pb-0">
+        <h2 className="serif text-[1.875rem] text-primary">Scorers</h2>
+        <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
+          Anyone you add here can score this match from their phone.
         </p>
       </CardHeader>
 
@@ -50,8 +51,9 @@ export function MatchScorersCard({
             {scorers.map((scorer) => (
               <li
                 key={scorer.id}
-                className="flex items-center gap-4 rounded-[var(--radius-sm)] border border-line px-4 py-3"
+                className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-line px-3 py-2.5"
               >
+                <PlayerAvatar seed={scorer.username} name={scorer.name} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-primary">{scorer.name}</p>
                   <p className="mono truncate text-[0.6875rem] text-muted">@{scorer.username}</p>
@@ -61,7 +63,7 @@ export function MatchScorersCard({
                   type="button"
                   onClick={() => remove.mutate(scorer.id)}
                   aria-label={`Remove ${scorer.name}`}
-                  className="grid size-8 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
+                  className="grid size-8 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-alert"
                 >
                   <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
                     <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
@@ -71,8 +73,8 @@ export function MatchScorersCard({
             ))}
           </ul>
         ) : (
-          <p className="text-[0.9375rem] text-muted">
-            Nobody is assigned yet. As the organizer you can always score it yourself.
+          <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-4 text-center text-xs text-muted">
+            Nobody assigned yet. As organiser you can score it yourself.
           </p>
         )}
 

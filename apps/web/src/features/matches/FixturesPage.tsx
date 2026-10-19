@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { MatchDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Card';
+import { EmptyState, PageHeader, SectionHeading } from '@/components/ui/Card';
+import { MatchCard, type MatchSide } from '@/components/ui/MatchCard';
+import { Scene } from '@/components/ui/Sketch';
+import { stageLabel } from '@/lib/pdf/sources';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
-import { StatusPill, TeamMark } from '@/components/ui/Pill';
+import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { useTournament } from '@/features/organizer/queries';
@@ -35,101 +38,111 @@ export function FixturesPage() {
   if (tournament.error) return <ErrorText error={tournament.error} />;
   if (!tournament.data) return null;
 
+  const done = matches.filter((match) => match.status === 'COMPLETED').length;
+
   return (
-    <div className="flex flex-col gap-6">
-      <BackLink to={`/tournaments/${tournamentId}`}>{tournament.data.name}</BackLink>
-
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="serif text-[2.75rem] leading-[1.05]">Fixtures</h1>
-          <p className="tabular text-xs text-muted">
-            {hasFixtures
-              ? `${matches.length} matches · ${tournament.data.doubleRoundRobin ? 'home and away' : 'single round robin'}`
-              : 'Not generated'}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          <ShareLink
-            slug={tournamentId}
-            url={`${window.location.origin}/tournament/${tournamentId}`}
-            label="Share"
-            matchLabel={tournament.data.name}
-            variant="quiet"
-          />
-          {!hasFixtures ? (
-            <>
+    <div className="flex flex-col gap-12">
+      <PageHeader
+        back={<BackLink to={`/tournaments/${tournamentId}`}>{tournament.data.name}</BackLink>}
+        eyebrow={
+          hasFixtures
+            ? `${matches.length} matches · ${tournament.data.doubleRoundRobin ? 'Home and away' : 'Single round robin'}`
+            : 'Not drawn yet'
+        }
+        title={
+          <>
+            The <em>fixtures</em>
+          </>
+        }
+        description={
+          hasFixtures
+            ? `${done} of ${matches.length} played. Set up a match to toss and pick the XIs, or open the public page to follow along.`
+            : 'Howzat pairs every team so nobody plays twice in a round. Preview the draw first, then lock it in.'
+        }
+        art={<Scene name="fixtures" />}
+        actions={
+          <>
+            {!hasFixtures ? (
+              <>
+                <Button isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
+                  Generate fixtures
+                </Button>
+                <Button
+                  variant="secondary"
+                  isLoading={preview.isPending}
+                  onClick={() => preview.mutate()}
+                >
+                  Preview the draw
+                </Button>
+              </>
+            ) : (
               <Button
-                size="sm"
                 variant="secondary"
-                isLoading={preview.isPending}
-                onClick={() => preview.mutate()}
+                disabled={started}
+                title={started ? 'A match has started' : undefined}
+                onClick={() => setConfirmRegenerate(true)}
               >
-                Preview
+                Regenerate
               </Button>
-              <Button
-                size="sm"
-                isLoading={generate.isPending}
-                onClick={() => void handleGenerate(false)}
-              >
-                Generate
-              </Button>
-            </>
-          ) : (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={started}
-              title={started ? 'A match has started' : undefined}
-              onClick={() => setConfirmRegenerate(true)}
-            >
-              Regenerate
-            </Button>
-          )}
-        </div>
-      </header>
+            )}
+            <ShareLink
+              slug={tournamentId}
+              url={`${window.location.origin}/tournament/${tournamentId}`}
+              label="Share"
+              matchLabel={tournament.data.name}
+              variant="quiet"
+            />
+          </>
+        }
+      />
 
       {preview.error ? <ErrorText error={preview.error} /> : null}
       {generate.error ? <ErrorText error={generate.error} /> : null}
 
       {preview.data && !hasFixtures ? (
-        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
-          <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
-            <h2 className="text-[0.8125rem] font-semibold">
-              Preview{' '}
-              <span className="tabular font-normal text-muted">{preview.data.totalMatches}</span>
-            </h2>
-            <Button
-              size="sm"
-              isLoading={generate.isPending}
-              onClick={() => void handleGenerate(false)}
-            >
-              Generate
-            </Button>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3">
+        <section className="flex flex-col gap-5">
+          <SectionHeading
+            eyebrow="Preview"
+            title={`${preview.data.totalMatches} matches in the draw`}
+            description="Nothing is saved yet. Generate when the pairings look right."
+            action={
+              <Button size="sm" isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
+                Lock it in
+              </Button>
+            }
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {preview.data.rounds.map((round) => (
-              <div key={round.round} className="border-b border-line px-4 py-3 sm:border-r">
-                <p className="eyebrow mb-2">Round {round.round}</p>
-                <ul className="flex flex-col gap-1">
+              <div key={round.round} className="rounded-[var(--radius-xl)] border border-line bg-raised p-4">
+                <p className="eyebrow">Round {round.round}</p>
+                <ul className="mt-3 flex flex-col gap-2">
                   {round.matches.map((match) => (
                     <li
                       key={`${match.home.id}-${match.away.id}`}
-                      className="truncate text-[0.8125rem]"
+                      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-[0.8125rem]"
                     >
-                      {match.home.name} <span className="text-muted">v</span> {match.away.name}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <TeamMark shortName={match.home.shortName} color={match.home.primaryColor} size="sm" />
+                        <span className="truncate font-medium">{match.home.name}</span>
+                      </span>
+                      <span className="font-serif text-muted italic">v</span>
+                      <span className="flex min-w-0 flex-row-reverse items-center gap-2 text-right">
+                        <TeamMark shortName={match.away.shortName} color={match.away.primaryColor} size="sm" />
+                        <span className="truncate font-medium">{match.away.name}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
             {preview.data.playoffs.length > 0 ? (
-              <div className="border-b border-line px-4 py-3">
-                <p className="eyebrow mb-2">Playoffs</p>
-                <ul className="flex flex-col gap-1">
+              <div className="rounded-[var(--radius-xl)] border border-dashed border-line-strong p-4">
+                <p className="eyebrow">Playoffs</p>
+                <ul className="mt-3 flex flex-col gap-2">
                   {preview.data.playoffs.map((slot) => (
                     <li key={slot.stage} className="text-[0.8125rem]">
-                      {slot.label} <span className="text-muted">{slot.description}</span>
+                      <span className="font-semibold">{slot.label}</span>{' '}
+                      <span className="text-muted">{slot.description}</span>
                     </li>
                   ))}
                 </ul>
@@ -145,21 +158,18 @@ export function FixturesPage() {
         <ErrorText error={fixtures.error} />
       ) : hasFixtures ? (
         <RoundList matches={matches} />
-      ) : (
+      ) : !preview.data ? (
         <EmptyState
-          title="No fixtures"
-          description="Generate once every squad is full."
+          scene="fixtures"
+          title="No fixtures yet"
+          description="Generate once every squad is full. You can preview the draw before anything is saved."
           action={
-            <Button
-              size="sm"
-              isLoading={generate.isPending}
-              onClick={() => void handleGenerate(false)}
-            >
-              Generate
+            <Button size="sm" isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
+              Generate fixtures
             </Button>
           }
         />
-      )}
+      ) : null}
 
       <Sheet
         open={confirmRegenerate}
@@ -192,24 +202,25 @@ function RoundList({ matches }: { matches: MatchDto[] }) {
   const rounds = [...new Set(matches.map((match) => match.round))].sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-12">
       {rounds.map((round) => {
         const inRound = matches.filter((match) => match.round === round);
         const isPlayoff = inRound.every((match) => match.stage !== 'LEAGUE');
+        const finished = inRound.filter((match) => match.status === 'COMPLETED').length;
 
         return (
-          <section key={round}>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-[0.8125rem] font-semibold">
-                {isPlayoff ? 'Playoffs' : `Round ${round}`}
-              </h2>
-              <span className="tabular text-xs text-muted">{inRound.length}</span>
+          <section key={round} className="flex flex-col gap-4">
+            <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
+              <h2 className="serif text-[1.875rem]">{isPlayoff ? 'Playoffs' : `Round ${round}`}</h2>
+              <span className="tabular text-xs text-muted">
+                {finished}/{inRound.length} played
+              </span>
             </div>
-            <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
-              {inRound.map((match) => (
-                <MatchRow key={match.id} match={match} />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {inRound.map((match, index) => (
+                <FixtureCard key={match.id} match={match} index={index} />
               ))}
-            </ul>
+            </div>
           </section>
         );
       })}
@@ -217,79 +228,70 @@ function RoundList({ matches }: { matches: MatchDto[] }) {
   );
 }
 
-function MatchRow({ match }: { match: MatchDto }) {
+function FixtureCard({ match, index }: { match: MatchDto; index: number }) {
   const live = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const primaryLabel = match.status === 'SCHEDULED' ? 'Set up' : live ? 'Score' : 'Details';
+  const side = (team: MatchDto['team1']): MatchSide | null =>
+    team
+      ? {
+          name: team.name,
+          shortName: team.shortName,
+          color: team.primaryColor,
+          winner: Boolean(match.winnerTeamId && match.winnerTeamId === team.id),
+        }
+      : null;
 
   return (
-    <li className="ledger-row flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2.5 last:border-0">
-      <Link to={`/matches/${match.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="flex min-w-0 flex-col gap-1">
-          <Side team={match.team1} />
-          <Side team={match.team2} />
-        </span>
-      </Link>
-
-      <p className="hidden min-w-0 flex-1 truncate text-xs text-muted md:block">
-        {match.resultText ??
-          [
-            match.stage === 'LEAGUE' ? null : match.stage.replace(/_/g, ' ').toLowerCase(),
-            match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} ov`,
-            match.scorers.length > 0
-              ? match.scorers.map((scorer) => `@${scorer.username}`).join(', ')
-              : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-      </p>
-
-      <div className="flex items-center gap-1.5">
-        <StatusPill status={match.status} />
-        <a
-          href={`/live/${match.publicSlug}${match.resultText ? '?view=scorecard' : ''}`}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Open public page"
-          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-muted hover:bg-sunken hover:text-primary"
-        >
-          <svg
-            viewBox="0 0 16 16"
-            className="size-3.5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
+    <MatchCard
+      className="reveal"
+      style={{ '--delay': `${index * 50}ms` } as CSSProperties}
+      eyebrow={stageLabel(match.stage, match.round)}
+      status={match.status}
+      home={side(match.team1)}
+      away={side(match.team2)}
+      result={match.resultText}
+      to={`/matches/${match.id}`}
+      meta={[
+        match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} overs`,
+        match.scorers.length > 0
+          ? match.scorers.map((scorer) => `@${scorer.username}`).join(', ')
+          : 'No scorer yet',
+      ].join(' · ')}
+      actions={
+        <>
+          <a
+            href={`/live/${match.publicSlug}${match.resultText ? '?view=scorecard' : ''}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open public page"
+            title="Open public page"
+            className="grid size-9 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-primary"
           >
-            <path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9" />
-          </svg>
-        </a>
-        <ShareLink
-          slug={match.publicSlug}
-          variant="quiet"
-          matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
-        />
-        <Link to={`/matches/${match.id}`}>
-          <Button
-            size="sm"
-            variant={match.status === 'SCHEDULED' || live ? 'primary' : 'secondary'}
-          >
-            {primaryLabel}
-          </Button>
-        </Link>
-      </div>
-    </li>
-  );
-}
-
-function Side({ team }: { team: MatchDto['team1'] }) {
-  if (!team) return <span className="text-[0.8125rem] text-muted">TBD</span>;
-
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
-      <span className="truncate text-[0.8125rem] font-medium">{team.name}</span>
-    </span>
+            <svg
+              viewBox="0 0 16 16"
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M6 3H3v10h10v-3M9 3h4v4M13 3 7 9" />
+            </svg>
+          </a>
+          <ShareLink
+            slug={match.publicSlug}
+            variant="quiet"
+            matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
+          />
+          <Link to={`/matches/${match.id}`}>
+            <Button size="sm" variant={match.status === 'SCHEDULED' || live ? 'primary' : 'secondary'}>
+              {primaryLabel}
+            </Button>
+          </Link>
+        </>
+      }
+    />
   );
 }

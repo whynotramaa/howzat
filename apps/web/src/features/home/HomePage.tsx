@@ -5,6 +5,7 @@ import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { Label, SketchDefs, Stroke, delayed } from '@/components/ui/Sketch';
 
 const STEPS = [
   {
@@ -280,82 +281,6 @@ function SectionTitle({ eyebrow, children }: { eyebrow: string; children: ReactN
       <p className="eyebrow">{eyebrow}</p>
       <h2 className="serif mt-6 max-w-[20ch] text-[clamp(2.5rem,5vw,4.25rem)]">{children}</h2>
     </div>
-  );
-}
-
-function delayed(ms: number, extra?: Record<string, string | number>): CSSProperties {
-  return { '--len': 1, '--delay': `${ms}ms`, ...extra } as CSSProperties;
-}
-
-function Stroke({
-  d,
-  delay = 0,
-  color = 'currentColor',
-  width = 1.8,
-  dashed,
-}: {
-  d: string;
-  delay?: number;
-  color?: string;
-  width?: number;
-  dashed?: boolean;
-}) {
-  return (
-    <path
-      d={d}
-      pathLength={1}
-      fill="none"
-      stroke={color}
-      strokeWidth={width}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeDasharray={dashed ? '0.012 0.018' : undefined}
-      className={dashed ? 'sketch-fade' : 'sketch-draw'}
-      style={delayed(delay)}
-      filter="url(#sketch-rough)"
-    />
-  );
-}
-
-function Label({
-  x,
-  y,
-  children,
-  anchor = 'middle',
-  delay = 0,
-  size = 17,
-}: {
-  x: number;
-  y: number;
-  children: ReactNode;
-  anchor?: 'start' | 'middle' | 'end';
-  delay?: number;
-  size?: number;
-}) {
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor={anchor}
-      fontSize={size}
-      className="sketch-label sketch-fade"
-      style={delayed(delay)}
-    >
-      {children}
-    </text>
-  );
-}
-
-function SketchDefs() {
-  return (
-    <svg aria-hidden width="0" height="0" className="absolute">
-      <defs>
-        <filter id="sketch-rough" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="7" />
-          <feDisplacementMap in="SourceGraphic" scale="2.2" />
-        </filter>
-      </defs>
-    </svg>
   );
 }
 

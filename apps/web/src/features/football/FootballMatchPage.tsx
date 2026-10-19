@@ -8,9 +8,13 @@ import {
   type TeamLineup,
 } from '@howzat/shared';
 import { Button } from '@/components/ui/Button';
-import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { BackLink } from '@/components/ui/BackLink';
+import { MatchHero } from '@/components/ui/MatchCard';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
+import { stageLabel } from '@/lib/pdf/sources';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
-import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
+import { Pill, TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { PdfButton } from '@/components/ui/PdfButton';
 import { cn } from '@/lib/cn';
@@ -106,42 +110,69 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <SectionHeading
-        eyebrow={`Round ${match.round} · ${data.periods} × ${data.periodMinutes} minutes · ${
-          substitutionLimit === null ? 'rolling subs' : `${substitutionLimit} subs a side`
-        }`}
-        title={`${data.home.name} v ${data.away.name}`}
-        action={
-          <>
-            <StatusPill status={match.status} />
-            <ShareLink
-              slug={match.publicSlug}
-              matchLabel={`${data.home.shortName} v ${data.away.shortName}`}
-            />
-            {finished ? (
-              <PdfButton
-                build={() =>
-                  import('@/lib/pdf').then((pdf) => pdf.buildFootballMatchPdf(match.publicSlug))
-                }
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <BackLink to={`/tournaments/${match.tournamentId}/fixtures`}>Fixtures</BackLink>
+        <MatchHero
+          eyebrow={
+            <>
+              <span>{stageLabel(match.stage, match.round)}</span>
+              <span aria-hidden>·</span>
+              <span>
+                {data.periods} × {data.periodMinutes} min
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                {substitutionLimit === null ? 'Rolling subs' : `${substitutionLimit} subs a side`}
+              </span>
+            </>
+          }
+          status={match.status}
+          home={{
+            name: data.home.name,
+            shortName: data.home.shortName,
+            color: data.home.primaryColor,
+            winner: match.winnerTeamId === data.home.id,
+          }}
+          away={{
+            name: data.away.name,
+            shortName: data.away.shortName,
+            color: data.away.primaryColor,
+            winner: match.winnerTeamId === data.away.id,
+          }}
+          result={finished ? (match.resultText ?? 'No result') : undefined}
+          detail={
+            started
+              ? 'The match is under way, so the team sheets are locked.'
+              : 'Name both starting sides on the pitch, set the clock, then kick off.'
+          }
+          actions={
+            <>
+              {started && !finished ? (
+                <Link to={`/matches/${match.id}/score`}>
+                  <Button size="sm">Open the console</Button>
+                </Link>
+              ) : null}
+              <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
+                <Button size="sm" variant="secondary">
+                  Public page
+                </Button>
+              </a>
+              <ShareLink
+                slug={match.publicSlug}
+                matchLabel={`${data.home.shortName} v ${data.away.shortName}`}
               />
-            ) : null}
-          </>
-        }
-      />
-
-      {started ? (
-        <Card>
-          <CardBody className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-secondary">
-              This match is already under way, the team sheets are locked.
-            </p>
-            <Link to={`/matches/${match.id}/score`}>
-              <Button>Open the console</Button>
-            </Link>
-          </CardBody>
-        </Card>
-      ) : null}
+              {finished ? (
+                <PdfButton
+                  build={() =>
+                    import('@/lib/pdf').then((pdf) => pdf.buildFootballMatchPdf(match.publicSlug))
+                  }
+                />
+              ) : null}
+            </>
+          }
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <div className="flex flex-col gap-4">
@@ -172,14 +203,14 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
                     setActiveSlot(null);
                   }}
                   className={cn(
-                    'flex items-center gap-2.5 rounded-[var(--radius-sm)] border px-3.5 py-2.5',
-                    'transition-all duration-[var(--dur-fast)]',
+                    'flex items-center gap-3 rounded-[var(--radius-xl)] border px-3.5 py-2.5',
+                    'transition-colors duration-[var(--dur-fast)]',
                     activeSide === side
-                      ? 'border-[var(--text-primary)] bg-accent-soft'
-                      : 'border-line bg-raised hover:bg-hover',
+                      ? 'border-primary bg-raised'
+                      : 'border-line bg-raised hover:border-line-strong',
                   )}
                 >
-                  <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="sm" />
+                  <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="md" />
                   <span className="text-sm font-medium text-primary">{squad.name}</span>
                   <Pill tone={complete ? 'success' : 'neutral'}>
                     {side === 'HOME' ? countNamed(homeSelection) : countNamed(awaySelection)}/
@@ -216,13 +247,11 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
 
       {!started && clockSetting ? (
         <Card>
-          <CardHeader>
-            <p className="eyebrow mb-1.5">This match</p>
-            <p className="font-semibold tracking-[-0.02em] text-base text-primary">
-              How long are we playing?
-            </p>
-            <p className="mt-1.5 max-w-2xl text-[0.8125rem] text-secondary">
-              Set for this fixture alone.
+          <CardHeader className="border-0 px-6 pt-6 pb-0">
+            <p className="eyebrow mb-2.5">This match</p>
+            <p className="serif text-[1.875rem] text-primary">How long are we playing?</p>
+            <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
+              Set for this fixture alone. The tournament default stays as it is.
             </p>
           </CardHeader>
 
@@ -307,9 +336,12 @@ function TeamSheetEditor({
   return (
     <Card>
       <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="eyebrow mb-1.5">Team sheet</p>
-          <p className="font-semibold tracking-[-0.02em] text-base text-primary">{squad.name}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="lg" />
+          <div className="min-w-0">
+            <p className="eyebrow mb-1">Team sheet</p>
+            <p className="serif truncate text-[1.5rem] text-primary">{squad.name}</p>
+          </div>
         </div>
 
         <select
@@ -346,7 +378,7 @@ function TeamSheetEditor({
                   disabled={disabled}
                   onClick={() => onSlotFocus(spot.slot === activeSlot ? null : spot.slot)}
                   className={cn(
-                    'flex min-w-[5.5rem] flex-col items-start gap-0.5 rounded-[var(--radius-sm)] border px-2.5 py-2',
+                    'flex min-w-[5.5rem] flex-col items-start gap-0.5 rounded-[var(--radius-lg)] border px-2.5 py-2',
                     'text-left transition-all duration-[var(--dur-fast)] disabled:opacity-50',
                     spot.slot === slot
                       ? 'border-[var(--text-primary)] bg-accent-soft'
@@ -392,10 +424,11 @@ function TeamSheetEditor({
                 <div
                   key={player.id}
                   className={cn(
-                    'flex items-center gap-2 rounded-[var(--radius-sm)] px-2.5 py-2',
+                    'flex items-center gap-2 rounded-[var(--radius-lg)] px-2.5 py-2',
                     isStarting ? 'bg-sunken' : 'hover:bg-hover',
                   )}
                 >
+                  <PlayerAvatar seed={player.id} name={player.name} size="sm" color={squad.primaryColor} />
                   <button
                     type="button"
                     disabled={disabled || slot === null}

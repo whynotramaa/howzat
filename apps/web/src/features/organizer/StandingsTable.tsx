@@ -26,7 +26,7 @@ export function StandingsTable({
   const isFootball = sport === 'FOOTBALL';
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
+    <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
       <Table className="min-w-[30rem]">
         <thead>
           <tr className="border-b border-line-strong">
@@ -57,16 +57,25 @@ export function StandingsTable({
                 key={row.team.id}
                 className="border-b border-line transition-colors last:border-0 hover:bg-hover"
               >
-                <td className="mono px-3 py-2 text-center text-xs text-muted">{row.position}</td>
+                <td className="px-3 py-3 text-center">
+                  <span
+                    className={cn(
+                      'score-figure inline-grid size-8 place-items-center rounded-full text-[1.25rem] leading-none',
+                      row.position === 1 ? 'bg-[var(--ink-amber)] text-[#191917]' : 'text-muted',
+                    )}
+                  >
+                    {row.position}
+                  </span>
+                </td>
 
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2.5">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-3">
                     <TeamMark
                       shortName={row.team.shortName}
                       color={row.team.primaryColor}
-                      size="sm"
+                      size="md"
                     />
-                    <span className="font-medium text-primary">{row.team.name}</span>
+                    <span className="font-semibold text-primary">{row.team.name}</span>
                   </div>
                 </td>
 

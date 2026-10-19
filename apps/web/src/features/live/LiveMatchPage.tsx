@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { BallSummary, FallOfWicket, MatchSnapshot } from '@howzat/shared';
 import { apiFetch } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Feedback';
+import { EmptyState } from '@/components/ui/Card';
+import { SketchDefs } from '@/components/ui/Sketch';
 import { TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { PdfButton } from '@/components/ui/PdfButton';
@@ -56,6 +58,7 @@ export function LiveMatchPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <MomentOverlay moment={moment} />
+      <SketchDefs />
 
       <header className="app-topbar border-b border-line">
         <div className="mx-auto flex h-14 w-full max-w-[64rem] items-center gap-4 px-4 sm:px-6">
@@ -112,20 +115,27 @@ export function LiveMatchPage() {
             <Skeleton className="h-40" />
           </div>
         ) : error && !snapshot ? (
-          <p
-            role="alert"
-            className="rounded-[var(--radius-md)] bg-alert-soft px-4 py-3 text-[0.8125rem] text-alert"
-          >
-            {error}
-          </p>
+          <EmptyState scene="scorebook" title="This match could not be loaded" description={error} />
         ) : notStarted ? (
           <NotStarted />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
-            <h1 className="serif text-[2.5rem] leading-none sm:text-[3.5rem]">
-              {snapshot.batting.name} <span className="font-normal text-muted">v</span>{' '}
-              {snapshot.bowling.name}
-            </h1>
+            <header className="reveal grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 py-2 sm:gap-6 sm:py-4">
+              <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
+                <TeamMark shortName={snapshot.batting.short} color={snapshot.batting.color} size="lg" />
+                <h1 className="serif line-clamp-2 text-[clamp(1.375rem,3.6vw,2.75rem)]">{snapshot.batting.name}</h1>
+              </div>
+              <span
+                aria-hidden
+                className="grid size-10 place-items-center rounded-full border border-line-strong bg-surface font-serif text-[1.25rem] leading-none text-secondary italic sm:size-12"
+              >
+                v
+              </span>
+              <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row-reverse sm:text-right">
+                <TeamMark shortName={snapshot.bowling.short} color={snapshot.bowling.color} size="lg" />
+                <p className="serif line-clamp-2 text-[clamp(1.375rem,3.6vw,2.75rem)]">{snapshot.bowling.name}</p>
+              </div>
+            </header>
             <Board snapshot={snapshot} slug={slug} />
             <InningsInsight
               balls={snapshot.batting.balls}
@@ -169,11 +179,11 @@ const EMPTY_BALLS: BallSummary[] = [];
 
 function NotStarted() {
   return (
-    <section className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-16 text-center">
-      <StumpsIcon className="size-6 text-muted" />
-      <p className="text-[0.8125rem] font-semibold">Not started</p>
-      <p className="text-xs text-muted">Updates live from the first ball.</p>
-    </section>
+    <EmptyState
+      scene="stumps"
+      title="Not started yet"
+      description="Keep this page open. The score updates live from the very first ball."
+    />
   );
 }
 

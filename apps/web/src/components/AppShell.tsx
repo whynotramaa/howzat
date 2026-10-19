@@ -4,6 +4,8 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { Wordmark } from '@/components/Wordmark';
+import { SketchDefs } from '@/components/ui/Sketch';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { cn } from '@/lib/cn';
 
 function useOnline() {
@@ -72,6 +74,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh">
+      <SketchDefs />
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -96,12 +99,20 @@ export function AppShell() {
           ))}
         </nav>
         <div className="mt-auto border-t border-line px-7 py-6">
-          <p className="truncate text-sm font-medium text-primary">{user?.name}</p>
-          <p className="truncate text-xs text-muted">@{user?.username}</p>
+          <Link
+            to={`/players/${user?.username ?? ''}`}
+            className="flex min-w-0 items-center gap-3 rounded-[var(--radius-lg)] transition-opacity hover:opacity-80"
+          >
+            <PlayerAvatar seed={user?.username ?? ''} name={user?.name ?? ''} size="md" />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-primary">{user?.name}</span>
+              <span className="block truncate text-xs text-muted">@{user?.username}</span>
+            </span>
+          </Link>
           <button
             type="button"
             onClick={() => void logout()}
-            className="mt-4 text-[0.8125rem] font-medium text-secondary underline decoration-[var(--line-strong)] underline-offset-4 transition-colors hover:text-primary hover:decoration-current"
+            className="mt-5 text-[0.8125rem] font-medium text-secondary underline decoration-[var(--line-strong)] underline-offset-4 transition-colors hover:text-primary hover:decoration-current"
           >
             Sign out
           </button>
@@ -117,7 +128,7 @@ export function AppShell() {
             <span aria-hidden className="hidden text-line-strong sm:inline">
               /
             </span>
-            <span className="font-medium">{section}</span>
+            <span className="serif text-[1.375rem] leading-none">{section}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span
@@ -154,7 +165,7 @@ export function AppShell() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium',
+                'grid h-16 flex-1 place-content-center justify-items-center gap-1 text-[0.6875rem] font-medium',
                 isActive ? 'text-primary' : 'text-muted',
               )
             }
@@ -170,7 +181,7 @@ export function AppShell() {
         <button
           type="button"
           onClick={() => void logout()}
-          className="flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted"
+          className="grid h-16 flex-1 place-content-center justify-items-center gap-1 text-[0.6875rem] font-medium text-muted"
         >
           <NavIcon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
           Sign out

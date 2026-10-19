@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { api } from '@/lib/api';
+import { SectionHeading } from '@/components/ui/Card';
 
 interface QualificationResponse {
   targetTeamId: string;
@@ -43,9 +44,13 @@ export function QualificationPanel({
   const total = query.data?.scenarios.length ?? 0;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-[0.8125rem] font-semibold">Qualification</h2>
-      <div className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-line bg-raised p-4">
+    <section className="flex flex-col gap-5">
+      <SectionHeading
+        eyebrow="What if"
+        title="Who can still qualify"
+        description="Pick a team and the number of spots. Howzat plays out every remaining result and counts the paths through."
+      />
+      <div className="flex flex-col gap-5 rounded-[var(--radius-xl)] border border-line bg-raised p-5">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-48 flex-1">
             <Select
@@ -86,7 +91,7 @@ export function QualificationPanel({
             {query.data.relevantFixtureCount} fixtures left. Too many to enumerate yet.
           </p>
         ) : query.data ? (
-          <dl className="grid grid-cols-3 divide-x divide-line rounded-[var(--radius-md)] border border-line">
+          <dl className="grid grid-cols-3 divide-x divide-line rounded-[var(--radius-lg)] border border-line bg-surface">
             <Metric label="Qualifies in" value={`${qualifying}/${total}`} />
             <Metric label="Fixtures" value={query.data.relevantFixtureCount} />
             <Metric
@@ -102,9 +107,9 @@ export function QualificationPanel({
 
 function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="px-3 py-2.5">
+    <div className="px-4 py-4">
       <dt className="eyebrow">{label}</dt>
-      <dd className="tabular text-lg font-semibold tracking-[-0.03em]">{value}</dd>
+      <dd className="score-figure tabular mt-3 text-[2.25rem] leading-none">{value}</dd>
     </div>
   );
 }

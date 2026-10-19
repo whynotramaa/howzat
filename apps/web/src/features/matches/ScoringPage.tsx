@@ -37,6 +37,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { MomentOverlay, useMoment } from '@/features/live/Moment';
 import { cn } from '@/lib/cn';
+import { TeamMark } from '@/components/ui/Pill';
 import { DlsSheet } from './DlsSheet';
 import {
   useDlsState,
@@ -116,8 +117,12 @@ export function ScoringPage() {
             >
               ←
             </Link>
+            <div className="flex shrink-0 -space-x-2.5">
+              {match.team1 ? <TeamMark shortName={match.team1.shortName} color={match.team1.primaryColor} size="md" /> : null}
+              {match.team2 ? <TeamMark shortName={match.team2.shortName} color={match.team2.primaryColor} size="md" /> : null}
+            </div>
             <h1 className="serif min-w-0 truncate text-[2rem] leading-none sm:text-[2.75rem]">
-              {match.team1?.name ?? 'TBD'} <span className="font-normal text-muted">v</span>{' '}
+              {match.team1?.name ?? 'TBD'} <span className="text-muted italic">v</span>{' '}
               {match.team2?.name ?? 'TBD'}
             </h1>
           </div>
@@ -289,11 +294,12 @@ function Closed({
   return (
     <section
       aria-label={eyebrow}
-      className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-20 text-center"
+      className="paper-grain flex flex-col items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong px-6 py-20 text-center"
     >
-      {icon}
-      <p className="text-base font-semibold tracking-[-0.02em]">{headline}</p>
-      {body ? <p className="max-w-sm text-[0.8125rem] text-muted">{body}</p> : null}
+      <span className="grid size-14 place-items-center rounded-full border border-line bg-raised text-secondary">{icon}</span>
+      <p className="eyebrow mt-2">{eyebrow}</p>
+      <p className="serif text-[clamp(1.75rem,3.4vw,2.5rem)]">{headline}</p>
+      {body ? <p className="max-w-sm text-[0.875rem] leading-relaxed text-secondary">{body}</p> : null}
       {action ? <div className="mt-3 flex flex-col items-center gap-2">{action}</div> : null}
     </section>
   );

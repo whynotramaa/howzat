@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { clockStatusLabel, type FootballSnapshot } from '@howzat/shared';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { EmptyState } from '@/components/ui/Card';
+import { SketchDefs } from '@/components/ui/Sketch';
 import { Skeleton } from '@/components/ui/Feedback';
 import { Pill, TeamMark } from '@/components/ui/Pill';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -39,6 +40,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
         } as React.CSSProperties
       }
     >
+      <SketchDefs />
       <header className="live-stage-bar sticky top-0 z-30 border-b border-line">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-5 sm:px-8">
           <Link to="/" className="shrink-0 transition-opacity hover:opacity-70">
@@ -78,17 +80,15 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             <Skeleton className="h-40" />
           </div>
         ) : error && !snapshot ? (
-          <p
-            role="alert"
-            className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-5 py-4 text-primary"
-          >
-            {error}
-          </p>
+          <EmptyState scene="goal" title="This match could not be loaded" description={error} />
         ) : notStarted ? (
-          <EmptyState title="Not kicked off yet" description="Updates on kick-off." />
+          <EmptyState
+            scene="goal"
+            title="Not kicked off yet"
+            description="Keep this page open. Goals, cards and subs land here the moment they happen."
+          />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
-            <h1 className="serif text-[2.5rem] leading-none sm:text-[3.5rem]">{snapshot.tournamentName}</h1>
             <Scoreboard snapshot={snapshot} slug={slug} />
 
             <Tabs
@@ -106,13 +106,13 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             ) : view === 'lineups' ? (
               <div className="flex flex-col gap-5">
                 <Pitch home={snapshot.lineups.home} away={snapshot.lineups.away} />
-                <div className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-line bg-raised px-5 py-4 sm:px-7">
+                <div className="flex flex-col gap-2.5 rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-4 sm:px-7">
                   <Bench lineup={snapshot.lineups.home} />
                   <Bench lineup={snapshot.lineups.away} />
                 </div>
               </div>
             ) : (
-              <div className="rounded-[var(--radius-lg)] border border-line bg-raised px-5 py-3 sm:px-7">
+              <div className="rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-3 sm:px-7">
                 <IncidentTimeline
                   incidents={snapshot.incidents}
                   homeTeamId={snapshot.home.teamId}
@@ -143,8 +143,8 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
   const finished = snapshot.status === 'COMPLETED' || snapshot.status === 'ABANDONED';
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-line bg-raised px-5 py-7 sm:px-9 sm:py-9">
-      <div className="flex items-center justify-between gap-3">
+    <section className="reveal paper-grain rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-8 sm:px-10 sm:py-10">
+      <div className="flex flex-col items-center gap-3 text-center">
         <p className="eyebrow">{snapshot.tournamentName}</p>
         {snapshot.status === 'LIVE' ? (
           <Pill tone="live">
@@ -158,16 +158,16 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
         ) : null}
       </div>
 
-      <div className="mt-7 grid items-center gap-6 sm:grid-cols-[1fr_auto_1fr]">
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-8">
         <TeamBlock side={snapshot.home} align="left" />
 
         <div className="flex flex-col items-center gap-4 sm:gap-5">
           <p
             key={`${snapshot.home.goals}-${snapshot.away.goals}`}
-            className="score-bump score-figure text-[3.5rem] text-primary sm:text-[4.5rem]"
+            className="score-bump score-figure text-[2.75rem] text-primary sm:text-[4.5rem]"
           >
             {snapshot.home.goals}
-            <span className="mx-2 text-line-strong sm:mx-3">–</span>
+            <span className="mx-1.5 text-line-strong sm:mx-3">–</span>
             {snapshot.away.goals}
           </p>
 
@@ -183,9 +183,9 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
       </div>
 
       {snapshot.resultText || finished ? (
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-4 border-t border-line pt-5">
+        <div className="mt-8 flex flex-col items-center gap-5 border-t border-dashed border-line pt-6 text-center">
           {snapshot.resultText ? (
-            <p className="text-sm text-success">{snapshot.resultText}</p>
+            <p className="serif max-w-[34ch] text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">{snapshot.resultText}</p>
           ) : null}
 
           {finished ? (
@@ -204,20 +204,20 @@ function TeamBlock({ side, align }: { side: FootballSnapshot['home']; align: 'le
   return (
     <div
       className={cn(
-        'flex items-center gap-4',
-        align === 'right' ? 'sm:flex-row-reverse sm:text-right' : '',
+        'flex min-w-0 flex-col items-center gap-3 text-center md:flex-row md:gap-5',
+        align === 'right' ? 'md:flex-row-reverse md:text-right' : 'md:text-left',
       )}
     >
-      <TeamMark shortName={side.short} color={side.color} size="lg" />
+      <TeamMark shortName={side.short} color={side.color} size="xl" className="max-sm:!size-14" />
 
       <div className="min-w-0">
-        <p className="font-semibold tracking-[-0.02em] truncate text-base text-primary sm:text-lg">
+        <p className="serif line-clamp-2 text-[clamp(1.125rem,2.6vw,2.25rem)] text-primary">
           {side.name}
         </p>
 
         {side.yellowCards > 0 || side.redCards > 0 ? (
           <div
-            className={cn('mt-2 flex items-center gap-2', align === 'right' && 'sm:justify-end')}
+            className={cn('mt-2 flex items-center justify-center gap-2', align === 'right' ? 'md:justify-end' : 'md:justify-start')}
           >
             {side.yellowCards > 0 ? <CardTally tone="yellow" count={side.yellowCards} /> : null}
             {side.redCards > 0 ? <CardTally tone="red" count={side.redCards} /> : null}
@@ -248,8 +248,9 @@ function LiveView({ snapshot }: { snapshot: FootballSnapshot }) {
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
       <Pitch home={snapshot.lineups.home} away={snapshot.lineups.away} />
 
-      <div className="rounded-[var(--radius-lg)] border border-line bg-raised px-5 py-4 sm:px-7">
-        <p className="eyebrow mb-2">Latest</p>
+      <div className="rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-5 sm:px-7">
+        <p className="eyebrow">Latest</p>
+        <h2 className="serif mt-2 mb-3 text-[1.625rem]">What just happened</h2>
         <IncidentTimeline
           incidents={snapshot.incidents.slice(0, 8)}
           homeTeamId={snapshot.home.teamId}

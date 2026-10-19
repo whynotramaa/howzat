@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   DEFAULT_OVERS_PER_INNINGS,
@@ -14,9 +14,10 @@ import {
   type TournamentFormat,
 } from '@howzat/shared';
 import { PeriodDesigner } from '@/features/football/PeriodDesigner';
-import { SportMark } from '@/components/ui/SportMark';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Card';
+import { EmptyState, PageHeader } from '@/components/ui/Card';
+import { Pill } from '@/components/ui/Pill';
+import { Scene, SportGlyph } from '@/components/ui/Sketch';
 import { Checkbox, Input, Select } from '@/components/ui/Input';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Sheet } from '@/components/ui/Sheet';
@@ -42,51 +43,75 @@ export function TournamentsPage() {
   const creating = params.get('new') === '1';
   const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
 
+  const items = data?.items ?? [];
+  const live = items.filter((tournament) => tournament.status !== 'COMPLETED').length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="serif text-[2.75rem] leading-[1.05]">Tournaments</h1>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => setQuickMatch(true)}>
-            Quick match
-          </Button>
-          <Button onClick={() => setCreating(true)}>
-            New tournament
-          </Button>
-        </div>
-      </header>
+    <div className="flex flex-col gap-12">
+      <PageHeader
+        eyebrow="Organiser"
+        title={
+          <>
+            Your <em>tournaments</em>
+          </>
+        }
+        description={
+          items.length > 0
+            ? `${items.length} on the books, ${live} still in play. Open one to fill squads, draw fixtures and hand out the scorer's pen.`
+            : 'Set up a league, invite the squads, and the fixtures write themselves. Need just one game? Start a quick match.'
+        }
+        actions={
+          <>
+            <Button onClick={() => setCreating(true)}>New tournament</Button>
+            <Button variant="secondary" onClick={() => setQuickMatch(true)}>
+              Quick match
+            </Button>
+          </>
+        }
+        art={<Scene name="trophy" />}
+      />
 
       {error ? <ErrorText error={error} /> : null}
 
       {isPending ? (
-        <Skeleton className="h-64" />
-      ) : data && data.items.length > 0 ? (
-        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
-          <div className="eyebrow hidden grid-cols-[minmax(0,1fr)_8rem_7rem_9rem] gap-4 border-b border-line bg-sunken px-4 py-2 sm:grid">
-            <span>Name</span>
-            <span>Format</span>
-            <span>Teams</span>
-            <span className="text-right">Status</span>
-          </div>
-          <ul>
-            {data.items.map((tournament) => (
-              <TournamentRow key={tournament.id} tournament={tournament} />
-            ))}
-          </ul>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-56" />
+          ))}
         </div>
+      ) : items.length > 0 ? (
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((tournament, index) => (
+            <TournamentCard key={tournament.id} tournament={tournament} index={index} />
+          ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="grid h-full min-h-56 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-center text-secondary transition-colors hover:border-primary hover:text-primary"
+            >
+              <span className="grid size-11 place-items-center rounded-full border border-current text-xl leading-none">
+                +
+              </span>
+              <span className="serif text-[1.5rem]">Another one</span>
+              <span className="text-xs text-muted">League, knockout or both</span>
+            </button>
+          </li>
+        </ul>
       ) : (
         <EmptyState
+          scene="trophy"
           title="No tournaments yet"
-          description="Create one, or score a one-off match."
+          description="Create a league for the season, or score a one-off match with friends."
           action={
-            <div className="flex flex-wrap justify-center gap-2">
+            <>
               <Button size="sm" onClick={() => setCreating(true)}>
                 New tournament
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setQuickMatch(true)}>
                 Quick match
               </Button>
-            </div>
+            </>
           }
         />
       )}
@@ -97,41 +122,53 @@ export function TournamentsPage() {
   );
 }
 
-function TournamentRow({ tournament }: { tournament: TournamentDto }) {
+function TournamentCard({ tournament, index }: { tournament: TournamentDto; index: number }) {
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
   const ready = registered === tournament.teamsCount && eligible === registered;
-  const ratio = registered / Math.max(1, tournament.teamsCount);
+  const state = ready ? 'Ready' : registered < tournament.teamsCount ? 'Registering' : 'Squads short';
+  const slots = Math.min(tournament.teamsCount, 16);
 
   return (
-    <li className="border-b border-line last:border-0">
+    <li className="reveal" style={{ '--delay': `${index * 60}ms` } as CSSProperties}>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="ledger-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_9rem]"
+        className="card-lift flex h-full min-h-56 flex-col rounded-[var(--radius-xl)] border border-line bg-raised p-5"
       >
-        <span className="flex min-w-0 items-center gap-2.5">
-          <SportMark sport={tournament.sport} className="text-muted" />
-          <span className="truncate text-[0.8125rem] font-medium">{tournament.name}</span>
-        </span>
-        <span className="hidden text-xs text-secondary sm:block">
+        <div className="flex items-start justify-between gap-3">
+          <span className="grid size-14 place-items-center rounded-[var(--radius-lg)] bg-sunken">
+            <SportGlyph sport={tournament.sport} className="size-10" />
+          </span>
+          <Pill tone={ready ? 'success' : registered < tournament.teamsCount ? 'neutral' : 'warning'}>
+            {state}
+          </Pill>
+        </div>
+        <h2 className="serif mt-5 line-clamp-2 text-[1.75rem] text-primary">{tournament.name}</h2>
+        <p className="mt-2 text-xs text-muted">
           {FORMAT_LABELS[tournament.format]}
-          <span className="block text-muted">
-            {tournament.sport === 'FOOTBALL'
-              ? `${tournament.periods} × ${tournament.periodMinutes} min`
-              : `${tournament.oversPerInnings} overs`}
+          {tournament.doubleRoundRobin ? ', home and away' : ''} ·{' '}
+          {tournament.sport === 'FOOTBALL'
+            ? `${tournament.playersPerTeam} a side, ${tournament.periods} × ${tournament.periodMinutes} min`
+            : `${tournament.oversPerInnings} overs a side`}
+        </p>
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-dashed border-line pt-4">
+          <span className="flex flex-wrap gap-1">
+            {Array.from({ length: slots }, (_, slot) => (
+              <span
+                key={slot}
+                className={cn(
+                  'size-2.5 rounded-full border',
+                  slot < Math.round((registered / tournament.teamsCount) * slots)
+                    ? 'border-[var(--ink-blue)] bg-[var(--ink-blue)]'
+                    : 'border-line-strong',
+                )}
+              />
+            ))}
           </span>
-        </span>
-        <span className="hidden items-center gap-2 sm:flex">
-          <span className="h-[3px] w-10 overflow-hidden bg-sunken">
-            <span className="block h-full bg-primary" style={{ width: `${ratio * 100}%` }} />
+          <span className="tabular shrink-0 text-xs text-secondary">
+            {registered} of {tournament.teamsCount} teams
           </span>
-          <span className="tabular text-xs text-secondary">
-            {registered}/{tournament.teamsCount}
-          </span>
-        </span>
-        <span className={cn('text-right text-xs', ready ? 'text-success' : 'text-muted')}>
-          {ready ? 'Ready' : registered < tournament.teamsCount ? 'Registering' : 'Squads short'}
-        </span>
+        </div>
       </Link>
     </li>
   );
@@ -191,7 +228,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <span className="text-xs font-medium text-secondary">Sport</span>
 
-          <div className="grid grid-cols-2 gap-1 rounded-[var(--radius-md)] bg-sunken p-1">
+          <div className="grid grid-cols-2 gap-2">
             {SPORTS.map((option) => (
               <button
                 key={option.value}
@@ -199,15 +236,15 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
                 onClick={() => setSport(option.value)}
                 aria-pressed={sport === option.value}
                 className={cn(
-                  'flex h-8 items-center justify-center gap-2 rounded-[var(--radius-sm)] text-[0.8125rem] font-medium',
-                  'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+                  'flex h-20 items-center justify-center gap-3 rounded-[var(--radius-xl)] border text-[0.9375rem] font-semibold',
+                  'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                   sport === option.value
-                    ? 'bg-raised text-primary shadow-[var(--shadow-sm)] ring-1 ring-line'
-                    : 'text-muted hover:text-primary',
+                    ? 'border-primary bg-raised text-primary'
+                    : 'border-line text-muted hover:border-line-strong hover:text-primary',
                 )}
               >
-                <SportMark sport={option.value} />
-                {option.label}
+                <SportGlyph sport={option.value} className="size-10" />
+                <span className="serif text-[1.5rem] font-normal">{option.label}</span>
               </button>
             ))}
           </div>

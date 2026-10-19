@@ -3,9 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PLAYERS_PER_TEAM, type MatchWithInningsDto, type TossDecision } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { ChoiceChip, Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/Input';
+import { EmptyState } from '@/components/ui/Card';
+import { MatchHero, type MatchSide } from '@/components/ui/MatchCard';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
+import { stageLabel } from '@/lib/pdf/sources';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
-import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
+import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { PdfButton } from '@/components/ui/PdfButton';
@@ -57,13 +61,13 @@ export function MatchPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <MatchHeader match={data} />
 
       {data.status === 'LIVE' ? (
         <Banner
           title="Live"
-          body={`Innings ${data.currentInnings ?? 1}`}
+          body={`Innings ${data.currentInnings ?? 1} is under way`}
           action={
             <Link to={`/matches/${matchId}/score`}>
               <Button size="sm">Open scorer</Button>
@@ -75,7 +79,7 @@ export function MatchPage() {
       {data.status === 'INNINGS_BREAK' ? (
         <Banner
           title="Innings break"
-          body="Chase ready"
+          body="The target is set. Start the chase when the teams are back out."
           action={
             <Button size="sm" isLoading={resume.isPending} onClick={() => void handleResume()}>
               Start innings {pendingInnings?.number ?? 2}
@@ -87,7 +91,7 @@ export function MatchPage() {
       {resume.error ? <ErrorText error={resume.error} /> : null}
 
       {setupOpen ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <TossCard match={data} />
 
           {squads.isPending ? (
@@ -101,21 +105,24 @@ export function MatchPage() {
               disabled={!tossDone}
             />
           ) : (
-            <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-6 text-center text-[0.8125rem] text-muted">
-              Waiting on earlier rounds
-            </p>
+            <EmptyState
+              compact
+              scene="fixtures"
+              title="Waiting on earlier rounds"
+              description="Both sides fill in once the matches feeding this one have a result."
+            />
           )}
 
           <StepCard
             number={3}
-            title="Start"
+            title="Walk out"
             state={!tossDone || !xiReady ? 'blocked' : 'ready'}
             description={
               !tossDone
-                ? 'Toss first'
+                ? 'Record the toss first'
                 : !xiReady
-                  ? `${xiCount} of ${PLAYERS_PER_TEAM * 2} selected`
-                  : 'Ready'
+                  ? `${xiCount} of ${PLAYERS_PER_TEAM * 2} players picked`
+                  : 'Both XIs are in. Start when the umpires are ready.'
             }
           >
             <Button
@@ -144,81 +151,79 @@ function countSelected(side: SquadSide | null | undefined): number {
 function MatchHeader({ match }: { match: MatchWithInningsDto }) {
   const toss =
     match.tossWinnerId && match.tossDecision
-      ? `${nameOfTeam(match, match.tossWinnerId)} chose to ${
+      ? `${nameOfTeam(match, match.tossWinnerId)} won the toss and chose to ${
           match.tossDecision === 'BAT' ? 'bat' : 'bowl'
-        }`
+        }.`
+      : match.status === 'SCHEDULED'
+        ? 'Toss, pick the XIs, then start. The scorer takes it from there.'
+        : null;
+  const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
+  const side = (team: MatchWithInningsDto['team1']): MatchSide | null =>
+    team
+      ? {
+          name: team.name,
+          shortName: team.shortName,
+          color: team.primaryColor,
+          winner: Boolean(match.winnerTeamId && match.winnerTeamId === team.id),
+        }
       : null;
 
   return (
     <div className="flex flex-col gap-4">
       <BackLink to={`/tournaments/${match.tournamentId}/fixtures`}>Fixtures</BackLink>
-
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="flex flex-wrap items-center gap-x-2.5 gap-y-1 serif text-[2.25rem] leading-[1.1]">
-            {match.team1 ? (
-              <TeamMark
-                shortName={match.team1.shortName}
-                color={match.team1.primaryColor}
-                size="sm"
-              />
+      <MatchHero
+        eyebrow={
+          <>
+            <span>{stageLabel(match.stage, match.round)}</span>
+            <span aria-hidden>·</span>
+            <span>{match.oversPerInnings} overs a side</span>
+            {match.venue ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{match.venue}</span>
+              </>
             ) : null}
-            {match.team1?.name ?? 'TBD'}
-            <span className="font-normal text-muted">v</span>
-            {match.team2 ? (
-              <TeamMark
-                shortName={match.team2.shortName}
-                color={match.team2.primaryColor}
-                size="sm"
-              />
-            ) : null}
-            {match.team2?.name ?? 'TBD'}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <StatusPill status={match.status} />
-            <Pill>
-              {match.stage === 'LEAGUE' ? `Round ${match.round}` : match.stage.replace(/_/g, ' ')}
-            </Pill>
-            <span className="tabular text-xs text-muted">{match.oversPerInnings} ov</span>
-            {toss ? <span className="text-xs text-muted">· {toss}</span> : null}
-          </div>
-          {match.status === 'COMPLETED' || match.status === 'ABANDONED' ? (
-            <p className="mt-2 text-[0.8125rem] font-medium">{match.resultText ?? 'No result'}</p>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {match.status === 'COMPLETED' || match.status === 'ABANDONED' ? (
-            <>
-              <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
+          </>
+        }
+        status={match.status}
+        home={side(match.team1)}
+        away={side(match.team2)}
+        result={finished ? (match.resultText ?? 'No result') : undefined}
+        detail={toss}
+        actions={
+          <>
+            {finished ? (
+              <>
+                <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="secondary">
+                    Scorecard
+                  </Button>
+                </a>
+                <PdfButton
+                  label="PDF"
+                  build={() =>
+                    import('@/lib/pdf').then((pdf) =>
+                      match.sport === 'FOOTBALL'
+                        ? pdf.buildFootballMatchPdf(match.publicSlug)
+                        : pdf.buildCricketMatchPdf(match.publicSlug),
+                    )
+                  }
+                />
+              </>
+            ) : (
+              <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="secondary">
-                  Scorecard
+                  Public page
                 </Button>
               </a>
-              <PdfButton
-                label="PDF"
-                build={() =>
-                  import('@/lib/pdf').then((pdf) =>
-                    match.sport === 'FOOTBALL'
-                      ? pdf.buildFootballMatchPdf(match.publicSlug)
-                      : pdf.buildCricketMatchPdf(match.publicSlug),
-                  )
-                }
-              />
-            </>
-          ) : (
-            <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
-              <Button size="sm" variant="secondary">
-                Public page
-              </Button>
-            </a>
-          )}
-          <ShareLink
-            slug={match.publicSlug}
-            matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
-          />
-        </div>
-      </header>
+            )}
+            <ShareLink
+              slug={match.publicSlug}
+              matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
+            />
+          </>
+        }
+      />
     </div>
   );
 }
@@ -231,11 +236,11 @@ function nameOfTeam(match: MatchWithInningsDto, teamId: string): string {
 
 function Banner({ title, body, action }: { title: string; body: string; action: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent-line)] bg-accent-soft px-4 py-2.5">
-      <p className="flex items-center gap-2 text-[0.8125rem]">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[color-mix(in_oklab,var(--live)_40%,var(--line))] bg-raised px-5 py-4">
+      <p className="flex items-center gap-3">
         <span className="live-dot" />
-        <span className="font-semibold">{title}</span>
-        <span className="text-secondary">{body}</span>
+        <span className="serif text-[1.5rem]">{title}</span>
+        <span className="text-sm text-secondary">{body}</span>
       </p>
       {action}
     </div>
@@ -258,42 +263,45 @@ function StepCard({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
+        'rounded-[var(--radius-xl)] border bg-raised',
+        state === 'ready' ? 'border-line-strong' : 'border-line',
         state === 'blocked' && 'opacity-60',
       )}
     >
-      <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
+      <header className="flex items-center gap-4 px-5 pt-5">
         <span
           aria-hidden
           className={cn(
-            'tabular grid size-5 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold',
+            'grid size-10 shrink-0 place-items-center rounded-full border font-serif text-[1.25rem] leading-none',
             state === 'done'
-              ? 'bg-success text-white'
+              ? 'border-success bg-success text-[var(--surface-raised)]'
               : state === 'ready'
-                ? 'bg-accent-fill text-on-accent'
-                : 'bg-sunken text-muted',
+                ? 'border-primary text-primary'
+                : 'border-line-strong text-muted',
           )}
         >
           {state === 'done' ? (
             <svg
-              viewBox="0 0 12 12"
-              className="size-3"
+              viewBox="0 0 16 16"
+              className="size-4"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="m2.5 6.2 2.3 2.3 4.7-5" />
+              <path d="m3.5 8.5 3 3 6-7" />
             </svg>
           ) : (
             number
           )}
         </span>
-        <h2 className="text-[0.8125rem] font-semibold">{title}</h2>
-        <p className="truncate text-xs text-muted">{description}</p>
+        <div className="min-w-0">
+          <h2 className="serif text-[1.625rem]">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted">{description}</p>
+        </div>
       </header>
-      <div className="flex flex-col gap-4 p-4">{children}</div>
+      <div className="flex flex-col gap-5 p-5">{children}</div>
     </section>
   );
 }
@@ -317,36 +325,50 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
       number={1}
       title="Toss"
       state={done ? 'done' : 'ready'}
-      description={done ? 'Recorded' : 'Winner and choice'}
+      description={done ? 'Recorded. You can still change it before the start.' : 'Who called it right, and what did they choose?'}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-2.5">
           <p className="eyebrow">Won by</p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-2 gap-2.5">
             {teams.map((team) => (
-              <ChoiceChip
+              <button
                 key={team.id}
-                selected={winnerId === team.id}
+                type="button"
+                aria-pressed={winnerId === team.id}
                 onClick={() => setWinnerId(team.id)}
+                className={cn(
+                  'flex min-w-0 items-center gap-3 rounded-[var(--radius-xl)] border p-3 text-left transition-colors',
+                  winnerId === team.id
+                    ? 'border-primary bg-surface'
+                    : 'border-line hover:border-line-strong',
+                )}
               >
-                <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
-                <span className="ml-2">{team.name}</span>
-              </ChoiceChip>
+                <TeamMark shortName={team.shortName} color={team.primaryColor} size="lg" />
+                <span className="min-w-0 truncate text-sm font-semibold">{team.name}</span>
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2.5">
           <p className="eyebrow">Chose to</p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-2 gap-2.5">
             {(['BAT', 'BOWL'] as const).map((option) => (
-              <ChoiceChip
+              <button
                 key={option}
-                selected={decision === option}
+                type="button"
+                aria-pressed={decision === option}
                 onClick={() => setDecision(option)}
+                className={cn(
+                  'grid h-[4.5rem] place-items-center rounded-[var(--radius-xl)] border font-serif text-[1.5rem] leading-none transition-colors',
+                  decision === option
+                    ? 'border-primary bg-surface text-primary'
+                    : 'border-line text-muted hover:border-line-strong hover:text-primary',
+                )}
               >
                 {option === 'BAT' ? 'Bat' : 'Bowl'}
-              </ChoiceChip>
+              </button>
             ))}
           </div>
         </div>
@@ -459,7 +481,7 @@ function PlayingXiCard({
         number={2}
         title="Playing XI"
         state={disabled ? 'blocked' : complete ? 'done' : 'ready'}
-        description={disabled ? 'Toss first' : 'Tap in batting order'}
+        description={disabled ? 'Record the toss first' : 'Tap players in batting order, then mark a captain and keeper'}
       >
         <div className="grid gap-4 lg:grid-cols-2">
           {sides.map((side) => {
@@ -469,16 +491,16 @@ function PlayingXiCard({
             return (
               <div key={side.id} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <TeamMark shortName={side.shortName} color={side.primaryColor} size="sm" />
-                    <p className="text-[0.8125rem] font-semibold">{side.name}</p>
+                  <div className="flex items-center gap-3">
+                    <TeamMark shortName={side.shortName} color={side.primaryColor} size="md" />
+                    <p className="text-sm font-semibold">{side.name}</p>
                   </div>
                   <span className={cn('tabular text-xs', full ? 'text-success' : 'text-muted')}>
                     {selection.order.length}/{PLAYERS_PER_TEAM}
                   </span>
                 </div>
 
-                <ul className="overflow-hidden rounded-[var(--radius-md)] border border-line">
+                <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line">
                   {side.players.map((player) => {
                     const position = selection.order.indexOf(player.id);
                     const picked = position >= 0;
@@ -487,7 +509,7 @@ function PlayingXiCard({
                       <li
                         key={player.id}
                         className={cn(
-                          'flex items-center gap-1.5 border-b border-line px-2.5 py-1.5 last:border-0',
+                          'flex items-center gap-1.5 border-b border-line px-3 py-2 last:border-0',
                           'transition-colors duration-[var(--dur-fast)]',
                           picked ? 'bg-accent-soft' : 'hover:bg-hover',
                         )}
@@ -502,7 +524,7 @@ function PlayingXiCard({
                           <span
                             aria-hidden
                             className={cn(
-                              'tabular grid size-5 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold',
+                              'tabular grid size-6 shrink-0 place-items-center rounded-full text-[0.6875rem] leading-none font-semibold',
                               picked
                                 ? 'bg-accent-fill text-on-accent'
                                 : 'border border-line-strong',
@@ -510,6 +532,8 @@ function PlayingXiCard({
                           >
                             {picked ? position + 1 : ''}
                           </span>
+
+                          <PlayerAvatar seed={player.id} name={player.name} size="xs" color={side.primaryColor} />
 
                           <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
                             {player.name}
@@ -595,7 +619,7 @@ function RoleToggle({
       aria-pressed={active}
       aria-label={label === 'C' ? 'Captain' : 'Wicketkeeper'}
       className={cn(
-        'h-6 min-w-7 shrink-0 rounded-[var(--radius-sm)] px-1.5 text-[0.6875rem] font-medium transition-colors',
+        'grid h-7 min-w-8 shrink-0 place-items-center rounded-full px-2 text-[0.6875rem] leading-none font-semibold transition-colors',
         active
           ? 'bg-inverse text-on-inverse'
           : 'border border-line text-muted hover:text-secondary',
@@ -634,19 +658,23 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
 
   return (
     <>
-      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
-        <header className="border-b border-line px-4 py-2.5">
-          <h2 className="text-[0.8125rem] font-semibold">Scorers</h2>
+      <section className="rounded-[var(--radius-xl)] border border-line bg-raised">
+        <header className="px-5 pt-5">
+          <h2 className="serif text-[1.625rem]">Scorers</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Anyone you add here can score this match from their phone.
+          </p>
         </header>
 
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-5 p-5">
           {match.scorers.length > 0 ? (
-            <ul className="overflow-hidden rounded-[var(--radius-md)] border border-line">
+            <ul className="flex flex-col gap-2">
               {match.scorers.map((scorer) => (
                 <li
                   key={scorer.id}
-                  className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-0"
+                  className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-line px-3 py-2.5"
                 >
+                  <PlayerAvatar seed={scorer.username} name={scorer.name} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[0.8125rem] font-medium">{scorer.name}</p>
                     <p className="truncate text-xs text-muted">@{scorer.username}</p>
@@ -656,7 +684,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
                     type="button"
                     onClick={() => remove.mutate(scorer.id)}
                     aria-label={`Remove ${scorer.name}`}
-                    className="grid size-7 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-sunken hover:text-alert"
+                    className="grid size-8 place-items-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-alert"
                   >
                     <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
                       <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
@@ -666,7 +694,9 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted">None assigned. You can score it yourself.</p>
+            <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-4 text-center text-xs text-muted">
+              Nobody assigned yet. As organiser you can score it yourself.
+            </p>
           )}
 
           <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">

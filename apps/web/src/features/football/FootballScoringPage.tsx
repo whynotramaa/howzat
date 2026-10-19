@@ -106,12 +106,14 @@ export function FootballScoringPage() {
   return (
     <div className={cn('flex flex-col gap-4', assisted && 'assist-mode')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="serif text-[2.5rem] leading-none sm:text-[3rem]">Scoring</h1>
+        <h1 className="serif min-w-0 truncate text-[2rem] leading-none sm:text-[2.75rem]">
+          {data.home.team.name} <span className="text-muted italic">v</span> {data.away.team.name}
+        </h1>
         <button
           type="button"
           aria-pressed={assisted}
           onClick={() => setAssisted(!assisted)}
-          className="h-8 rounded-[var(--radius-md)] border border-line px-2.5 text-xs text-secondary hover:bg-hover"
+          className="h-10 rounded-full border border-line-strong px-4 text-sm text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
         >
           Assist{' '}
           <span className={assisted ? 'text-accent' : 'text-muted'}>{assisted ? 'on' : 'off'}</span>
@@ -378,14 +380,14 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-1 items-center gap-3',
-        align === 'right' && 'flex-row-reverse',
+        'flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center sm:flex-row',
+        align === 'right' ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left',
       )}
     >
-      <TeamMark shortName={team.shortName} color={team.primaryColor} />
+      <TeamMark shortName={team.shortName} color={team.primaryColor} size="lg" />
 
-      <div className={cn('min-w-0', align === 'right' && 'text-right')}>
-        <p className="truncate text-sm font-medium text-primary sm:text-base">{team.name}</p>
+      <div className="min-w-0 max-w-full">
+        <p className="serif truncate text-[1.125rem] text-primary sm:text-[1.5rem]">{team.name}</p>
         <p className="mono mt-0.5 text-[0.6875rem] text-muted">{team.shortName}</p>
       </div>
     </div>

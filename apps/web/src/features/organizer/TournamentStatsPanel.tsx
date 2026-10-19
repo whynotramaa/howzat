@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { AnyTournamentStatsDto, TournamentStatsDto } from '@howzat/shared';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
+import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
+import { SectionHeading } from '@/components/ui/Card';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { FootballStatsPanel } from '@/features/football/FootballStatsPanel';
 import { api } from '@/lib/api';
@@ -27,15 +29,19 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
   const { orangeCap, purpleCap, players } = stats;
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-[0.8125rem] font-semibold">Leaders</h2>
+    <section className="flex flex-col gap-5">
+      <SectionHeading
+        eyebrow="Leaders"
+        title="Caps and ledgers"
+        description="The orange cap goes to the top run scorer, the purple cap to the leading wicket taker."
+      />
 
-      <div className="grid overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised sm:grid-cols-2">
-        <CapCard label="Most runs" player={orangeCap} value={orangeCap?.runs} accent />
-        <CapCard label="Most wickets" player={purpleCap} value={purpleCap?.wickets} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CapCard label="Orange cap" unit="runs" player={orangeCap} value={orangeCap?.runs} ink="var(--ink-amber)" />
+        <CapCard label="Purple cap" unit="wickets" player={purpleCap} value={purpleCap?.wickets} ink="var(--ink-violet)" />
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
+      <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
         <Table className="min-w-[44rem]">
           <thead>
             <tr className="border-b border-line-strong">
@@ -57,13 +63,17 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
                 key={player.playerId}
                 className="border-b border-line last:border-0 hover:bg-hover"
               >
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2.5">
-                    <TeamMark
-                      shortName={player.team.shortName}
-                      color={player.team.primaryColor}
-                      size="sm"
-                    />
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className="relative shrink-0">
+                      <PlayerAvatar seed={player.playerId} name={player.playerName} size="sm" color={player.team.primaryColor} />
+                      <TeamMark
+                        shortName={player.team.shortName}
+                        color={player.team.primaryColor}
+                        size="sm"
+                        className="absolute -right-2 -bottom-1.5 !size-5 !text-[0.4rem]"
+                      />
+                    </span>
                     <div>
                       <p className="font-medium text-primary">{player.playerName}</p>
                       <p className="text-[0.6875rem] text-muted">{player.team.name}</p>
@@ -90,29 +100,38 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
 
 function CapCard({
   label,
+  unit,
   player,
   value,
-  accent = false,
+  ink,
 }: {
   label: string;
+  unit: string;
   player: TournamentStatsDto['orangeCap'];
   value: number | undefined;
-  accent?: boolean;
+  ink: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-line px-4 py-3 not-last:border-b sm:not-last:border-r sm:not-last:border-b-0">
-      <div className="min-w-0">
-        <p className="eyebrow">{label}</p>
-        <p className="mt-0.5 truncate text-[0.8125rem] font-medium">
-          {player ? player.playerName : 'None yet'}
+    <div className="relative flex items-center gap-4 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: ink }} />
+      {player ? (
+        <PlayerAvatar seed={player.playerId} name={player.playerName} size="lg" color={player.team.primaryColor} />
+      ) : (
+        <span className="grid size-16 shrink-0 place-items-center rounded-full border border-dashed border-line-strong font-serif text-xl text-muted">
+          ?
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="eyebrow" style={{ color: ink }}>
+          {label}
         </p>
-        {player ? <p className="truncate text-xs text-muted">{player.team.name}</p> : null}
+        <p className="mt-1.5 truncate text-[0.9375rem] font-semibold">{player ? player.playerName : 'Up for grabs'}</p>
+        <p className="truncate text-xs text-muted">{player ? player.team.name : 'Nobody has scored yet'}</p>
       </div>
       {player ? (
-        <p
-          className={`tabular text-2xl font-semibold tracking-[-0.04em] ${accent ? 'text-accent' : ''}`}
-        >
-          {value}
+        <p className="shrink-0 text-right">
+          <span className="score-figure tabular block text-[2.75rem] leading-none">{value}</span>
+          <span className="text-xs text-muted">{unit}</span>
         </p>
       ) : null}
     </div>

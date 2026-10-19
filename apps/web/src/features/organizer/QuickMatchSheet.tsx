@@ -16,6 +16,8 @@ import { Input, Select } from '@/components/ui/Input';
 import { ErrorText } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
+import { SportGlyph } from '@/components/ui/Sketch';
+import { cn } from '@/lib/cn';
 import { useCreateTournament } from './queries';
 
 export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -71,14 +73,26 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
       }
     >
       <form id="quick-match" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-        <Select
-          label="Sport"
-          value={sport}
-          onChange={(event) => setSport(event.target.value as Sport)}
-        >
-          <option value="CRICKET">Cricket</option>
-          <option value="FOOTBALL">Football</option>
-        </Select>
+        <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+          {(['CRICKET', 'FOOTBALL'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setSport(option)}
+              aria-pressed={sport === option}
+              className={cn(
+                'flex h-20 items-center justify-center gap-3 rounded-[var(--radius-xl)] border',
+                'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
+                sport === option
+                  ? 'border-primary bg-raised text-primary'
+                  : 'border-line text-muted hover:border-line-strong hover:text-primary',
+              )}
+            >
+              <SportGlyph sport={option} className="size-10" />
+              <span className="serif text-[1.5rem]">{option === 'CRICKET' ? 'Cricket' : 'Football'}</span>
+            </button>
+          ))}
+        </div>
 
         {isFootball ? (
           <Select
@@ -156,10 +170,13 @@ function SideFields({
   onChange: (side: Side) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-[var(--radius-md)] border border-line p-3">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-medium text-secondary">{label}</span>
-        <TeamMark shortName={side.shortName || '?'} color={side.primaryColor} size="sm" />
+    <div className="flex flex-col gap-4 rounded-[var(--radius-xl)] border border-line bg-raised p-4">
+      <div className="flex items-center gap-3.5">
+        <TeamMark shortName={side.shortName || '?'} color={side.primaryColor} size="lg" />
+        <div className="min-w-0">
+          <p className="eyebrow">{label}</p>
+          <p className="serif mt-1 truncate text-[1.375rem]">{side.name.trim() || placeholder}</p>
+        </div>
       </div>
 
       <Input
@@ -190,7 +207,7 @@ function SideFields({
           aria-label={`${label} colour`}
           value={side.primaryColor}
           onChange={(event) => onChange({ ...side, primaryColor: event.target.value })}
-          className="h-9 w-11 cursor-pointer rounded-[var(--radius-md)] border border-line bg-raised p-1"
+          className="h-9 w-11 cursor-pointer rounded-full border border-line bg-raised p-1"
         />
       </div>
     </div>

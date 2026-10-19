@@ -1,5 +1,5 @@
 import type { FootballPlayerStatsDto, FootballTournamentStatsDto } from '@howzat/shared';
-import { Card, CardBody, CardHeader, SectionHeading, StatTile } from '@/components/ui/Card';
+import { SectionHeading, StatTile } from '@/components/ui/Card';
 import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { cn } from '@/lib/cn';
@@ -10,27 +10,27 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
   if (players.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-4">
-      <SectionHeading title="Leaders" />
+    <section className="flex flex-col gap-6">
+      <SectionHeading eyebrow="Awards race" title="Boots, gloves and books" />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AwardCard
           label="Golden boot · most goals"
           player={goldenBoot}
           value={(player) => player.goals}
-          tone="text-accent"
+          tone="var(--ink-blue)"
         />
         <AwardCard
           label="Playmaker · most assists"
           player={playmaker}
           value={(player) => player.assists}
-          tone="text-primary"
+          tone="var(--ink-violet)"
         />
         <AwardCard
           label="Golden glove · clean sheets"
           player={goldenGlove}
           value={(player) => player.cleanSheets}
-          tone="text-success"
+          tone="var(--ink-green)"
         />
         <AwardCard
           label="Most booked"
@@ -40,7 +40,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
               ? `${player.yellowCards}Y ${player.redCards}R`
               : `${player.yellowCards}Y`
           }
-          tone="text-warning"
+          tone="var(--ink-amber)"
         />
       </div>
 
@@ -64,7 +64,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
         />
       </div>
 
-      <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
+      <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
         <Table className="min-w-[58rem]">
           <thead>
             <tr className="border-b border-line">
@@ -141,36 +141,31 @@ function AwardCard({
   tone: string;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex items-center justify-between gap-4">
-        <p className="eyebrow">{label}</p>
-        <span className={cn('size-2 rounded-full bg-current', tone)} />
-      </CardHeader>
-
-      <CardBody>
-        {player ? (
-          <div className="flex items-end justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3.5">
-              <FootballAvatar
-                seed={player.playerId}
-                name={player.playerName}
-                color={player.team.primaryColor}
-                size="md"
-              />
-              <div className="min-w-0">
-                <p className="font-semibold tracking-[-0.02em] truncate text-lg text-primary">
-                  {player.playerName}
-                </p>
-                <p className="mt-1 truncate text-sm text-secondary">{player.team.name}</p>
-              </div>
+    <article className="relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5 pl-6">
+      <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ background: tone }} />
+      <p className="eyebrow">{label}</p>
+      {player ? (
+        <>
+          <div className="flex min-w-0 items-center gap-3.5">
+            <FootballAvatar
+              seed={player.playerId}
+              name={player.playerName}
+              color={player.team.primaryColor}
+              size="lg"
+            />
+            <div className="min-w-0">
+              <p className="serif truncate text-[1.375rem] text-primary">{player.playerName}</p>
+              <p className="mt-1 truncate text-xs text-muted">{player.team.name}</p>
             </div>
-            <p className={cn('mono shrink-0 text-3xl font-medium', tone)}>{value(player)}</p>
           </div>
-        ) : (
-          <p className="text-secondary">Nobody has one yet.</p>
-        )}
-      </CardBody>
-    </Card>
+          <p className="score-figure tabular border-t border-dashed border-line pt-4 text-[2.5rem] leading-none" style={{ color: tone }}>
+            {value(player)}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-muted">Nobody has one yet.</p>
+      )}
+    </article>
   );
 }
 
