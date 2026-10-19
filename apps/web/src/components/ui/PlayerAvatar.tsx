@@ -37,7 +37,8 @@ export function PlayerAvatar({
       )}
       style={{
         backgroundImage: `url('${avatars[slotFor(seed)]}')`,
-        ['--ring' as string]: rings[Math.abs(slotFor(seed + name) * 7 + name.length) % rings.length],
+        ['--ring' as string]:
+          rings[Math.abs(slotFor(seed + name) * 7 + name.length) % rings.length],
       }}
     />
   );

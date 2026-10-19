@@ -1,19 +1,19 @@
+import { loadScorerState } from './state';
+import { matchLockKey, withLock } from '../../lib/lock';
+import { rebuildSnapshot } from '../snapshot';
 import { Router } from 'express';
 import {
-  buildState,
   completeMatchSchema,
-  materializeEvents,
   playingXiSchema,
   tossSchema,
   type MatchWithInningsDto,
-  type ScorerStateDto,
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, parseBody, requireParam } from '../../lib/http';
-import { notFound } from '../../lib/errors';
+import { notFound, unprocessable } from '../../lib/errors';
 import { requireAuth } from '../../middleware/auth';
 import { requireScorerForMatch } from '../../middleware/requireScorerForMatch';
-import { getSnapshot, loadEvents, loadInningsContext } from '../snapshot';
+import { getSnapshot } from '../snapshot';
 import { toInningsDto, toMatchDto } from './serialize';
 import { abandonMatch, openFirstInnings, recordToss, setPlayingXi } from './lifecycle';
 
@@ -149,13 +149,21 @@ matchesRouter.post(
     const matchId = requireParam(req, 'matchId');
     const number = Number(requireParam(req, 'number'));
 
-    const innings = await prisma.innings.findUnique({
-      where: { matchId_number: { matchId, number } },
+    if (!Number.isInteger(number) || number !== 2)
+      throw unprocessable('INVALID_INNINGS', 'Only the chase can be resumed');
+    const innings = await withLock(matchLockKey(matchId), async () => {
+      const match = await prisma.match.findUniqueOrThrow({ where: { id: matchId } });
+      const innings = await prisma.innings.findUnique({
+        where: { matchId_number: { matchId, number } },
+      });
+      if (!innings) throw notFound('Innings');
+      if (match.status === 'LIVE' && innings.status === 'IN_PROGRESS') return innings;
+      if (match.status !== 'INNINGS_BREAK' || innings.status !== 'IN_PROGRESS')
+        throw unprocessable('MATCH_CLOSED', 'This innings cannot be resumed');
+      await prisma.match.update({ where: { id: matchId }, data: { status: 'LIVE' } });
+      await rebuildSnapshot(matchId);
+      return innings;
     });
-
-    if (!innings) throw notFound('Innings');
-
-    await prisma.match.update({ where: { id: matchId }, data: { status: 'LIVE' } });
 
     res.json(toInningsDto(innings));
   }),
@@ -165,57 +173,7 @@ matchesRouter.get(
   '/:matchId/state',
   requireScorerForMatch,
   asyncHandler(async (req, res) => {
-    const matchId = requireParam(req, 'matchId');
-
-    const match = await prisma.match.findUnique({
-      where: { id: matchId },
-      include: {
-        team1: true,
-        team2: true,
-        scorerAssignments: {
-          select: { scorer: { select: { id: true, username: true, name: true } } },
-        },
-        innings: { orderBy: { number: 'desc' } },
-        tournament: { select: { sport: true } },
-      },
-    });
-
-    if (!match) throw notFound('Match');
-
-    const live = match.innings.find((entry) => entry.status === 'IN_PROGRESS') ?? null;
-
-    if (!live) {
-      const empty: ScorerStateDto = {
-        match: toMatchDto(match),
-        innings: null,
-        state: null,
-        context: null,
-        previousOverBowlerId: null,
-      };
-
-      res.json(empty);
-      return;
-    }
-
-    const context = await loadInningsContext(live.id);
-    const events = await loadEvents(live.id);
-    const state = buildState(context, events);
-
-    const deliveries = materializeEvents(events);
-    const previousOverBowlerId =
-      state.thisOver.length === 0 && state.legalBalls > 0
-        ? (deliveries[deliveries.length - 1]?.bowlerId ?? null)
-        : null;
-
-    const dto: ScorerStateDto = {
-      match: toMatchDto(match),
-      innings: toInningsDto(live),
-      state,
-      context,
-      previousOverBowlerId,
-    };
-
-    res.json(dto);
+    res.json(await loadScorerState(requireParam(req, 'matchId')));
   }),
 );
 

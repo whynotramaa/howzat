@@ -18,7 +18,6 @@ import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
 import { useCreateTournament } from './queries';
 
-/** A one-off match is a two-side league — the same machinery, none of the draw. */
 export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const createTournament = useCreateTournament();
   const navigate = useNavigate();
@@ -29,8 +28,8 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
   const [periods, setPeriods] = useState(DEFAULT_PERIODS);
   const [periodMinutes, setPeriodMinutes] = useState(DEFAULT_PERIOD_MINUTES);
 
-  const [home, setHome] = useState({ name: '', shortName: '', primaryColor: '#1268bd' });
-  const [away, setAway] = useState({ name: '', shortName: '', primaryColor: '#b23c17' });
+  const [home, setHome] = useState({ name: '', shortName: '', primaryColor: '#2563eb' });
+  const [away, setAway] = useState({ name: '', shortName: '', primaryColor: '#171717' });
 
   const isFootball = sport === 'FOOTBALL';
 
@@ -59,20 +58,19 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
       open={open}
       onClose={onClose}
       size="lg"
-      title="Start a match"
-      description="Create a one-off match fixture."
+      title="Quick match"
       footer={
         <>
-          <Button type="submit" form="quick-match" isLoading={createTournament.isPending}>
-            Create the match
-          </Button>
-          <Button type="button" variant="quiet" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
+          </Button>
+          <Button type="submit" form="quick-match" isLoading={createTournament.isPending}>
+            Create
           </Button>
         </>
       }
     >
-      <form id="quick-match" onSubmit={handleSubmit} className="grid gap-7 sm:grid-cols-2">
+      <form id="quick-match" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Sport"
           value={sport}
@@ -87,8 +85,8 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
             label="Players a side"
             hint={
               formationsFor(playersPerTeam).length > 0
-                ? `Formations: ${formationsFor(playersPerTeam).slice(0, 3).join(', ')}`
-                : 'Both squads must hold exactly this many.'
+                ? formationsFor(playersPerTeam).slice(0, 3).join(', ')
+                : undefined
             }
             value={playersPerTeam}
             onChange={(event) => setPlayersPerTeam(Number(event.target.value))}
@@ -104,23 +102,21 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
           </Select>
         ) : (
           <Input
-            label="Overs per innings"
+            label="Overs"
             type="number"
             min={1}
             max={50}
             required
-            hint={`A cricket side is ${PLAYERS_PER_TEAM} players.`}
             value={oversPerInnings}
             onChange={(event) => setOversPerInnings(Number(event.target.value))}
           />
         )}
 
-        <SideFields label="Home side" placeholder="Riverside XI" side={home} onChange={setHome} />
-        <SideFields label="Away side" placeholder="Northgate CC" side={away} onChange={setAway} />
+        <SideFields label="Home" placeholder="Riverside XI" side={home} onChange={setHome} />
+        <SideFields label="Away" placeholder="Northgate CC" side={away} onChange={setAway} />
 
         {isFootball ? (
-          <div className="sm:col-span-2">
-            <div className="rule mb-6" />
+          <div className="border-t border-line pt-4 sm:col-span-2">
             <PeriodDesigner
               periods={periods}
               periodMinutes={periodMinutes}
@@ -160,10 +156,10 @@ function SideFields({
   onChange: (side: Side) => void;
 }) {
   return (
-    <div className="flex flex-col gap-5 rounded-[var(--radius-md)] border border-line p-5">
+    <div className="flex flex-col gap-3 rounded-[var(--radius-md)] border border-line p-3">
       <div className="flex items-center justify-between gap-4">
-        <span className="eyebrow text-secondary">{label}</span>
-        <TeamMark shortName={side.shortName || '···'} color={side.primaryColor} />
+        <span className="text-xs font-medium text-secondary">{label}</span>
+        <TeamMark shortName={side.shortName || '?'} color={side.primaryColor} size="sm" />
       </div>
 
       <Input
@@ -179,9 +175,9 @@ function SideFields({
         }}
       />
 
-      <div className="grid grid-cols-[1fr_auto] items-end gap-4">
+      <div className="grid grid-cols-[1fr_auto] items-end gap-2">
         <Input
-          label="Abbreviation"
+          label="Short"
           required
           maxLength={5}
           placeholder="RIV"
@@ -194,7 +190,7 @@ function SideFields({
           aria-label={`${label} colour`}
           value={side.primaryColor}
           onChange={(event) => onChange({ ...side, primaryColor: event.target.value })}
-          className="h-12 w-14 cursor-pointer rounded-[var(--radius-sm)] border border-line bg-raised p-1"
+          className="h-9 w-11 cursor-pointer rounded-[var(--radius-md)] border border-line bg-raised p-1"
         />
       </div>
     </div>
@@ -204,7 +200,6 @@ function SideFields({
 function initials(name: string): string {
   const words = name.trim().split(/\s+/);
 
-  // One word has only one initial, and the abbreviation needs two characters.
   const guess = words.length > 1 ? words.map((word) => word[0] ?? '').join('') : (words[0] ?? '');
 
   return guess

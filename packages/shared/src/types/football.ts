@@ -123,6 +123,7 @@ export interface FootballSnapshotSide {
 }
 
 export interface FootballSnapshot {
+  revision?: number;
   sport: 'FOOTBALL';
   matchId: string;
   publicSlug: string;

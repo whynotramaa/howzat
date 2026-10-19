@@ -1,6 +1,9 @@
+import { reconcileTournament } from '../standings/reconcile';
+import { afterCommit } from '../../lib/transaction';
 import {
   BALLS_PER_OVER,
   BOWLER_CREDITED,
+  materializeEventRows,
   ballsAsOversText,
   round2,
   type TournamentStatsDto,
@@ -17,6 +20,7 @@ const statsCacheKey = (tournamentId: string) => `stats:tournament:${tournamentId
 
 const EVENT_FIELDS = {
   id: true,
+  seq: true,
   inningsId: true,
   eventType: true,
   supersedesEventId: true,
@@ -32,8 +36,6 @@ const EVENT_FIELDS = {
   nonStrikerId: true,
   bowlerId: true,
 } satisfies Prisma.BallEventSelect;
-
-type ScoredEvent = Prisma.BallEventGetPayload<{ select: typeof EVENT_FIELDS }>;
 
 interface Accumulator {
   batted: boolean;
@@ -69,24 +71,6 @@ function emptyAccumulator(): Accumulator {
     runOuts: 0,
     stumpings: 0,
   };
-}
-
-function materialize(events: ScoredEvent[]): ScoredEvent[] {
-  const replacements = new Map<string, ScoredEvent>();
-  const removed = new Set<string>();
-
-  for (const event of events) {
-    if (!event.supersedesEventId) continue;
-    if (event.eventType === 'CORRECTION') replacements.set(event.supersedesEventId, event);
-    if (event.eventType === 'UNDO') removed.add(event.supersedesEventId);
-  }
-
-  return events
-    .filter((event) => event.eventType === 'BALL' && !removed.has(event.id))
-    .map((event) => {
-      const replacement = replacements.get(event.id);
-      return replacement ? { ...replacement, overNumber: event.overNumber } : event;
-    });
 }
 
 export async function recomputePlayerStatsForMatch(matchId: string): Promise<number> {
@@ -126,7 +110,7 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
 
   const overs = new Map<string, { bowlerId: string; runs: number; legalBalls: number }>();
 
-  for (const event of materialize(rawEvents)) {
+  for (const event of materializeEventRows(rawEvents)) {
     const isWide = event.extraType === 'WIDE';
     const isNoBall = event.extraType === 'NO_BALL';
     const isLegal = !isWide && !isNoBall;
@@ -200,12 +184,13 @@ export async function recomputePlayerStatsForMatch(matchId: string): Promise<num
 
   logger.info({ matchId, players: rows.length }, 'Player match stats recomputed');
 
-  await redis.del(statsCacheKey(match.tournamentId)).catch(() => undefined);
+  await afterCommit(() => redis.del(statsCacheKey(match.tournamentId)));
 
   return rows.length;
 }
 
 export async function getTournamentStats(tournamentId: string): Promise<TournamentStatsDto> {
+  await reconcileTournament(tournamentId);
   const cached = await redis.get(statsCacheKey(tournamentId)).catch(() => null);
   if (cached) return JSON.parse(cached) as TournamentStatsDto;
 

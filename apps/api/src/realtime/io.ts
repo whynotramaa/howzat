@@ -18,10 +18,6 @@ export function attachRealtime(server: HttpServer): MatchServer {
   const instance: MatchServer = new Server(server, {
     cors: { origin: allowedOrigins, credentials: true },
     path: SOCKET_PATH,
-    connectionStateRecovery: {
-      maxDisconnectionDuration: 2 * 60 * 1000,
-      skipMiddlewares: true,
-    },
     transports: ['websocket'],
   });
 
@@ -68,7 +64,8 @@ export function attachRealtime(server: HttpServer): MatchServer {
 function registerHandlers(instance: MatchServer, socket: MatchSocket): void {
   logger.debug({ socketId: socket.id }, 'Socket connected');
 
-  socket.on('join', async ({ matchId }) => {
+  socket.on('join', async (payload) => {
+    const matchId = payload?.matchId;
     if (typeof matchId !== 'string' || matchId.length === 0 || matchId.length > 64) {
       socket.emit('error', { message: 'A valid matchId is required to join' });
       return;
@@ -82,7 +79,8 @@ function registerHandlers(instance: MatchServer, socket: MatchSocket): void {
     instance.to(matchRoom(matchId)).emit('viewers', { matchId, count: viewers });
   });
 
-  socket.on('leave', async ({ matchId }) => {
+  socket.on('leave', async (payload) => {
+    const matchId = payload?.matchId;
     if (typeof matchId !== 'string') return;
 
     await socket.leave(matchRoom(matchId));

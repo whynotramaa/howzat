@@ -2,10 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Btn, Controls, Figure, Hand, Icon, LogPane, useLog, Wire } from './chrome';
 import { cn } from '@/lib/cn';
 
-/* ================================================================== *
- * 1. The WebSocket handshake
- * ================================================================== */
-
 const HANDSHAKE = [
   {
     title: 'GET with an upgrade request',
@@ -19,7 +15,7 @@ const HANDSHAKE = [
   },
   {
     title: 'Frames, both directions',
-    body: "→ 42[\"join\",{\"matchId\":\"m_9f2\"}]\n← 42[\"snapshot\",{ …2.4KB… }]\n← 42[\"ball\",{ …2.4KB… }]",
+    body: '→ 42["join",{"matchId":"m_9f2"}]\n← 42["snapshot",{ …2.4KB… }]\n← 42["ball",{ …2.4KB… }]',
     note: 'Not HTTP any more. A framed message channel with almost no per-message overhead, and either side can send at any time.',
   },
   {
@@ -35,7 +31,7 @@ export function HandshakeLab() {
 
   return (
     <Figure
-      label="Figure 12 — how the connection is actually made"
+      label="Figure 12 · how the connection is actually made"
       hint="Step through the four moments. The protocol stops being HTTP at moment two."
       controls={
         <Controls label="Moment">
@@ -51,27 +47,63 @@ export function HandshakeLab() {
       <div className="grid gap-5 lg:grid-cols-[1fr_1.1fr]">
         <svg viewBox="0 0 380 220" className="eng-svg" role="img" aria-label="WebSocket handshake">
           <g className="sketch">
-            <Box x={16} y={16} w={120} h={40} title="Browser" state={step === 0 || step === 2 ? 'active' : 'idle'} />
-            <Box x={240} y={16} w={120} h={40} title="Server" state={step === 1 || step === 2 ? 'active' : 'idle'} />
+            <Box
+              x={16}
+              y={16}
+              w={120}
+              h={40}
+              title="Browser"
+              state={step === 0 || step === 2 ? 'active' : 'idle'}
+            />
+            <Box
+              x={240}
+              y={16}
+              w={120}
+              h={40}
+              title="Server"
+              state={step === 1 || step === 2 ? 'active' : 'idle'}
+            />
             <line x1={76} y1={56} x2={76} y2={210} stroke="var(--line)" strokeDasharray="3 5" />
             <line x1={300} y1={56} x2={300} y2={210} stroke="var(--line)" strokeDasharray="3 5" />
 
-            <Wire d="M 76 88 L 296 88" state={step === 0 ? 'active' : step > 0 ? 'done' : 'muted'} flow={step === 0} />
+            <Wire
+              d="M 76 88 L 296 88"
+              state={step === 0 ? 'active' : step > 0 ? 'done' : 'muted'}
+              flow={step === 0}
+            />
             <text x={186} y={80} textAnchor="middle" className={step === 0 ? 't-label' : ''}>
               Upgrade: websocket
             </text>
 
-            <Wire d="M 300 126 L 80 126" state={step === 1 ? 'active' : step > 1 ? 'done' : 'muted'} flow={step === 1} />
+            <Wire
+              d="M 300 126 L 80 126"
+              state={step === 1 ? 'active' : step > 1 ? 'done' : 'muted'}
+              flow={step === 1}
+            />
             <text x={186} y={118} textAnchor="middle" className={step === 1 ? 't-label' : ''}>
               101 Switching Protocols
             </text>
 
-            <Wire d="M 76 162 L 296 162" state={step === 2 ? 'active' : step > 2 ? 'done' : 'muted'} flow={step === 2} arrow />
-            <Wire d="M 300 180 L 80 180" state={step === 2 ? 'active' : step > 2 ? 'done' : 'muted'} flow={step === 2} arrow />
+            <Wire
+              d="M 76 162 L 296 162"
+              state={step === 2 ? 'active' : step > 2 ? 'done' : 'muted'}
+              flow={step === 2}
+              arrow
+            />
+            <Wire
+              d="M 300 180 L 80 180"
+              state={step === 2 ? 'active' : step > 2 ? 'done' : 'muted'}
+              flow={step === 2}
+              arrow
+            />
             <text x={186} y={200} textAnchor="middle">
               frames, either direction
             </text>
-            {step === 3 ? <Hand x={110} y={214}>then it drops, and that is fine</Hand> : null}
+            {step === 3 ? (
+              <Hand x={110} y={214}>
+                then it drops, and that is fine
+              </Hand>
+            ) : null}
           </g>
         </svg>
 
@@ -85,10 +117,6 @@ export function HandshakeLab() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 2. Cross-instance fan-out and the viewer count
- * ================================================================== */
 
 type Phase = 'idle' | 'write' | 'publish' | 'deliver';
 
@@ -106,14 +134,19 @@ export function FanoutLab() {
     setTimeout(() => {
       setPhase('publish');
       push('instance A: io.to("match:m_9f2").emit("ball", snapshot)', 'note');
-      push('adapter: PUBLISH to socket.io#/#match:m_9f2 — every instance receives it, subscriber or not');
+      push(
+        'adapter: PUBLISH to socket.io#/#match:m_9f2 · every instance receives it, subscriber or not',
+      );
     }, 800);
     setTimeout(() => {
       setPhase('deliver');
       push('instance B: emits to its own sockets in match:m_9f2', 'ok');
       push('viewer on B: isNewerSnapshot passes, score renders', 'ok');
       if (frozen) {
-        push('instance C is frozen. It still holds its Redis subscription and delivers nothing.', 'warn');
+        push(
+          'instance C is frozen. It still holds its Redis subscription and delivers nothing.',
+          'warn',
+        );
       }
     }, 1700);
     setTimeout(() => setPhase('idle'), 2900);
@@ -129,7 +162,10 @@ export function FanoutLab() {
     push('fetchSockets(): broadcast a request, wait for every subscribed instance to answer');
     if (frozen) {
       setCountState('stalled');
-      push('instance C is frozen. It is counted among the expected responders and will never reply.', 'bad');
+      push(
+        'instance C is frozen. It is counted among the expected responders and will never reply.',
+        'bad',
+      );
       push('the call stalls for its full timeout, then fails', 'bad');
     } else {
       setCountState('ready');
@@ -139,7 +175,7 @@ export function FanoutLab() {
 
   return (
     <Figure
-      label="Figure 13 — a ball written on A, seen on B"
+      label="Figure 13 · a ball written on A, seen on B"
       hint="Freeze instance C, switch the count to fetchSockets(), then press Count viewers. That is the exact bug this platform produces."
       controls={
         <>
@@ -173,18 +209,76 @@ export function FanoutLab() {
         <Icon name="hand" /> scroll the drawing sideways
       </p>
       <div className="eng-scroll">
-        <svg viewBox="0 0 720 300" className="eng-svg min-w-[600px]" role="img" aria-label="Cross-instance fan-out">
+        <svg
+          viewBox="0 0 720 300"
+          className="eng-svg min-w-[600px]"
+          role="img"
+          aria-label="Cross-instance fan-out"
+        >
           <g className="sketch">
-            <Wire d="M 172 60 L 268 60" state={phase === 'write' ? 'active' : 'idle'} flow={phase === 'write'} />
-            <Wire d="M 268 96 L 200 130" state={phase === 'publish' || phase === 'deliver' ? 'active' : 'muted'} flow={phase === 'publish'} />
-            <Wire d="M 200 168 L 268 208" state={phase === 'deliver' ? 'active' : 'muted'} flow={phase === 'deliver'} />
-            <Wire d="M 140 168 L 92 208" state={phase === 'deliver' ? 'active' : 'muted'} flow={phase === 'deliver'} />
-            <Wire d="M 432 232 L 520 232" state={phase === 'deliver' ? 'active' : 'muted'} flow={phase === 'deliver'} />
+            <Wire
+              d="M 172 60 L 268 60"
+              state={phase === 'write' ? 'active' : 'idle'}
+              flow={phase === 'write'}
+            />
+            <Wire
+              d="M 268 96 L 200 130"
+              state={phase === 'publish' || phase === 'deliver' ? 'active' : 'muted'}
+              flow={phase === 'publish'}
+            />
+            <Wire
+              d="M 200 168 L 268 208"
+              state={phase === 'deliver' ? 'active' : 'muted'}
+              flow={phase === 'deliver'}
+            />
+            <Wire
+              d="M 140 168 L 92 208"
+              state={phase === 'deliver' ? 'active' : 'muted'}
+              flow={phase === 'deliver'}
+            />
+            <Wire
+              d="M 432 232 L 520 232"
+              state={phase === 'deliver' ? 'active' : 'muted'}
+              flow={phase === 'deliver'}
+            />
 
-            <Box x={24} y={36} w={148} h={48} title="Scorer" sub="POST /balls" state={phase === 'write' ? 'active' : 'idle'} />
-            <Box x={268} y={36} w={164} h={60} title="API instance A" sub="wrote the ball" state={phase !== 'idle' ? 'active' : 'idle'} />
-            <Box x={92} y={130} w={200} h={38} title="Redis pub/sub" sub="socket.io#/#match:m_9f2" state={phase === 'publish' ? 'active' : 'idle'} r={19} />
-            <Box x={268} y={202} w={164} h={60} title="API instance B" sub="has viewers here" state={phase === 'deliver' ? 'active' : 'idle'} />
+            <Box
+              x={24}
+              y={36}
+              w={148}
+              h={48}
+              title="Scorer"
+              sub="POST /balls"
+              state={phase === 'write' ? 'active' : 'idle'}
+            />
+            <Box
+              x={268}
+              y={36}
+              w={164}
+              h={60}
+              title="API instance A"
+              sub="wrote the ball"
+              state={phase !== 'idle' ? 'active' : 'idle'}
+            />
+            <Box
+              x={92}
+              y={130}
+              w={200}
+              h={38}
+              title="Redis pub/sub"
+              sub="socket.io#/#match:m_9f2"
+              state={phase === 'publish' ? 'active' : 'idle'}
+              r={19}
+            />
+            <Box
+              x={268}
+              y={202}
+              w={164}
+              h={60}
+              title="API instance B"
+              sub="has viewers here"
+              state={phase === 'deliver' ? 'active' : 'idle'}
+            />
             <Box
               x={24}
               y={202}
@@ -194,7 +288,15 @@ export function FanoutLab() {
               sub={frozen ? 'frozen, still subscribed' : 'idle, warm'}
               state={frozen ? 'failed' : 'muted'}
             />
-            <Box x={520} y={202} w={172} h={60} title="Viewers" sub="room match:m_9f2" state={phase === 'deliver' ? 'done' : 'idle'} />
+            <Box
+              x={520}
+              y={202}
+              w={172}
+              h={60}
+              title="Viewers"
+              sub="room match:m_9f2"
+              state={phase === 'deliver' ? 'done' : 'idle'}
+            />
 
             <rect
               x={520}
@@ -211,22 +313,28 @@ export function FanoutLab() {
             <text x={606} y={104} textAnchor="middle">
               {method === 'zset' ? 'ZSET, scored by join time' : 'fetchSockets() round trip'}
             </text>
-            <text x={606} y={126} textAnchor="middle" className="t-label" style={{ fill: countState === 'stalled' ? 'var(--alert)' : 'var(--success)' }}>
+            <text
+              x={606}
+              y={126}
+              textAnchor="middle"
+              className="t-label"
+              style={{ fill: countState === 'stalled' ? 'var(--alert)' : 'var(--success)' }}
+            >
               {countState === 'stalled' ? 'timed out' : '3 watching'}
             </text>
 
-            <Hand x={300} y={192}>every instance gets the message</Hand>
-            <Hand x={30} y={288}>{frozen ? 'this one will never answer you' : 'no viewers here'}</Hand>
+            <Hand x={300} y={192}>
+              every instance gets the message
+            </Hand>
+            <Hand x={30} y={288}>
+              {frozen ? 'this one will never answer you' : 'no viewers here'}
+            </Hand>
           </g>
         </svg>
       </div>
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 3. The client gate: isNewerSnapshot
- * ================================================================== */
 
 interface Incoming {
   innings: number;
@@ -236,10 +344,10 @@ interface Incoming {
 }
 
 const ARRIVALS: Incoming[] = [
-  { innings: 1, seq: 118, runs: 142, label: 'ball 118 — the normal case' },
-  { innings: 1, seq: 117, runs: 138, label: 'ball 117 — delayed, arrives late' },
-  { innings: 1, seq: 121, runs: 149, label: 'ball 121 — two were missed' },
-  { innings: 2, seq: 1, runs: 0, label: 'innings 2, ball 1 — the sequence restarts' },
+  { innings: 1, seq: 118, runs: 142, label: 'ball 118 · the normal case' },
+  { innings: 1, seq: 117, runs: 138, label: 'ball 117 · delayed, arrives late' },
+  { innings: 1, seq: 121, runs: 149, label: 'ball 121 · two were missed' },
+  { innings: 2, seq: 1, runs: 0, label: 'innings 2, ball 1 · the sequence restarts' },
 ];
 
 export function SnapshotGateLab() {
@@ -258,11 +366,14 @@ export function SnapshotGateLab() {
       setDisplayed({ innings: msg.innings, seq: msg.seq, runs: msg.runs });
       push(`accepted ${msg.label} → ${msg.runs} runs`, 'ok');
       if (msg.seq > displayed.seq + 1 && msg.innings === displayed.innings) {
-        push(`hasSequenceGap: ${msg.seq} is more than one ahead of ${displayed.seq}. Refetch the snapshot.`, 'note');
+        push(
+          `hasSequenceGap: ${msg.seq} is more than one ahead of ${displayed.seq}. Refetch the snapshot.`,
+          'note',
+        );
       }
     } else {
       push(
-        `discarded ${msg.label}${!compareInnings && msg.innings > displayed.innings ? ' — and this one was the whole second innings' : ''}`,
+        `discarded ${msg.label}${!compareInnings && msg.innings > displayed.innings ? ' · and this one was the whole second innings' : ''}`,
         !compareInnings && msg.innings > displayed.innings ? 'bad' : 'warn',
       );
     }
@@ -270,14 +381,14 @@ export function SnapshotGateLab() {
 
   return (
     <Figure
-      label="Figure 14 — which broadcasts the client is allowed to believe"
+      label="Figure 14 · which broadcasts the client is allowed to believe"
       hint="Deliver them out of order, then switch the comparison to seq only and deliver the second innings."
       controls={
         <>
           <Controls label="Deliver a broadcast">
             {ARRIVALS.map((msg) => (
               <Btn key={msg.label} onClick={() => deliver(msg)} title={msg.label}>
-                {msg.label.split(' — ')[0]}
+                {msg.label.split(' · ')[0]}
               </Btn>
             ))}
           </Controls>
@@ -309,17 +420,13 @@ export function SnapshotGateLab() {
         </div>
         <p className="max-w-md text-[0.875rem] text-secondary">
           The property being protected is <strong>monotonic reads</strong>. Being 400 milliseconds
-          stale is invisible to a spectator. A score that goes from 47 back to 42 is alarming, and it
-          is the first thing anyone reports.
+          stale is invisible to a spectator. A score that goes from 47 back to 42 is alarming, and
+          it is the first thing anyone reports.
         </p>
       </div>
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 4. The offline outbox
- * ================================================================== */
 
 interface QueuedBall {
   id: string;
@@ -344,7 +451,10 @@ export function OutboxLab() {
     (runs: number) => {
       const id = `c-${(++queueId).toString(16).padStart(4, '0')}`;
       setQueue((prev) => [...prev, { id, runs, status: 'pending' }]);
-      push(`put ${id} in IndexedDB, marked pending. Optimistic fold applied to the console.`, 'note');
+      push(
+        `put ${id} in IndexedDB, marked pending. Optimistic fold applied to the console.`,
+        'note',
+      );
     },
     [push],
   );
@@ -357,12 +467,6 @@ export function OutboxLab() {
     setDraining(true);
   }, [online, push]);
 
-  // The drain sends one ball at a time, in createdAt order, and stops on the
-  // first rejection. That stop is the whole design: the balls behind it were
-  // validated against a state that includes the one that failed.
-  //
-  // Everything is decided from `queue` before any setState, because React
-  // double-invokes state updaters under StrictMode.
   useEffect(() => {
     if (!draining) return;
     const id = setTimeout(() => {
@@ -408,7 +512,7 @@ export function OutboxLab() {
 
   return (
     <Figure
-      label="Figure 15 — the outbox, and the ball that jams it"
+      label="Figure 15 · the outbox, and the ball that jams it"
       hint="Go offline, score five balls, switch the rejection on, then come back online. The drain stops at the failed ball."
       controls={
         <>
@@ -487,7 +591,11 @@ export function OutboxLab() {
                   <span>{ball.id}</span>
                   <span className="text-primary">{ball.runs} runs</span>
                   <span className="ml-auto">
-                    {ball.status === 'failed' ? '422 — jammed' : i === 0 && draining ? 'sending' : 'pending'}
+                    {ball.status === 'failed'
+                      ? '422 · jammed'
+                      : i === 0 && draining
+                        ? 'sending'
+                        : 'pending'}
                   </span>
                 </li>
               ))
@@ -497,8 +605,8 @@ export function OutboxLab() {
             <p className="mt-3 text-[0.8125rem] text-alert">
               Retrying an invalid ball fails again, permanently. The correct design separates
               transport failures, which retry with backoff, from semantic rejections, which should
-              show the offending ball and offer to edit or discard it. Today it shows an error string
-              and a retry button, and that is the sharpest weakness in this layer.
+              show the offending ball and offer to edit or discard it. Today it shows an error
+              string and a retry button, and that is the sharpest weakness in this layer.
             </p>
           ) : null}
         </div>
@@ -522,10 +630,6 @@ export function OutboxLab() {
   );
 }
 
-/* ================================================================== *
- * 5. Refresh token rotation and reuse detection
- * ================================================================== */
-
 interface TokenRow {
   id: string;
   revoked: boolean;
@@ -544,27 +648,40 @@ export function AuthLab() {
       return;
     }
     if (row.revoked) {
-      push(`${who}: presented ${id}, already revoked. This cannot happen in normal operation.`, 'bad');
+      push(
+        `${who}: presented ${id}, already revoked. This cannot happen in normal operation.`,
+        'bad',
+      );
       push('reuse detected. Revoking every unrevoked token for this user.', 'bad');
       setTokens((prev) => prev.map((t) => ({ ...t, revoked: true })));
       setSignedOut(true);
       return;
     }
     const next = `rt_${Math.random().toString(36).slice(2, 4)}`;
-    setTokens((prev) => [...prev.map((t) => (t.id === id ? { ...t, revoked: true } : t)), { id: next, revoked: false }]);
-    push(`${who}: ${id} accepted. Revoked and rotated to ${next}, both in one transaction. New 15-minute access token issued.`, 'ok');
+    setTokens((prev) => [
+      ...prev.map((t) => (t.id === id ? { ...t, revoked: true } : t)),
+      { id: next, revoked: false },
+    ]);
+    push(
+      `${who}: ${id} accepted. Revoked and rotated to ${next}, both in one transaction. New 15-minute access token issued.`,
+      'ok',
+    );
   };
 
   const live = tokens.filter((t) => !t.revoked);
 
   return (
     <Figure
-      label="Figure 16 — rotation alone is not enough"
+      label="Figure 16 · rotation alone is not enough"
       hint="Steal the token, let the user refresh once, then replay the stolen one. Watch every session die."
       controls={
         <>
           <Controls label="The real user">
-            <Btn tone="primary" onClick={() => present(live[0]?.id ?? 'rt_gone', 'user')} disabled={signedOut}>
+            <Btn
+              tone="primary"
+              onClick={() => present(live[0]?.id ?? 'rt_gone', 'user')}
+              disabled={signedOut}
+            >
               Refresh the session
             </Btn>
           </Controls>
@@ -573,13 +690,19 @@ export function AuthLab() {
               onClick={() => {
                 const stolen = live[0]?.id ?? tokens[tokens.length - 1]?.id ?? 'rt_a1';
                 setAttacker(stolen);
-                push(`attacker copied ${stolen} off the wire. Rotation does not stop them holding it.`, 'warn');
+                push(
+                  `attacker copied ${stolen} off the wire. Rotation does not stop them holding it.`,
+                  'warn',
+                );
               }}
               disabled={signedOut || !live[0]}
             >
               1. Steal the current token
             </Btn>
-            <Btn onClick={() => attacker && present(attacker, 'attacker')} disabled={!attacker || signedOut}>
+            <Btn
+              onClick={() => attacker && present(attacker, 'attacker')}
+              disabled={!attacker || signedOut}
+            >
               2. Replay it
             </Btn>
             <Btn
@@ -600,14 +723,16 @@ export function AuthLab() {
     >
       <div className="grid gap-5 sm:grid-cols-[1fr_1fr]">
         <div>
-          <p className="eyebrow mb-2.5">RefreshToken rows — stored as SHA-256 hashes</p>
+          <p className="eyebrow mb-2.5">RefreshToken rows, stored as SHA-256 hashes</p>
           <ul className="flex flex-col gap-1.5">
             {tokens.map((t) => (
               <li
                 key={t.id}
                 className={cn(
                   'mono flex items-center justify-between rounded-[var(--radius-sm)] border px-4 py-2 text-[0.75rem]',
-                  t.revoked ? 'border-line bg-sunken text-muted line-through' : 'border-[var(--success)] bg-success-soft text-success',
+                  t.revoked
+                    ? 'border-line bg-sunken text-muted line-through'
+                    : 'border-[var(--success)] bg-success-soft text-success',
                 )}
               >
                 <span>{t.id}</span>
@@ -619,13 +744,13 @@ export function AuthLab() {
         <div className="flex flex-col gap-3 text-[0.875rem] text-secondary">
           <p>
             The access token is a 15-minute JWT held in a module-scoped variable, never in
-            localStorage. The refresh token is 48 random bytes in an httpOnly, sameSite=strict cookie
-            scoped to path <code className="mono">/</code>, stored server-side as a hash.
+            localStorage. The refresh token is 48 random bytes in an httpOnly, sameSite=strict
+            cookie scoped to path <code className="mono">/</code>, stored server-side as a hash.
           </p>
           <p>
-            Password hashing is bcrypt at cost 12, about 250ms, run once per login. The refresh token
-            gets SHA-256, because 384 bits from a CSPRNG is not brute-forceable and this hash runs on
-            every single refresh.
+            Password hashing is bcrypt at cost 12, about 250ms, run once per login. The refresh
+            token gets SHA-256, because 384 bits from a CSPRNG is not brute-forceable and this hash
+            runs on every single refresh.
           </p>
           {signedOut ? (
             <p className="text-alert">
@@ -639,10 +764,6 @@ export function AuthLab() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 6. Serverless: the freeze and the 300-second ceiling
- * ================================================================== */
 
 export function FreezeLab() {
   const [awaited, setAwaited] = useState(true);
@@ -683,7 +804,7 @@ export function FreezeLab() {
 
   return (
     <Figure
-      label="Figure 17 — void versus await on the completion path"
+      label="Figure 17 · void versus await on the completion path"
       hint="Run it with await, then switch to void and run it again. Nothing errors either way, which is the problem."
       controls={
         <>
@@ -708,7 +829,9 @@ export function FreezeLab() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex justify-between text-[0.75rem]">
-            <span className="mono text-secondary">recomputeStandings + recomputePlayerStatsForMatch</span>
+            <span className="mono text-secondary">
+              recomputeStandings + recomputePlayerStatsForMatch
+            </span>
             <span className="mono text-muted">{progress}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-sunken">
@@ -737,9 +860,9 @@ export function FreezeLab() {
           </p>
         ) : (
           <p className="max-w-3xl text-[0.875rem] text-secondary">
-            This is the worst class of bug, because it is non-deterministic. It works in development,
-            works under load while other requests keep the instance warm, and fails at 11pm on a quiet
-            Tuesday.
+            This is the worst class of bug, because it is non-deterministic. It works in
+            development, works under load while other requests keep the instance warm, and fails at
+            11pm on a quiet Tuesday.
           </p>
         )}
       </div>
@@ -747,18 +870,12 @@ export function FreezeLab() {
   );
 }
 
-/* ================================================================== *
- * 7. What breaks first: fan-out cost
- * ================================================================== */
-
 export function FanoutChart() {
   const [instances, setInstances] = useState(4);
   const [payload, setPayload] = useState<'snapshot' | 'delta'>('snapshot');
 
   const series = useMemo(() => {
     const bytes = payload === 'snapshot' ? 2600 : 180;
-    // Cost per ball = payload x viewers x instances, in both socket egress and
-    // pub/sub bandwidth, because the adapter publishes to every instance.
     return Array.from({ length: 26 }, (_, i) => {
       const viewers = i * 400;
       return { viewers, mb: (bytes * viewers * instances) / 1_000_000 };
@@ -767,14 +884,17 @@ export function FanoutChart() {
 
   const max = Math.max(...series.map((p) => p.mb), 1);
   const path = series
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${40 + (p.viewers / 10000) * 620} ${210 - (p.mb / max) * 170}`)
+    .map(
+      (p, i) =>
+        `${i === 0 ? 'M' : 'L'} ${40 + (p.viewers / 10000) * 620} ${210 - (p.mb / max) * 170}`,
+    )
     .join(' ');
 
   const at5k = series.find((p) => p.viewers === 4800)?.mb ?? 0;
 
   return (
     <Figure
-      label="Figure 18 — the number that decides when deltas become necessary"
+      label="Figure 18 · the number that decides when deltas become necessary"
       hint="Drag the instance count up. The cost is payload times viewers times instances, and only one of those three is under your control."
       controls={
         <>
@@ -814,55 +934,58 @@ export function FanoutChart() {
           role="img"
           aria-label="Fan-out cost per ball"
         >
-        <line x1={40} y1={210} x2={680} y2={210} stroke="var(--line-strong)" />
-        <line x1={40} y1={30} x2={40} y2={210} stroke="var(--line-strong)" />
-        {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-          <g key={f}>
-            <line x1={40} y1={210 - f * 170} x2={680} y2={210 - f * 170} stroke="var(--line)" strokeDasharray="2 6" />
-            <text x={34} y={214 - f * 170} textAnchor="end" className="t-num">
-              {(max * f).toFixed(1)}
+          <line x1={40} y1={210} x2={680} y2={210} stroke="var(--line-strong)" />
+          <line x1={40} y1={30} x2={40} y2={210} stroke="var(--line-strong)" />
+          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+            <g key={f}>
+              <line
+                x1={40}
+                y1={210 - f * 170}
+                x2={680}
+                y2={210 - f * 170}
+                stroke="var(--line)"
+                strokeDasharray="2 6"
+              />
+              <text x={34} y={214 - f * 170} textAnchor="end" className="t-num">
+                {(max * f).toFixed(1)}
+              </text>
+            </g>
+          ))}
+          {[0, 2000, 4000, 6000, 8000, 10000].map((v) => (
+            <text key={v} x={40 + (v / 10000) * 620} y={228} textAnchor="middle" className="t-num">
+              {v.toLocaleString()}
             </text>
-          </g>
-        ))}
-        {[0, 2000, 4000, 6000, 8000, 10000].map((v) => (
-          <text key={v} x={40 + (v / 10000) * 620} y={228} textAnchor="middle" className="t-num">
-            {v.toLocaleString()}
+          ))}
+          <text x={360} y={244} textAnchor="middle" className="t-num">
+            concurrent viewers on one match
           </text>
-        ))}
-        <text x={360} y={244} textAnchor="middle" className="t-num">
-          concurrent viewers on one match
-        </text>
-        <text x={12} y={24} className="t-num">
-          MB per ball
-        </text>
-        <g className="sketch">
-          <path
-            d={path}
-            fill="none"
-            stroke={payload === 'snapshot' ? 'var(--alert)' : 'var(--success)'}
-            strokeWidth={2.2}
-            strokeLinecap="round"
-          />
-          <Hand x={330} y={64}>
-            {`${at5k.toFixed(1)} MB per ball at 4,800 viewers`}
-          </Hand>
-        </g>
+          <text x={12} y={24} className="t-num">
+            MB per ball
+          </text>
+          <g className="sketch">
+            <path
+              d={path}
+              fill="none"
+              stroke={payload === 'snapshot' ? 'var(--alert)' : 'var(--success)'}
+              strokeWidth={2.2}
+              strokeLinecap="round"
+            />
+            <Hand x={330} y={64}>
+              {`${at5k.toFixed(1)} MB per ball at 4,800 viewers`}
+            </Hand>
+          </g>
         </svg>
       </div>
       <p className="mt-3 max-w-3xl text-[0.875rem] text-secondary">
         Below a few hundred viewers per match the full snapshot is plainly right: the client
-        self-heals, a missed message is corrected by the next one, and a mid-match join uses the same
-        code path as the steady state. Switch to deltas and you owe a replay protocol, gap-filling,
-        and a per-client buffer. Three pieces of machinery that do not exist today because of this
-        one decision.
+        self-heals, a missed message is corrected by the next one, and a mid-match join uses the
+        same code path as the steady state. Switch to deltas and you owe a replay protocol,
+        gap-filling, and a per-client buffer. Three pieces of machinery that do not exist today
+        because of this one decision.
       </p>
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 8. Strike rotation, for the cricket appendix
- * ================================================================== */
 
 export function StrikeLab() {
   const [runs, setRuns] = useState(1);
@@ -877,7 +1000,7 @@ export function StrikeLab() {
 
   return (
     <Figure
-      label="Figure 19 — two swaps, and the one everybody gets wrong"
+      label="Figure 19 · two swaps, and the one everybody gets wrong"
       hint="Pick 1 run, then switch on Last ball of the over. Two swaps fire and the same batsman keeps strike."
       controls={
         <>
@@ -889,7 +1012,10 @@ export function StrikeLab() {
             ))}
           </Controls>
           <Controls label="Conditions">
-            <Btn onClick={() => setExtra(extra === 'wide' ? 'none' : 'wide')} active={extra === 'wide'}>
+            <Btn
+              onClick={() => setExtra(extra === 'wide' ? 'none' : 'wide')}
+              active={extra === 'wide'}
+            >
               Wide
             </Btn>
             <Btn onClick={() => setLastBallOfOver((v) => !v)} active={lastBallOfOver}>
@@ -904,19 +1030,47 @@ export function StrikeLab() {
         <svg viewBox="0 0 340 170" className="eng-svg" role="img" aria-label="Strike rotation">
           <g className="sketch">
             <line x1={70} y1={40} x2={270} y2={40} stroke="var(--line-strong)" strokeWidth={1.4} />
-            <line x1={70} y1={130} x2={270} y2={130} stroke="var(--line-strong)" strokeWidth={1.4} />
+            <line
+              x1={70}
+              y1={130}
+              x2={270}
+              y2={130}
+              stroke="var(--line-strong)"
+              strokeWidth={1.4}
+            />
             <Box x={40} y={20} w={80} h={40} title={onStrike} sub="on strike" state="active" />
-            <Box x={220} y={110} w={80} h={40} title={onStrike === 'Rama' ? 'Peehu' : 'Rama'} sub="non-striker" />
-            {oddSwap ? <Hand x={130} y={76}>odd runs run → swap</Hand> : null}
-            {overSwap ? <Hand x={130} y={98}>over complete → swap again</Hand> : null}
-            {!oddSwap && !overSwap ? <Hand x={140} y={88}>no swap</Hand> : null}
+            <Box
+              x={220}
+              y={110}
+              w={80}
+              h={40}
+              title={onStrike === 'Rama' ? 'Peehu' : 'Rama'}
+              sub="non-striker"
+            />
+            {oddSwap ? (
+              <Hand x={130} y={76}>
+                odd runs run → swap
+              </Hand>
+            ) : null}
+            {overSwap ? (
+              <Hand x={130} y={98}>
+                over complete → swap again
+              </Hand>
+            ) : null}
+            {!oddSwap && !overSwap ? (
+              <Hand x={140} y={88}>
+                no swap
+              </Hand>
+            ) : null}
           </g>
         </svg>
         <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-[0.875rem]">
           <dt className="text-muted">runsRun</dt>
           <dd className="mono text-primary">
             {runsRun}
-            {extra === 'wide' ? ' (extraRuns − 1: the penalty run is a sanction, not a completed run)' : ''}
+            {extra === 'wide'
+              ? ' (extraRuns − 1: the penalty run is a sanction, not a completed run)'
+              : ''}
           </dd>
           <dt className="text-muted">facedDelivery</dt>
           <dd className="mono text-primary">{extra === 'wide' ? 'false' : 'true'}</dd>

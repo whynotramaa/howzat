@@ -90,9 +90,28 @@ export function PdfButton({
       )}
     >
       {state !== 'working' ? (
-        <span aria-hidden className="mono text-[0.8125rem]">
-          {confirmation !== null ? '✓' : state === 'error' ? '!' : arrow ? '→' : '↓'}
-        </span>
+        <svg
+          aria-hidden
+          viewBox="0 0 16 16"
+          className="size-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path
+            d={
+              confirmation !== null
+                ? 'm3.5 8.5 3 3 6-7'
+                : state === 'error'
+                  ? 'M8 3.5v5.5M8 12v.5'
+                  : arrow
+                    ? 'M3 8h10m-4-4 4 4-4 4'
+                    : 'M8 2.5v8m-3.5-3.5L8 10.5 11.5 7M3 13.5h10'
+            }
+          />
+        </svg>
       ) : null}
       {state === 'working'
         ? 'Preparing…'

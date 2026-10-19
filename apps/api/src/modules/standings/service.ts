@@ -1,3 +1,5 @@
+import { reconcileTournament } from './reconcile';
+import { transactions, afterCommit } from '../../lib/transaction';
 import {
   aggregateFootballStandings,
   aggregateStandings,
@@ -5,6 +7,7 @@ import {
   formatGoalDifference,
   formatNrr,
   materializeFootballEvents,
+  materializeEventRows,
   sortFootballStandings,
   sortStandings,
   type FootballMatchResult,
@@ -25,6 +28,7 @@ async function loadResults(tournamentId: string): Promise<MatchResult[]> {
   const matches = await prisma.match.findMany({
     where: {
       tournamentId,
+      stage: 'LEAGUE',
       status: { in: ['COMPLETED', 'ABANDONED'] },
       team1Id: { not: null },
       team2Id: { not: null },
@@ -58,35 +62,34 @@ async function fillInningsTotals(results: MatchResult[]): Promise<void> {
     select: { id: true, matchId: true, battingTeamId: true },
   });
 
+  const allEvents = await prisma.ballEvent.findMany({
+    where: { inningsId: { in: inningsIds.map((entry) => entry.id) } },
+    orderBy: { seq: 'asc' },
+    select: {
+      id: true,
+      inningsId: true,
+      seq: true,
+      eventType: true,
+      supersedesEventId: true,
+      runsOffBat: true,
+      extraRuns: true,
+      isLegalDelivery: true,
+    },
+  });
+  const byInnings = new Map<string, typeof allEvents>();
+  for (const event of allEvents) {
+    const bucket = byInnings.get(event.inningsId) ?? [];
+    bucket.push(event);
+    byInnings.set(event.inningsId, bucket);
+  }
   for (const innings of inningsIds) {
-    const events = await prisma.ballEvent.findMany({
-      where: { inningsId: innings.id },
-      select: {
-        id: true,
-        eventType: true,
-        supersedesEventId: true,
-        runsOffBat: true,
-        extraRuns: true,
-        isLegalDelivery: true,
-      },
-    });
-
-    const replaced = new Map<string, (typeof events)[number]>();
-    const removed = new Set<string>();
-
-    for (const event of events) {
-      if (!event.supersedesEventId) continue;
-      if (event.eventType === 'CORRECTION') replaced.set(event.supersedesEventId, event);
-      if (event.eventType === 'UNDO') removed.add(event.supersedesEventId);
-    }
+    const events = materializeEventRows(byInnings.get(innings.id) ?? []);
 
     let runs = 0;
     let legalBalls = 0;
 
     for (const event of events) {
-      if (event.eventType !== 'BALL' || removed.has(event.id)) continue;
-
-      const effective = replaced.get(event.id) ?? event;
+      const effective = event;
       runs += effective.runsOffBat + effective.extraRuns;
       if (effective.isLegalDelivery) legalBalls += 1;
     }
@@ -105,6 +108,7 @@ async function loadFootballResults(tournamentId: string): Promise<FootballMatchR
   const matches = await prisma.match.findMany({
     where: {
       tournamentId,
+      stage: 'LEAGUE',
       status: { in: ['COMPLETED', 'ABANDONED'] },
       team1Id: { not: null },
       team2Id: { not: null },
@@ -163,7 +167,7 @@ async function recomputeFootballStandings(tournamentId: string, teamIds: string[
     }),
   );
 
-  await redis.del(cacheKey(tournamentId)).catch(() => undefined);
+  await afterCommit(() => redis.del(cacheKey(tournamentId)));
 
   logger.info({ tournamentId, teams: totals.length }, 'Football standings recomputed');
 }
@@ -284,13 +288,16 @@ export async function recomputeStandings(tournamentId: string): Promise<void> {
     ),
   );
 
-  await redis.del(cacheKey(tournamentId)).catch(() => undefined);
+  await afterCommit(() => redis.del(cacheKey(tournamentId)));
 
   logger.info({ tournamentId, teams: totals.length }, 'Standings recomputed');
 }
 
 export async function getStandings(tournamentId: string): Promise<StandingsRowDto[]> {
-  const cached = await redis.get(cacheKey(tournamentId)).catch(() => null);
+  await reconcileTournament(tournamentId);
+  const cached = transactions.getStore()
+    ? null
+    : await redis.get(cacheKey(tournamentId)).catch(() => null);
   if (cached) return JSON.parse(cached) as StandingsRowDto[];
 
   const tournament = await prisma.tournament.findUnique({
@@ -368,6 +375,6 @@ export async function getStandings(tournamentId: string): Promise<StandingsRowDt
 
 export function registerStandingsSubscriber(): void {
   onMatchEvent('match:completed', async ({ tournamentId }) => {
-    await recomputeStandings(tournamentId);
+    await reconcileTournament(tournamentId);
   });
 }

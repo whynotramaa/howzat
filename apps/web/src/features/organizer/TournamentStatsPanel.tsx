@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import type { AnyTournamentStatsDto, TournamentStatsDto } from '@howzat/shared';
-import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { Table, Td, Th } from '@/components/ui/Table';
@@ -28,22 +27,18 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
   const { orangeCap, purpleCap, players } = stats;
 
   return (
-    <section className="flex flex-col gap-7">
-      <SectionHeading
-        eyebrow="Tournament record"
-        title="The leaders board"
-        description="Aggregated tournament performance leaders."
-      />
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[0.8125rem] font-semibold">Leaders</h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <CapCard label="Orange cap · most runs" player={orangeCap} tone="text-accent" />
-        <CapCard label="Purple cap · most wickets" player={purpleCap} tone="text-[#9b8cff]" />
+      <div className="grid overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised sm:grid-cols-2">
+        <CapCard label="Most runs" player={orangeCap} value={orangeCap?.runs} accent />
+        <CapCard label="Most wickets" player={purpleCap} value={purpleCap?.wickets} />
       </div>
 
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-        <Table className="min-w-[58rem]">
+        <Table className="min-w-[44rem]">
           <thead>
-            <tr className="border-b border-line">
+            <tr className="border-b border-line bg-sunken">
               <Th align="left">Player</Th>
               <Th>Mat</Th>
               <Th>Runs</Th>
@@ -60,10 +55,10 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
             {players.map((player) => (
               <tr
                 key={player.playerId}
-                className="border-b border-line last:border-0 hover:bg-hover/50"
+                className="border-b border-line last:border-0 hover:bg-hover"
               >
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2.5">
                     <TeamMark
                       shortName={player.team.shortName}
                       color={player.team.primaryColor}
@@ -96,33 +91,30 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
 function CapCard({
   label,
   player,
-  tone,
+  value,
+  accent = false,
 }: {
   label: string;
   player: TournamentStatsDto['orangeCap'];
-  tone: string;
+  value: number | undefined;
+  accent?: boolean;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4 border-line px-4 py-3 not-last:border-b sm:not-last:border-r sm:not-last:border-b-0">
+      <div className="min-w-0">
         <p className="eyebrow">{label}</p>
-        <span className={`size-2 rounded-full bg-current ${tone}`} />
-      </CardHeader>
-      <CardBody>
-        {player ? (
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="serif text-2xl text-primary">{player.playerName}</p>
-              <p className="mt-1 text-sm text-secondary">{player.team.name}</p>
-            </div>
-            <p className={`mono text-3xl font-medium ${tone}`}>
-              {label.includes('runs') ? player.runs : player.wickets}
-            </p>
-          </div>
-        ) : (
-          <p className="text-secondary">No completed performances yet.</p>
-        )}
-      </CardBody>
-    </Card>
+        <p className="mt-0.5 truncate text-[0.8125rem] font-medium">
+          {player ? player.playerName : 'None yet'}
+        </p>
+        {player ? <p className="truncate text-xs text-muted">{player.team.name}</p> : null}
+      </div>
+      {player ? (
+        <p
+          className={`tabular text-2xl font-semibold tracking-[-0.04em] ${accent ? 'text-accent' : ''}`}
+        >
+          {value}
+        </p>
+      ) : null}
+    </div>
   );
 }

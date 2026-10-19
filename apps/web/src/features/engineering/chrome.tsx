@@ -10,13 +10,6 @@ import {
 } from 'react';
 import { cn } from '@/lib/cn';
 
-/* ------------------------------------------------------------------ *
- * Chapter registry
- *
- * Every chapter registers its id and title on mount. The minimap reads
- * the list, so adding a chapter never means editing a second array.
- * ------------------------------------------------------------------ */
-
 export interface ChapterEntry {
   id: string;
   num: string;
@@ -50,9 +43,10 @@ export function ChapterProvider({
   const register = useCallback(
     (entry: ChapterEntry, el: HTMLElement) => {
       nodes.current.set(entry.id, { entry, el });
-      // Keep registry order equal to document order, not mount order.
       order.current = [...nodes.current.values()]
-        .sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+        .sort((a, b) =>
+          a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+        )
         .map((n) => n.entry.id);
       publish();
       return () => {
@@ -64,9 +58,6 @@ export function ChapterProvider({
     [publish],
   );
 
-  // One scroll listener decides the active chapter: the last heading whose top
-  // has passed a quarter of the viewport. An IntersectionObserver gets this
-  // wrong for chapters taller than the screen, which most of them are.
   useEffect(() => {
     let frame = 0;
     const recompute = () => {
@@ -100,10 +91,6 @@ export function ChapterProvider({
   return <RegistryContext.Provider value={value}>{children}</RegistryContext.Provider>;
 }
 
-/* ------------------------------------------------------------------ *
- * Chapter
- * ------------------------------------------------------------------ */
-
 export function Chapter({
   id,
   num,
@@ -133,10 +120,12 @@ export function Chapter({
         </span>
         <div className="min-w-0">
           <p className="eyebrow mb-2.5">Chapter {num}</p>
-          <h2 className="serif text-[2rem] text-primary sm:text-[2.5rem]">{title}</h2>
+          <h2 className="font-semibold tracking-[-0.02em] text-lg text-primary">{title}</h2>
         </div>
         {standfirst ? (
-          <p className="serif text-[1.1875rem] leading-[1.5] text-secondary">{standfirst}</p>
+          <p className="font-semibold tracking-[-0.02em] text-[1.1875rem] leading-[1.5] text-secondary">
+            {standfirst}
+          </p>
         ) : null}
         <div className="rule" />
       </header>
@@ -144,10 +133,6 @@ export function Chapter({
     </section>
   );
 }
-
-/* ------------------------------------------------------------------ *
- * Minimap
- * ------------------------------------------------------------------ */
 
 export function Minimap({ entries, activeId }: { entries: ChapterEntry[]; activeId: string }) {
   if (entries.length === 0) return null;
@@ -164,7 +149,6 @@ export function Minimap({ entries, activeId }: { entries: ChapterEntry[]; active
               title={`${entry.num}. ${entry.title}`}
               style={{ '--delay': `${i * 12}ms` } as React.CSSProperties}
             >
-              {/* The label is hover-only. At rest the rail is ticks and nothing else. */}
               <span className="eng-minimap-label">{entry.title}</span>
               <span aria-hidden className="eng-minimap-tick" />
             </a>
@@ -175,11 +159,6 @@ export function Minimap({ entries, activeId }: { entries: ChapterEntry[]; active
   );
 }
 
-/**
- * The phone equivalent of the minimap: a floating button that opens the
- * chapter list over the page. A native select was fine but invisible — nobody
- * finds a jump control parked in a header they have already scrolled past.
- */
 export function ChapterSheet({ entries, activeId }: { entries: ChapterEntry[]; activeId: string }) {
   const [open, setOpen] = useState(false);
   const active = entries.find((entry) => entry.id === activeId);
@@ -241,10 +220,6 @@ export function ChapterSheet({ entries, activeId }: { entries: ChapterEntry[]; a
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Figure: a drawing, its controls, and its caption
- * ------------------------------------------------------------------ */
-
 export function Figure({
   label,
   caption,
@@ -257,7 +232,6 @@ export function Figure({
   label: string;
   caption?: ReactNode;
   controls?: ReactNode;
-  /** One imperative sentence telling the reader what to press first. */
   hint?: ReactNode;
   log?: ReactNode;
   children: ReactNode;
@@ -289,10 +263,6 @@ export function Figure({
   );
 }
 
-/**
- * A labelled cluster of controls. Without the label, a bar of eight buttons is
- * a puzzle: nothing says which ones drive the model and which ones break it.
- */
 export function Controls({
   label,
   children,
@@ -309,10 +279,6 @@ export function Controls({
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ *
- * Small parts
- * ------------------------------------------------------------------ */
 
 export function Btn({
   children,
@@ -368,7 +334,6 @@ export function LogPane({ lines }: { lines: LogLine[] }) {
   );
 }
 
-/** Appends log lines with stable ids, capped so the pane never grows forever. */
 export function useLog(cap = 60) {
   const [lines, setLines] = useState<LogLine[]>([]);
   const next = useRef(0);
@@ -422,15 +387,11 @@ export function Callout({
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Icons. Drawn on a 24-unit grid with the same open stroke as the
- * diagrams, so an icon and a diagram box read as the same hand.
- * ------------------------------------------------------------------ */
-
 const ICONS = {
   phone: 'M8 2h8v20H8zM11 19h2',
   server: 'M3 4h18v7H3zM3 13h18v7H3zM7 7.5h.01M7 16.5h.01',
-  database: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6',
+  database:
+    'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6',
   bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
   lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
   eye: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
@@ -438,7 +399,8 @@ const ICONS = {
   gap: 'M12 3 2 20h20zM12 9v5M12 17h.01',
   trap: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16h.01',
   why: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3 2.5v1.5M12 17h.01',
-  offline: 'M2 4l20 16M5 12a10 10 0 0 1 4-3M2.5 8.5a15 15 0 0 1 5-3.4M12 19h.01M8.5 15.5a5 5 0 0 1 3-1.4',
+  offline:
+    'M2 4l20 16M5 12a10 10 0 0 1 4-3M2.5 8.5a15 15 0 0 1 5-3.4M12 19h.01M8.5 15.5a5 5 0 0 1 3-1.4',
   clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
   list: 'M4 6h16M4 12h16M4 18h10',
   close: 'M6 6l12 12M18 6L6 18',
@@ -472,27 +434,47 @@ export function Law({ n, children }: { n: number; children: ReactNode }) {
   );
 }
 
-/* ------------------------------------------------------------------ *
- * The one filter every drawing shares.
- * ------------------------------------------------------------------ */
-
 export function SketchDefs() {
   return (
     <svg aria-hidden width="0" height="0" style={{ position: 'absolute' }}>
       <defs>
         <filter id="eng-sketch" x="-6%" y="-6%" width="112%" height="112%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="7" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="2.1" xChannelSelector="R" yChannelSelector="G" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.028"
+            numOctaves="3"
+            seed="7"
+            result="n"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="n"
+            scale="2.1"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
         </filter>
-        <marker id="eng-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M0 0.5 L9 5 L0 9.5" fill="none" stroke="context-stroke" strokeWidth="1.6" strokeLinecap="round" />
+        <marker
+          id="eng-arrow"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="7"
+          markerHeight="7"
+          orient="auto-start-reverse"
+        >
+          <path
+            d="M0 0.5 L9 5 L0 9.5"
+            fill="none"
+            stroke="context-stroke"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
         </marker>
       </defs>
     </svg>
   );
 }
-
-/* SVG building blocks. Every diagram draws with these three. */
 
 export type DrawState = 'idle' | 'active' | 'done' | 'failed' | 'muted';
 
@@ -520,7 +502,12 @@ export function Box({
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={r} className="eng-box" data-state={state} />
-      <text x={x + w / 2} y={y + (sub ? h / 2 - 3 : h / 2 + 4)} textAnchor="middle" className="t-label">
+      <text
+        x={x + w / 2}
+        y={y + (sub ? h / 2 - 3 : h / 2 + 4)}
+        textAnchor="middle"
+        className="t-label"
+      >
         {title}
       </text>
       {sub ? (

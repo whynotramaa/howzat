@@ -3,7 +3,7 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import type { Response } from 'express';
 import { env, isProduction } from '../../config/env';
 import { prisma } from '../../lib/prisma';
-import { unauthorized } from '../../lib/errors';
+import { conflict, unauthorized } from '../../lib/errors';
 
 export const REFRESH_COOKIE = 'howzat_rt';
 
@@ -61,8 +61,10 @@ export async function rotateRefreshToken(
   if (!existing) throw unauthorized('Session not recognized — sign in again');
 
   if (existing.revokedAt) {
+    if (Date.now() - existing.revokedAt.getTime() < 5_000)
+      throw conflict('Your session was refreshed in another tab. Retry the request.');
     await prisma.refreshToken.updateMany({
-      where: { userId: existing.userId, revokedAt: null },
+      where: { familyId: existing.familyId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
     throw unauthorized('Session reuse detected — all sessions were signed out');
@@ -74,19 +76,22 @@ export async function rotateRefreshToken(
 
   const { token, tokenHash: nextHash } = generateRefreshToken();
 
-  await prisma.$transaction([
-    prisma.refreshToken.update({
-      where: { id: existing.id },
+  await prisma.$transaction(async (tx) => {
+    const consumed = await tx.refreshToken.updateMany({
+      where: { id: existing.id, revokedAt: null, expiresAt: { gt: new Date() } },
       data: { revokedAt: new Date() },
-    }),
-    prisma.refreshToken.create({
+    });
+    if (consumed.count !== 1)
+      throw conflict('Your session was refreshed in another tab. Retry the request.');
+    await tx.refreshToken.create({
       data: {
         userId: existing.userId,
         tokenHash: nextHash,
+        familyId: existing.familyId,
         expiresAt: new Date(Date.now() + parseDuration(env.JWT_REFRESH_TTL)),
       },
-    }),
-  ]);
+    });
+  });
 
   return { userId: existing.userId, token };
 }

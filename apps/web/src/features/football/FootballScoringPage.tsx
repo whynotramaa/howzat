@@ -47,6 +47,7 @@ export function FootballScoringPage() {
 
   const watch = useMatchClock(data?.clock ?? null, clockCommand.mutateAsync);
 
+  const [assisted, setAssisted] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
   const [flash, setFlash] = useState<FlashPayload | null>(null);
 
@@ -59,11 +60,14 @@ export function FootballScoringPage() {
     );
   }
 
-  if (error) return <ErrorText error={error} />;
+  if (error && !data) return <ErrorText error={error} />;
   if (!data) return null;
 
   const { snapshot, state } = data;
-  const finished = watch.clock?.status === 'FINISHED' || data.status === 'COMPLETED';
+  const finished =
+    watch.clock?.status === 'FINISHED' ||
+    data.status === 'COMPLETED' ||
+    data.status === 'ABANDONED';
   const canRecord = Boolean(watch.clock) && !finished;
   const busy = recordEvent.isPending;
 
@@ -100,7 +104,25 @@ export function FootballScoringPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={cn('flex flex-col gap-4', assisted && 'assist-mode')}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-[-0.02em]">Scoring</h1>
+        <button
+          type="button"
+          aria-pressed={assisted}
+          onClick={() => setAssisted(!assisted)}
+          className="h-8 rounded-[var(--radius-md)] border border-line px-2.5 text-xs text-secondary hover:bg-hover"
+        >
+          Assist{' '}
+          <span className={assisted ? 'text-accent' : 'text-muted'}>{assisted ? 'on' : 'off'}</span>
+        </button>
+      </div>
+      {assisted ? (
+        <p className="assist-note">
+          Start the clock when play begins. Tap Goal, Save, Card or Substitution to record an
+          incident. End the period at the whistle; full time saves the result.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <BackLink to={`/matches/${matchId}`}>Back to the match</BackLink>
 
@@ -591,7 +613,7 @@ function SubstitutionSheet({
       title="Substitution"
       description={
         limit === null
-          ? 'Rolling substitutions — anyone off the pitch can come on, as often as you like.'
+          ? 'Rolling substitutions, anyone off the pitch can come on, as often as you like.'
           : `Who is coming off, and who is taking their place. ${limit} changes a side.`
       }
       footer={
@@ -640,7 +662,7 @@ function SubstitutionSheet({
             <>
               <p className="text-[0.8125rem] text-muted">
                 {remaining === null
-                  ? `${spent} change${spent === 1 ? '' : 's'} so far — no limit`
+                  ? `${spent} change${spent === 1 ? '' : 's'} so far, no limit`
                   : `${remaining} of ${limit} change${limit === 1 ? '' : 's'} left`}
               </p>
 
@@ -680,8 +702,6 @@ function availableToComeOn(
     named.set(player.id, player);
   }
 
-  // Substitutions roll: anyone off the pitch and not sent off can come on, including
-  // a player who has already been taken off once.
   const usable = (id: string) => {
     if (onPitch.has(id)) return false;
     const entry = named.get(id);
@@ -757,7 +777,7 @@ function SaveSheet({
       }}
       size="lg"
       title="Save"
-      description="A shot kept out — credited to the side that defended it."
+      description="Credited to the defending side."
       footer={
         <>
           <Button
@@ -848,7 +868,7 @@ function GoalSheet({
       }}
       size="lg"
       title="Goal"
-      description="Which side scored, and who put it in."
+      description="Side and scorer."
       footer={
         <>
           <Button
@@ -976,7 +996,7 @@ function CardSheet({
       }}
       size="lg"
       title="Card"
-      description="A booking, against the side that committed the foul."
+      description="Against the fouling side."
       footer={
         <>
           <Button

@@ -148,7 +148,6 @@ function renderInnings(doc: ReportDoc, innings: ScorecardInnings, header: Public
     { label: 'Total', value: `${innings.runs}/${innings.wickets}` },
     {
       label: 'Overs',
-      // The innings' own allotment, not the fixture's — DLS can cut them apart.
       value: `${innings.overs}/${innings.quotaOvers ?? header.oversPerInnings}`,
     },
     { label: 'Run rate', value: runRate(innings) },

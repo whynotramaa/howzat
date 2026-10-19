@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clockStatusLabel, type FootballSnapshot } from '@howzat/shared';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { EmptyState } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Feedback';
 import { Pill, TeamMark } from '@/components/ui/Pill';
@@ -25,12 +26,12 @@ export function LiveFootballPage({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!snapshot || !matchLabel) return;
-    document.title = `${matchLabel} — ${snapshot.home.goals}–${snapshot.away.goals} · Howzat`;
+    document.title = `${matchLabel} · ${snapshot.home.goals}–${snapshot.away.goals} · Howzat`;
   }, [matchLabel, snapshot]);
 
   return (
     <div
-      className="live-stage relative flex min-h-dvh flex-col"
+      className="relative flex min-h-dvh flex-col"
       style={
         {
           '--team-a': snapshot?.home.color ?? '#1268bd',
@@ -62,6 +63,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
               </span>
             ) : null}
             <ConnectionBadge state={connection} />
+            <ThemeToggle />
             {snapshot ? (
               <ShareLink slug={slug} variant="quiet" matchLabel={matchLabel} label="Share" />
             ) : null}
@@ -75,7 +77,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             <Skeleton className="h-72" />
             <Skeleton className="h-40" />
           </div>
-        ) : error ? (
+        ) : error && !snapshot ? (
           <p
             role="alert"
             className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-5 py-4 text-primary"
@@ -83,12 +85,10 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             {error}
           </p>
         ) : notStarted ? (
-          <EmptyState
-            title="Not kicked off yet"
-            description="The clock and the score appear here the moment the whistle goes. Leave this open — it updates itself."
-          />
+          <EmptyState title="Not kicked off yet" description="Updates on kick-off." />
         ) : snapshot ? (
-          <div className="flex flex-col gap-6 sm:gap-8">
+          <div className="flex flex-col gap-4">
+            <h1 className="text-xl font-semibold tracking-[-0.02em]">{snapshot.tournamentName}</h1>
             <Scoreboard snapshot={snapshot} slug={slug} />
 
             <Tabs
@@ -211,7 +211,9 @@ function TeamBlock({ side, align }: { side: FootballSnapshot['home']; align: 'le
       <TeamMark shortName={side.short} color={side.color} size="lg" />
 
       <div className="min-w-0">
-        <p className="serif truncate text-xl text-primary sm:text-2xl">{side.name}</p>
+        <p className="font-semibold tracking-[-0.02em] truncate text-base text-primary sm:text-lg">
+          {side.name}
+        </p>
 
         {side.yellowCards > 0 || side.redCards > 0 ? (
           <div

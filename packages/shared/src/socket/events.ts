@@ -62,12 +62,23 @@ export const matchRoom = (matchId: string) => `match:${matchId}`;
 export function isNewerSnapshot(current: MatchSnapshot | null, incoming: MatchSnapshot): boolean {
   if (!current) return true;
   if (incoming.matchId !== current.matchId) return true;
+  if (
+    incoming.revision !== undefined &&
+    current.revision !== undefined &&
+    incoming.revision !== current.revision
+  ) {
+    return incoming.revision > current.revision;
+  }
 
   if (incoming.inningsNumber !== current.inningsNumber) {
     return incoming.inningsNumber > current.inningsNumber;
   }
 
-  return incoming.lastEventSeq > current.lastEventSeq;
+  return (
+    incoming.lastEventSeq > current.lastEventSeq ||
+    (incoming.lastEventSeq === current.lastEventSeq &&
+      Date.parse(incoming.updatedAt) > Date.parse(current.updatedAt))
+  );
 }
 
 export function hasSequenceGap(current: MatchSnapshot | null, incoming: MatchSnapshot): boolean {
@@ -82,6 +93,13 @@ export function isNewerFootballSnapshot(
 ): boolean {
   if (!current) return true;
   if (incoming.matchId !== current.matchId) return true;
+  if (
+    incoming.revision !== undefined &&
+    current.revision !== undefined &&
+    incoming.revision !== current.revision
+  ) {
+    return incoming.revision > current.revision;
+  }
   if (incoming.lastEventSeq !== current.lastEventSeq) {
     return incoming.lastEventSeq > current.lastEventSeq;
   }

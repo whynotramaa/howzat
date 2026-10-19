@@ -14,7 +14,9 @@ import type {
   TossInput,
   UserRef,
 } from '@howzat/shared';
-import { api } from '@/lib/api';
+import { api, apiFetch } from '@/lib/api';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { readScorerContext, saveScorerContext } from '@/lib/offlineBallQueue';
 import { keys as organizerKeys } from '@/features/organizer/queries';
 
 export const matchKeys = {
@@ -54,6 +56,7 @@ export interface SquadsResponse {
 }
 
 interface BallResponse {
+  scorer: ScorerStateDto;
   snapshot: MatchSnapshot;
   duplicate: boolean;
   inningsCompleted: boolean;
@@ -165,7 +168,7 @@ export function useAssignScorer(tournamentId: string, matchId: string) {
         { username: username.trim().toLowerCase() },
       ),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
+      void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId), exact: true });
       void queryClient.invalidateQueries({ queryKey: matchKeys.fixtures(tournamentId) });
     },
   });
@@ -178,16 +181,26 @@ export function useRemoveScorer(tournamentId: string, matchId: string) {
     mutationFn: (scorerId: string) =>
       api.delete<void>(`/tournaments/${tournamentId}/matches/${matchId}/scorers/${scorerId}`),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
+      void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId), exact: true });
       void queryClient.invalidateQueries({ queryKey: matchKeys.fixtures(tournamentId) });
     },
   });
 }
 
 export function useScorerState(matchId: string) {
+  const { user } = useAuth();
   return useQuery({
     queryKey: matchKeys.state(matchId),
-    queryFn: () => api.get<ScorerStateDto>(`/matches/${matchId}/state`),
+    queryFn: async ({ signal }) => {
+      const key = `${user?.id}:${matchId}`;
+      if (!navigator.onLine) {
+        const stored = await readScorerContext<ScorerStateDto>(key);
+        if (stored) return stored;
+      }
+      const data = await apiFetch<ScorerStateDto>(`/matches/${matchId}/state`, { signal });
+      await saveScorerContext(key, data).catch(() => undefined);
+      return data;
+    },
     enabled: Boolean(matchId),
     staleTime: 0,
   });
@@ -197,18 +210,16 @@ export function useRecordBall(matchId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
+    meta: { silent: true },
     mutationFn: (input: BallRequestInput) =>
       api.post<BallResponse>(`/matches/${matchId}/balls`, input),
-    onSuccess: async () => {
-      // The offline queue removes the item after mutateAsync resolves. Make
-      // that resolution mean the scorer state has caught up, not just that the
-      // ball POST succeeded, otherwise an older in-flight GET can flash back.
-      await queryClient.cancelQueries({ queryKey: matchKeys.state(matchId) });
-      await queryClient.refetchQueries({
-        queryKey: matchKeys.state(matchId),
-        type: 'active',
-      });
-      invalidateMatch(queryClient, matchId, { skipState: true });
+    onSuccess: async (response) => {
+      await queryClient.cancelQueries({ queryKey: matchKeys.state(matchId), exact: true });
+      queryClient.setQueryData(matchKeys.state(matchId), response.scorer);
+      if (response.inningsCompleted || response.matchCompleted) {
+        void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId), exact: true });
+        void queryClient.invalidateQueries({ queryKey: matchKeys.dls(matchId) });
+      }
     },
   });
 }
@@ -233,15 +244,7 @@ export function useDlsState(matchId: string, enabled = true) {
   });
 }
 
-/**
- * Every DLS write returns the whole recomputed state, so each of these seeds
- * the cache with the answer rather than asking for it again — the scorer sees
- * the revised target the instant it lands.
- */
-function useDlsMutation<TInput>(
-  matchId: string,
-  request: (input: TInput) => Promise<DlsStateDto>,
-) {
+function useDlsMutation<TInput>(matchId: string, request: (input: TInput) => Promise<DlsStateDto>) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -292,9 +295,10 @@ function invalidateMatch(
   matchId: string,
   options: { skipState?: boolean } = {},
 ): void {
-  void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId) });
-  if (!options.skipState) void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
-  void queryClient.invalidateQueries({ queryKey: matchKeys.squads(matchId) });
+  void queryClient.invalidateQueries({ queryKey: matchKeys.match(matchId), exact: true });
+  if (!options.skipState)
+    void queryClient.invalidateQueries({ queryKey: matchKeys.state(matchId) });
+
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'tournaments' && query.queryKey[2] === 'matches',
   });

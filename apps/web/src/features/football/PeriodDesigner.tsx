@@ -126,7 +126,7 @@ function PeriodBar({ periods, periodMinutes }: { periods: number; periodMinutes:
         <p className="text-[0.8125rem] text-secondary">
           {periods === 1
             ? 'One straight period'
-            : `${periods} × ${periodMinutes} minutes — ${periodName(1, periods).toLowerCase()} to ${periodName(
+            : `${periods} × ${periodMinutes} minutes, ${periodName(1, periods).toLowerCase()} to ${periodName(
                 periods,
                 periods,
               ).toLowerCase()}`}

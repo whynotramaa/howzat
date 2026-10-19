@@ -14,7 +14,8 @@
     "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:push": "dotenv -e ../../.env -- prisma db push",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
-    "db:seed": "tsx --env-file-if-exists=../../.env prisma/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=../../.env prisma/seed.ts",
+    "db:maintenance": "tsx --env-file-if-exists=../../.env src/maintenance.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

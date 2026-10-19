@@ -154,6 +154,7 @@ export interface MatchState {
 }
 
 export interface MatchSnapshot {
+  revision?: number;
   matchId: string;
   publicSlug: string;
   status: string;

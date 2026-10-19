@@ -1,3 +1,4 @@
+import { writeHandler as asyncHandler } from '../../lib/writeHandler';
 import { Router } from 'express';
 import {
   createTeamSchema,
@@ -7,7 +8,7 @@ import {
   type TournamentDto,
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
-import { asyncHandler, parseBody, requireParam } from '../../lib/http';
+import { parseBody, requireParam } from '../../lib/http';
 import { conflict, unprocessable } from '../../lib/errors';
 import { requireAuth } from '../../middleware/auth';
 import { assertSquadEditable, loadOwnedTournament } from './guards';
@@ -32,7 +33,13 @@ tournamentsRouter.get(
 
     const items: TournamentDto[] = tournaments.map((tournament) => {
       const eligible = tournament.teams.filter(
-        (team) => team._count.players === tournament.playersPerTeam,
+        (team) =>
+          evaluateEligibility(
+            team.id,
+            team._count.players,
+            tournament.playersPerTeam,
+            tournament.sport,
+          ).isEligible,
       ).length;
 
       return toTournamentDto(tournament, {
@@ -88,7 +95,13 @@ tournamentsRouter.get(
     });
 
     const eligible = tournament.teams.filter(
-      (team) => team._count.players === tournament.playersPerTeam,
+      (team) =>
+        evaluateEligibility(
+          team.id,
+          team._count.players,
+          tournament.playersPerTeam,
+          tournament.sport,
+        ).isEligible,
     ).length;
 
     res.json(
@@ -106,6 +119,17 @@ tournamentsRouter.patch(
     const tournamentId = requireParam(req, 'tournamentId');
     const existing = await loadOwnedTournament(tournamentId, req.user!.id);
     const input = parseBody(updateTournamentSchema, req.body);
+    if (
+      existing.sport === 'CRICKET' &&
+      input.playersPerTeam !== undefined &&
+      input.playersPerTeam !== 11
+    )
+      throw unprocessable('INVALID_SQUAD', 'A cricket side has exactly 11 players');
+    if (existing.status !== 'DRAFT' && Object.keys(input).some((key) => key !== 'name'))
+      throw unprocessable(
+        'TOURNAMENT_LOCKED',
+        'Only the tournament name can change after fixtures are generated',
+      );
 
     if (input.teamsCount !== undefined) {
       const registered = await prisma.team.count({ where: { tournamentId } });
@@ -143,7 +167,7 @@ tournamentsRouter.delete(
     const tournamentId = requireParam(req, 'tournamentId');
     const tournament = await loadOwnedTournament(tournamentId, req.user!.id);
 
-    if (tournament.status === 'IN_PROGRESS') {
+    if (tournament.status === 'IN_PROGRESS' || tournament.status === 'COMPLETED') {
       throw unprocessable(
         'TOURNAMENT_IN_PROGRESS',
         'Matches are under way — a live tournament cannot be deleted',

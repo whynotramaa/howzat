@@ -74,7 +74,7 @@ export function LoginPage() {
       if (err instanceof ApiError && err.code === 'EMAIL_UNVERIFIED') {
         const pendingEmail = (err.details as { email?: string } | undefined)?.email;
         if (pendingEmail) setEmail(pendingEmail);
-        setError('Confirm your email to finish setting up this account.');
+        setError('Confirm your email first.');
         setStep('verify');
         await sendAnotherCode(pendingEmail ?? identifier);
       } else {
@@ -169,14 +169,10 @@ export function LoginPage() {
   return (
     <AuthLayout>
       {step === 'login' ? (
-        <form onSubmit={handleLogin} className="flex flex-col gap-7">
-          <FormHeading
-            eyebrow="Welcome back"
-            title="Sign in"
-            lead="Use the username you picked when you signed up."
-          />
+        <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <FormHeading title="Sign in" lead="Username or email." />
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
             <Input
               label="Username or email"
               autoComplete="username"
@@ -204,14 +200,14 @@ export function LoginPage() {
                   goTo('forgot');
                 }}
               >
-                Forgot your password?
+                Forgot password?
               </TextAction>
             </div>
           </div>
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" size="lg" fullWidth isLoading={pending}>
+          <Button type="submit" fullWidth isLoading={pending}>
             Sign in
           </Button>
 
@@ -222,14 +218,10 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'register' ? (
-        <form onSubmit={handleRegister} className="flex flex-col gap-7">
-          <FormHeading
-            eyebrow="Registration"
-            title="Create your account"
-            lead="Your username is how organizers add you to a squad, so pick one your team will recognise."
-          />
+        <form onSubmit={handleRegister} className="flex flex-col gap-5">
+          <FormHeading title="Create account" lead="Organizers add you to squads by username." />
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
             <Input
               label="Your name"
               autoComplete="name"
@@ -245,7 +237,7 @@ export function LoginPage() {
               autoComplete="username"
               required
               placeholder="whynotramaa"
-              hint="Lowercase letters, numbers and underscores. This is public."
+              hint="Public. a-z, 0-9 and _"
               value={username}
               onChange={(event) =>
                 setUsername(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
@@ -259,7 +251,6 @@ export function LoginPage() {
               autoComplete="email"
               required
               placeholder="you@example.com"
-              hint="We send a code once, to confirm the address is yours."
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -270,7 +261,7 @@ export function LoginPage() {
               autoComplete="new-password"
               required
               minLength={8}
-              hint="At least 8 characters."
+              hint="8+ characters."
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -278,7 +269,7 @@ export function LoginPage() {
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" size="lg" fullWidth isLoading={pending}>
+          <Button type="submit" fullWidth isLoading={pending}>
             Create account
           </Button>
 
@@ -289,12 +280,8 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'forgot' ? (
-        <form onSubmit={handleForgot} className="flex flex-col gap-7">
-          <FormHeading
-            eyebrow="Account recovery"
-            title="Reset your password"
-            lead="Tell us the email on your account and we'll send a code to set a new password."
-          />
+        <form onSubmit={handleForgot} className="flex flex-col gap-5">
+          <FormHeading title="Reset password" lead="We will email you a code." />
 
           <Input
             label="Email"
@@ -310,7 +297,7 @@ export function LoginPage() {
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" size="lg" fullWidth isLoading={pending}>
+          <Button type="submit" fullWidth isLoading={pending}>
             Send reset code
           </Button>
 
@@ -321,14 +308,12 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'reset' ? (
-        <form onSubmit={handleReset} className="flex flex-col gap-7">
+        <form onSubmit={handleReset} className="flex flex-col gap-5">
           <FormHeading
-            eyebrow="Account recovery"
-            title="Choose a new password"
+            title="New password"
             lead={
               <>
-                If <span className="text-primary">{email}</span> has an account, a code is on its
-                way.
+                Code sent to <span className="text-primary">{email}</span>
               </>
             }
           />
@@ -344,7 +329,7 @@ export function LoginPage() {
               autoComplete="new-password"
               required
               minLength={8}
-              hint="At least 8 characters. This signs you out everywhere else."
+              hint="8+ characters. Signs out other devices."
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -359,7 +344,7 @@ export function LoginPage() {
             isLoading={pending}
             disabled={code.length !== 6 || password.length < 8}
           >
-            Set password and sign in
+            Set password
           </Button>
 
           <div className="flex items-center justify-between gap-4">
@@ -382,14 +367,12 @@ export function LoginPage() {
           </div>
         </form>
       ) : (
-        <form onSubmit={handleVerify} className="flex flex-col gap-7">
+        <form onSubmit={handleVerify} className="flex flex-col gap-5">
           <FormHeading
-            eyebrow="One step left"
             title="Confirm your email"
             lead={
               <>
-                Sent to <span className="text-primary">{email}</span>. This is the only time we'll
-                ask for a code.
+                Code sent to <span className="text-primary">{email}</span>
               </>
             }
           />
@@ -407,7 +390,7 @@ export function LoginPage() {
             isLoading={pending}
             disabled={code.length !== 6}
           >
-            Confirm and continue
+            Continue
           </Button>
 
           <div className="flex items-center justify-between gap-4">
@@ -435,58 +418,27 @@ export function LoginPage() {
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_1.05fr]">
-      <aside
-        className="auth-editorial-panel relative hidden flex-col justify-between bg-inverse bg-cover bg-center p-12 lg:flex xl:p-16"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(14,12,11,.96) 0%, rgba(14,12,11,.82) 45%, rgba(14,12,11,.3) 100%), url('/login-trophy-backdrop.png')",
-        }}
-      >
-        <Link to="/" className="transition-opacity hover:opacity-70">
-          <Wordmark tone="inverse" />
+    <div className="grid-canvas flex min-h-dvh flex-col">
+      <header className="flex h-14 items-center justify-between px-5 sm:px-8">
+        <Link to="/" aria-label="Howzat home">
+          <Wordmark size="sm" />
         </Link>
-
-        <div className="max-w-md">
-          <p className="eyebrow text-muted-on-inverse">The record</p>
-          <h2 className="serif mt-6 text-[2.75rem] text-white">
-            Ball-by-ball scoring for tournaments that actually happen.
-          </h2>
-        </div>
-
-        <p className="text-[0.8125rem] text-white/75">Howzat — local cricket, kept properly.</p>
-      </aside>
-
-      <main className="flex flex-col px-5 py-6 sm:px-10">
-        <header className="flex items-center justify-between">
-          <Link to="/" className="lg:invisible">
-            <Wordmark />
-          </Link>
-          <ThemeToggle />
-        </header>
-
-        <div className="flex flex-1 items-center justify-center py-12">
-          <div className="w-full max-w-[26rem]">{children}</div>
+        <ThemeToggle />
+      </header>
+      <main className="flex flex-1 items-center justify-center px-5 pb-16">
+        <div className="plate ticks w-full max-w-[22rem] rounded-[var(--radius-lg)] p-6">
+          {children}
         </div>
       </main>
     </div>
   );
 }
 
-function FormHeading({
-  eyebrow,
-  title,
-  lead,
-}: {
-  eyebrow: string;
-  title: string;
-  lead: ReactNode;
-}) {
+function FormHeading({ title, lead }: { title: string; lead: ReactNode }) {
   return (
     <div>
-      <p className="eyebrow">{eyebrow}</p>
-      <h1 className="serif mt-4 text-[2.25rem] text-primary">{title}</h1>
-      <p className="mt-3 text-secondary">{lead}</p>
+      <h1 className="text-lg font-semibold tracking-[-0.02em]">{title}</h1>
+      <p className="mt-1 text-[0.8125rem] text-muted">{lead}</p>
     </div>
   );
 }
@@ -501,13 +453,9 @@ function FormFooter({
   onClick: () => void;
 }) {
   return (
-    <p className="border-t border-line pt-6 text-center text-sm text-secondary">
+    <p className="border-t border-line pt-4 text-center text-[0.8125rem] text-muted">
       {question}{' '}
-      <button
-        type="button"
-        onClick={onClick}
-        className="font-medium text-accent underline decoration-[var(--accent-line)] underline-offset-4 transition-colors hover:decoration-[var(--accent-strong)]"
-      >
+      <button type="button" onClick={onClick} className="font-medium text-accent hover:underline">
         {action}
       </button>
     </p>
@@ -535,19 +483,16 @@ function CodeInput({
       placeholder="000000"
       value={value}
       onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-      className="mono h-16 text-center text-[1.75rem] tracking-[0.45em] placeholder:text-[var(--line-strong)]"
+      className="tabular h-12 text-center text-xl tracking-[0.4em] placeholder:text-[var(--line-strong)]"
     />
   );
 }
 
 function DevCodeBanner({ code }: { code: string }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--warning)]/40 bg-warning-soft px-4 py-3.5">
-      <p className="eyebrow text-warning">Development mode</p>
-      <p className="mt-2 text-[0.8125rem] leading-relaxed text-secondary">
-        Code is <span className="mono font-medium tracking-[0.2em] text-primary">{code}</span>.
-      </p>
-    </div>
+    <p className="rounded-[var(--radius-md)] bg-warning-soft px-3 py-2 text-xs text-warning">
+      Dev code <span className="tabular font-semibold tracking-[0.2em]">{code}</span>
+    </p>
   );
 }
 
@@ -555,7 +500,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <p
       role="alert"
-      className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-4 py-3.5 text-sm text-primary"
+      className="rounded-[var(--radius-md)] bg-alert-soft px-3 py-2 text-[0.8125rem] text-alert"
     >
       {message}
     </p>
@@ -565,9 +510,9 @@ function ErrorBanner({ message }: { message: string }) {
 export function FullPageSpinner() {
   return (
     <div className="grid min-h-dvh place-items-center">
-      <div role="status" aria-label="Loading" className="flex flex-col items-center gap-5">
+      <div role="status" aria-label="Loading" className="flex flex-col items-center gap-4">
         <WordmarkMark size="lg" />
-        <span className="h-px w-16 animate-pulse bg-[var(--accent-strong)]" />
+        <span className="h-px w-12 animate-pulse bg-accent-fill" />
       </div>
     </div>
   );
@@ -578,5 +523,5 @@ function messageFor(err: unknown): string {
     const fieldError = Object.values(err.fieldErrors)[0];
     return fieldError ?? err.message;
   }
-  return 'Something went wrong. Check your connection and try again.';
+  return 'Something went wrong. Try again.';
 }

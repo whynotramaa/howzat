@@ -16,7 +16,7 @@ export interface PushButtonProps {
 export function PushButton({
   tone,
   depth = 9,
-  radius = 'var(--radius-lg)',
+  radius = 'var(--radius-md)',
   faceClassName,
   className,
   disabled = false,

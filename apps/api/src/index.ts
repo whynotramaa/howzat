@@ -6,7 +6,6 @@ import { disconnectDatabase, pingDatabase } from './lib/prisma';
 import { disconnectRedis, pingRedis } from './lib/redis';
 import { attachRealtime, closeRealtime } from './realtime/io';
 import { registerStandingsSubscriber } from './modules/standings/service';
-import { registerPlayerStatsSubscriber } from './modules/stats/service';
 
 const app = createApp();
 const server = createServer(app);
@@ -14,8 +13,6 @@ const server = createServer(app);
 attachRealtime(server);
 
 registerStandingsSubscriber();
-
-registerPlayerStatsSubscriber();
 
 server.listen(env.PORT, () => {
   logger.info(

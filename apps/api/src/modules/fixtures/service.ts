@@ -1,3 +1,4 @@
+import { withLock } from '../../lib/lock';
 import {
   MIN_TEAMS_FOR_PLAYOFFS,
   PLAYOFF_BRACKET,
@@ -51,6 +52,8 @@ async function assertReadyForFixtures(tournament: Tournament): Promise<Team[]> {
 }
 
 export async function previewFixtures(tournament: Tournament): Promise<FixturePreviewDto> {
+  if (tournament.format === 'KNOCKOUT')
+    throw unprocessable('UNSUPPORTED_FORMAT', 'Choose League or League with playoffs');
   const teams = await assertReadyForFixtures(tournament);
   const byId = new Map(teams.map((team) => [team.id, team]));
 
@@ -103,79 +106,84 @@ export async function generateFixtures(
   tournament: Tournament,
   options: { regenerate: boolean },
 ): Promise<number> {
-  const teams = await assertReadyForFixtures(tournament);
+  return withLock(`lock:tournament:${tournament.id}`, async () => {
+    tournament = await prisma.tournament.findUniqueOrThrow({ where: { id: tournament.id } });
+    if (tournament.format === 'KNOCKOUT')
+      throw unprocessable('UNSUPPORTED_FORMAT', 'Choose League or League with playoffs');
+    const teams = await assertReadyForFixtures(tournament);
 
-  const existing = await prisma.match.findMany({
-    where: { tournamentId: tournament.id },
-    select: { id: true, status: true },
+    const existing = await prisma.match.findMany({
+      where: { tournamentId: tournament.id },
+      select: { id: true, status: true },
+    });
+
+    if (existing.length > 0) {
+      if (!options.regenerate) {
+        throw unprocessable(
+          'FIXTURES_EXIST',
+          'Fixtures already exist. Pass regenerate to replace them.',
+          { existing: existing.length },
+        );
+      }
+
+      const started = existing.filter((match) => match.status !== 'SCHEDULED');
+
+      if (started.length > 0) {
+        throw unprocessable(
+          'MATCHES_STARTED',
+          `${started.length} match(es) have already started — fixtures can no longer be regenerated`,
+          { started: started.length },
+        );
+      }
+    }
+
+    const rounds = generateRoundRobin(
+      teams.map((team) => team.id),
+      { double: tournament.doubleRoundRobin },
+    );
+
+    const leagueMatches = rounds.flatMap((round) =>
+      round.matches.map((match) => ({
+        round: round.round,
+        stage: 'LEAGUE' as const,
+        team1Id: match.homeTeamId,
+        team2Id: match.awayTeamId,
+      })),
+    );
+
+    const playoffRound = rounds.length + 1;
+    const playoffMatches =
+      tournament.format === 'LEAGUE_PLAYOFFS'
+        ? PLAYOFF_BRACKET.map((slot) => ({
+            round: playoffRound,
+            stage: slot.stage,
+            team1Id: null,
+            team2Id: null,
+          }))
+        : [];
+
+    const all = [...leagueMatches, ...playoffMatches];
+    const slugs = generateSlugs(all.length);
+
+    const data: Prisma.MatchCreateManyInput[] = all.map((match, index) => ({
+      tournamentId: tournament.id,
+      round: match.round,
+      stage: match.stage,
+      team1Id: match.team1Id,
+      team2Id: match.team2Id,
+      oversPerInnings: tournament.oversPerInnings,
+      publicSlug: slugs[index]!,
+    }));
+
+    await prisma.$transaction([
+      prisma.match.deleteMany({ where: { tournamentId: tournament.id } }),
+      prisma.match.createMany({ data }),
+      prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { status: 'FIXTURES_GENERATED' },
+      }),
+    ]);
+
+    return data.length;
   });
-
-  if (existing.length > 0) {
-    if (!options.regenerate) {
-      throw unprocessable(
-        'FIXTURES_EXIST',
-        'Fixtures already exist. Pass regenerate to replace them.',
-        { existing: existing.length },
-      );
-    }
-
-    const started = existing.filter((match) => match.status !== 'SCHEDULED');
-
-    if (started.length > 0) {
-      throw unprocessable(
-        'MATCHES_STARTED',
-        `${started.length} match(es) have already started — fixtures can no longer be regenerated`,
-        { started: started.length },
-      );
-    }
-  }
-
-  const rounds = generateRoundRobin(
-    teams.map((team) => team.id),
-    { double: tournament.doubleRoundRobin },
-  );
-
-  const leagueMatches = rounds.flatMap((round) =>
-    round.matches.map((match) => ({
-      round: round.round,
-      stage: 'LEAGUE' as const,
-      team1Id: match.homeTeamId,
-      team2Id: match.awayTeamId,
-    })),
-  );
-
-  const playoffRound = rounds.length + 1;
-  const playoffMatches =
-    tournament.format === 'LEAGUE_PLAYOFFS'
-      ? PLAYOFF_BRACKET.map((slot) => ({
-          round: playoffRound,
-          stage: slot.stage,
-          team1Id: null,
-          team2Id: null,
-        }))
-      : [];
-
-  const all = [...leagueMatches, ...playoffMatches];
-  const slugs = generateSlugs(all.length);
-
-  const data: Prisma.MatchCreateManyInput[] = all.map((match, index) => ({
-    tournamentId: tournament.id,
-    round: match.round,
-    stage: match.stage,
-    team1Id: match.team1Id,
-    team2Id: match.team2Id,
-    oversPerInnings: tournament.oversPerInnings,
-    publicSlug: slugs[index]!,
-  }));
-
-  await prisma.$transaction([
-    prisma.match.deleteMany({ where: { tournamentId: tournament.id } }),
-    prisma.match.createMany({ data }),
-    prisma.tournament.update({
-      where: { id: tournament.id },
-      data: { status: 'FIXTURES_GENERATED' },
-    }),
-  ]);
-
-  return data.length;
 }

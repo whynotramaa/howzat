@@ -1,7 +1,8 @@
+import { writeHandler as asyncHandler } from '../../lib/writeHandler';
 import { Router } from 'express';
 import { assignScorerSchema, generateFixturesSchema, updateMatchSchema } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
-import { asyncHandler, parseBody, requireParam } from '../../lib/http';
+import { parseBody, requireParam } from '../../lib/http';
 import { badRequest, notFound, unprocessable } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { requireAuth } from '../../middleware/auth';
@@ -178,6 +179,12 @@ fixturesRouter.delete(
     const matchId = requireParam(req, 'matchId');
     const scorerId = requireParam(req, 'scorerId');
     await loadOwnedTournament(tournamentId, req.user!.id);
+
+    const match = await prisma.match.findFirst({
+      where: { id: matchId, tournamentId },
+      select: { id: true },
+    });
+    if (!match) throw notFound('Match');
 
     await prisma.scorerAssignment.deleteMany({ where: { matchId, scorerId } });
     await invalidateMatchAuthz(matchId, scorerId);

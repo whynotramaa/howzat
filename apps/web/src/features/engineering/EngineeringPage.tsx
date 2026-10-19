@@ -14,12 +14,7 @@ import {
   type ChapterEntry,
 } from './chrome';
 import { DataFlowLab, LedgerLab, SystemMap, TruthTable, WritePathLab } from './diagrams-core';
-import {
-  IdempotencyLab,
-  LockLab,
-  RedisKeyspace,
-  SnapshotGuardLab,
-} from './diagrams-concurrency';
+import { IdempotencyLab, LockLab, RedisKeyspace, SnapshotGuardLab } from './diagrams-concurrency';
 import { CacheMap, StandingsLab } from './diagrams-tournament';
 import {
   AuthLab,
@@ -66,8 +61,6 @@ export function EngineeringPage() {
         <main className="mx-auto w-full max-w-[44rem] px-5 pb-24 sm:px-8 sm:pb-32">
           <Preface />
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-shape"
             num="01"
@@ -76,16 +69,16 @@ export function EngineeringPage() {
           >
             <p>
               Howzat is a live scoring app for club and street cricket. Three people use it. An
-              organizer sets up a tournament and assigns scorers. A scorer records one match, ball by
-              ball. A spectator opens a link and follows the score without an account and without an
-              app install.
+              organizer sets up a tournament and assigns scorers. A scorer records one match, ball
+              by ball. A spectator opens a link and follows the score without an account and without
+              an app install.
             </p>
             <p>
               That third person shapes the architecture more than the other two. The people who want
               the score are a parent at work or a teammate on a bus, and any friction between them
               and the number loses them. So the public surface takes identity out of the picture
-              entirely: a random unguessable slug, its own no-auth router with a hand-picked response
-              shape, and a WebSocket that carries the score without asking who is watching.
+              entirely: a random unguessable slug, its own no-auth router with a hand-picked
+              response shape, and a WebSocket that carries the score without asking who is watching.
             </p>
             <p>
               Removing identity removes the thing most systems lean on for safety. The design has to
@@ -97,7 +90,9 @@ export function EngineeringPage() {
 
             <SystemMap />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Three sentences that explain most of it</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Three sentences that explain most of it
+            </h3>
             <p>
               An append-only event log in Postgres is the source of truth. A derived snapshot in
               Redis is the read cache. A socket fan-out pushes updates. Scoring happens over HTTP,
@@ -110,8 +105,6 @@ export function EngineeringPage() {
             </Note>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-log"
             num="02"
@@ -119,8 +112,8 @@ export function EngineeringPage() {
             standfirst="One score has to be consistent across Postgres, a Redis snapshot, the scorer's optimistic screen, every viewer screen, and the points table. When those disagree, the first problem is not fixing the number. It is knowing which version to trust."
           >
             <p>
-              The answer is to make exactly one of them the truth and every other one a pure function
-              of it. <code>BallEvent</code> is append-only and authoritative.{' '}
+              The answer is to make exactly one of them the truth and every other one a pure
+              function of it. <code>BallEvent</code> is append-only and authoritative.{' '}
               <code>buildState</code> is a pure fold with no I/O, no <code>Date.now()</code>, and no
               randomness. Once that holds, the other five views stop being five implementations that
               must be kept in agreement. They are five callers of one function, agreeing by
@@ -129,30 +122,34 @@ export function EngineeringPage() {
 
             <LedgerLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What purity buys, concretely</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What purity buys, concretely
+            </h3>
             <p>
               The client renders an optimistic score by folding queued balls with the identical
-              function the server will use, so the optimistic view is not an approximation. It is the
-              same answer, early. A cold Redis becomes a latency problem and never a correctness one,
-              which is why the snapshot can sit behind a TTL and stop being something anyone reasons
-              about. And the whole domain tests in milliseconds with no database, which is why 45
-              tests cover the part of the system where a bug would otherwise be silent.
+              function the server will use, so the optimistic view is not an approximation. It is
+              the same answer, early. A cold Redis becomes a latency problem and never a correctness
+              one, which is why the snapshot can sit behind a TTL and stop being something anyone
+              reasons about. And the whole domain tests in milliseconds with no database, which is
+              why 45 tests cover the part of the system where a bug would otherwise be silent.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Corrections are appends, not edits</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Corrections are appends, not edits
+            </h3>
             <p>
               A bad ball is expensive to live with when nothing can be edited. That is exactly why
-              validation is aggressive and runs before anything is written. It is cheaper to refuse a
-              ball than to live with it.
+              validation is aggressive and runs before anything is written. It is cheaper to refuse
+              a ball than to live with it.
             </p>
             <p>
               Two event types repair a mistake, and both are appends. A <code>CORRECTION</code>{' '}
-              carries replacement data and names the ball it supersedes. An <code>UNDO</code> names a
-              ball and removes it. Nothing is deleted, so{' '}
-              <code>GET /matches/:id/events</code> still shows the ball and its retraction. That is
-              what you want when two people at a ground disagree, because the answer is "the scorer
-              entered a six at 16:42 and undid it at 16:42". An undo carries its own{' '}
-              <code>clientEventId</code>, so it is idempotent for free.
+              carries replacement data and names the ball it supersedes. An <code>UNDO</code> names
+              a ball and removes it. Nothing is deleted, so <code>GET /matches/:id/events</code>{' '}
+              still shows the ball and its retraction. That is what you want when two people at a
+              ground disagree, because the answer is "the scorer entered a six at 16:42 and undid it
+              at 16:42". An undo carries its own <code>clientEventId</code>, so it is idempotent for
+              free.
             </p>
 
             <Callout kind="trap" title="A correction is an instruction, not a delivery">
@@ -160,11 +157,11 @@ export function EngineeringPage() {
                 Corrections land at a later <code>seq</code>, so folding the log in raw order would
                 put the fix at the end of the over instead of where the ball was bowled. Before the
                 fold, <code>materializeEvents</code> walks the log in sequence order, resolves
-                corrections and undos, and produces the effective list of deliveries. The replacement
-                goes back in the original ball's position, and it keeps the original's{' '}
+                corrections and undos, and produces the effective list of deliveries. The
+                replacement goes back in the original ball's position, and it keeps the original's{' '}
                 <code>overNumber</code> and <code>ballNumber</code>, because those describe where in
-                the innings the delivery happened. That is a fact about the past, and a correction is
-                not allowed to move it. Everything else comes from the correction.
+                the innings the delivery happened. That is a fact about the past, and a correction
+                is not allowed to move it. Everything else comes from the correction.
               </p>
             </Callout>
 
@@ -175,19 +172,17 @@ export function EngineeringPage() {
 
             <Callout kind="gap" title="The supersede rule is implemented three times">
               <p>
-                It lives in the reducer, in the standings' <code>fillInningsTotals</code>, and in the
-                player-stats projection. The reducer is the reference implementation and the other
-                two re-derive the same semantics because they aggregate over different shapes. That
-                is the sharpest duplication in the codebase. The fix is for the stats projection to
-                consume <code>buildState</code>, and the honest reason it does not is that it
-                aggregates across both innings while the reducer is per innings. A shape problem, not
-                a real obstacle. Until then the only thing keeping them honest is the exported{' '}
-                <code>BOWLER_CREDITED</code> set.
+                It lives in the reducer, in the standings' <code>fillInningsTotals</code>, and in
+                the player-stats projection. The reducer is the reference implementation and the
+                other two re-derive the same semantics because they aggregate over different shapes.
+                That is the sharpest duplication in the codebase. The fix is for the stats
+                projection to consume <code>buildState</code>, and the honest reason it does not is
+                that it aggregates across both innings while the reducer is per innings. A shape
+                problem, not a real obstacle. Until then the only thing keeping them honest is the
+                exported <code>BOWLER_CREDITED</code> set.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-schema"
@@ -197,17 +192,22 @@ export function EngineeringPage() {
           >
             <TruthTable />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Recompute, never increment</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Recompute, never increment
+            </h3>
             <p>
               Incrementing is not idempotent. Replay the event and a team gets four points for one
               win. Replay is not hypothetical here, because the trigger is a domain event and a
-              correction to a finished match needs that event republished. Recomputing means a replay
-              converges instead of double-counting, a manually repaired row heals on the next match,
-              and a correction propagates without anyone remembering a second place to update. That
-              is a whole class of bug bought out of existence for a few milliseconds of CPU.
+              correction to a finished match needs that event republished. Recomputing means a
+              replay converges instead of double-counting, a manually repaired row heals on the next
+              match, and a correction propagates without anyone remembering a second place to
+              update. That is a whole class of bug bought out of existence for a few milliseconds of
+              CPU.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">There is no role column on User</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              There is no role column on User
+            </h3>
             <p>
               Someone can organize their own tournament and still be a scorer in someone else's
               match, so role is not a property of a person. It comes from a relationship. Tournament
@@ -222,40 +222,41 @@ export function EngineeringPage() {
               the object-level check or actively wrong.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               User, Player, and MatchPlayer are three tables for one person
             </h3>
             <p>
-              <code>User</code> is the login account. <code>Player</code> is a person in a tournament
-              squad and can exist without an account. <code>MatchPlayer</code> is the eleven selected
-              for one match.
+              <code>User</code> is the login account. <code>Player</code> is a person in a
+              tournament squad and can exist without an account. <code>MatchPlayer</code> is the
+              eleven selected for one match.
             </p>
             <p>
               Collapse any two and something real is lost. Without <code>Player</code> there is no
               squad member who lacks an account, which is the common case in club cricket. Those get
-              a generated <code>guest_…</code> username so the UI has something stable and the scorer
-              has something unambiguous to tap. Without <code>MatchPlayer</code> a squad cannot be
-              larger than eleven and cannot field a different eleven next week, which is every real
-              team.
+              a generated <code>guest_…</code> username so the UI has something stable and the
+              scorer has something unambiguous to tap. Without <code>MatchPlayer</code> a squad
+              cannot be larger than eleven and cannot field a different eleven next week, which is
+              every real team.
             </p>
             <p>
               A guest gets no career profile. A career profile is the sum of{' '}
               <code>PlayerMatchStats</code> across every <code>Player</code> slot linked to an
               account, and a guest slot has no <code>userId</code>. Retro-linking a guest to an
-              account later is an identity claim with no way to verify it, so if that person signs up
-              their history starts from the squads they join afterwards. Inventing identity is worse
-              than starting fresh.
+              account later is an identity claim with no way to verify it, so if that person signs
+              up their history starts from the squads they join afterwards. Inventing identity is
+              worse than starting fresh.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What is denormalised, and why</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What is denormalised, and why
+            </h3>
             <p>
-              Every <code>BallEvent</code> carries <code>strikerId</code>,{' '}
-              <code>nonStrikerId</code>, and <code>bowlerId</code>. That is what keeps the reducer
-              simple: the event names its own participants, so the reducer never infers who came in
-              after a wicket or who is bowling this over. The scorer already declared it and the log
-              describes itself in isolation. If the reducer inferred it, a correction mid-innings
-              would silently change who was on strike for every ball after it. Three cuids per row is
-              cheap for that.
+              Every <code>BallEvent</code> carries <code>strikerId</code>, <code>nonStrikerId</code>
+              , and <code>bowlerId</code>. That is what keeps the reducer simple: the event names
+              its own participants, so the reducer never infers who came in after a wicket or who is
+              bowling this over. The scorer already declared it and the log describes itself in
+              isolation. If the reducer inferred it, a correction mid-innings would silently change
+              who was on strike for every ball after it. Three cuids per row is cheap for that.
             </p>
             <p>
               <code>Innings.oversQuota</code> is copied from the tournament at innings creation. If
@@ -275,7 +276,9 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">A notification is a stored row</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              A notification is a stored row
+            </h3>
             <p>
               A notification records something that happened, not what is true now. If someone was
               added to a squad and later removed, a query over the current squad loses the fact that
@@ -287,15 +290,12 @@ export function EngineeringPage() {
             </p>
             <p>
               Delivery uses two channels and one write path. The row is durable and is what the bell
-              reads. The email is a nudge on top, detached with{' '}
-              <code>Promise.allSettled</code> after the row is written, because waiting on an SMTP
-              round-trip per player puts a mail provider on the critical path of a database write. An
-              organizer pasting eleven names must not get a 500 because Resend is having a bad
-              afternoon.
+              reads. The email is a nudge on top, detached with <code>Promise.allSettled</code>{' '}
+              after the row is written, because waiting on an SMTP round-trip per player puts a mail
+              provider on the critical path of a database write. An organizer pasting eleven names
+              must not get a 500 because Resend is having a bad afternoon.
             </p>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-write"
@@ -304,15 +304,16 @@ export function EngineeringPage() {
             standfirst="A scorer taps 4. Fifteen steps later a spectator two networks away sees it. This is the path everything else in the system exists to protect."
           >
             <p>
-              On the client, the tap runs through the same <code>validateBall</code> the server runs.
-              The console creates a UUID as <code>clientEventId</code>, saves the ball to IndexedDB
-              first, then POSTs it if the device is online. The screen updates optimistically, so the
-              scorer gets instant feedback even when the connection at the ground is slow.
+              On the client, the tap runs through the same <code>validateBall</code> the server
+              runs. The console creates a UUID as <code>clientEventId</code>, saves the ball to
+              IndexedDB first, then POSTs it if the device is online. The screen updates
+              optimistically, so the scorer gets instant feedback even when the connection at the
+              ground is slow.
             </p>
 
             <WritePathLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               Follow one ball through every store it touches
             </h3>
             <p>
@@ -324,12 +325,10 @@ export function EngineeringPage() {
 
             <DataFlowLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               The two identifiers, and why they belong to different machines
             </h3>
-            <p>
-              A ball carries two identities and neither one can do the other's job.
-            </p>
+            <p>A ball carries two identities and neither one can do the other's job.</p>
             <p>
               <strong>clientEventId</strong> is a UUID the phone generates before the first attempt,
               and it never changes across retries. Only the client knows that four requests are the
@@ -340,18 +339,18 @@ export function EngineeringPage() {
             </p>
             <p>
               <strong>seq</strong> is the position of the event inside its innings, and Postgres
-              assigns it under the lock as <code>lastEventSeq + 1</code>. The phone cannot assign it,
-              because the phone does not know what the server accepted while it was offline. Two
+              assigns it under the lock as <code>lastEventSeq + 1</code>. The phone cannot assign
+              it, because the phone does not know what the server accepted while it was offline. Two
               devices would both guess 42 and one would be wrong.
             </p>
             <p>
               Follow <code>lastEventSeq</code> through the figure and you have most of the
               consistency model. It does not exist on the phone. Postgres mints it. The projection
-              step copies it into the Redis snapshot, which is what lets{' '}
-              <code>writeSnapshot</code> refuse a stale write. It rides the broadcast, which is what
-              lets <code>isNewerSnapshot</code> refuse a stale render. And when a client's copy is
-              more than one behind, <code>hasSequenceGap</code> gives up on patching and refetches.
-              One integer, minted in one place, doing version control for the entire read side.
+              step copies it into the Redis snapshot, which is what lets <code>writeSnapshot</code>{' '}
+              refuse a stale write. It rides the broadcast, which is what lets{' '}
+              <code>isNewerSnapshot</code> refuse a stale render. And when a client's copy is more
+              than one behind, <code>hasSequenceGap</code> gives up on patching and refetches. One
+              integer, minted in one place, doing version control for the entire read side.
             </p>
 
             <Note>
@@ -359,23 +358,25 @@ export function EngineeringPage() {
               go backwards. That distinction is the whole job of lastEventSeq.
             </Note>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               Which steps are allowed to fail without failing the ball
             </h3>
             <p>
-              Everything after the Postgres insert. The snapshot write is wrapped in a try/catch that
-              logs and continues, because Postgres already holds the ball and a cache failure should
-              degrade the next read to a rebuild rather than fail a write that succeeded. The publish
-              is caught inside <code>publishMatchEvent</code>, because a transport failure must never
-              fail a durable write. The rate limiter fails open. Only auth, validation, and the
-              insert itself can legitimately fail the request.
+              Everything after the Postgres insert. The snapshot write is wrapped in a try/catch
+              that logs and continues, because Postgres already holds the ball and a cache failure
+              should degrade the next read to a rebuild rather than fail a write that succeeded. The
+              publish is caught inside <code>publishMatchEvent</code>, because a transport failure
+              must never fail a durable write. The rate limiter fails open. Only auth, validation,
+              and the insert itself can legitimately fail the request.
             </p>
             <Note>
               Fail open when a guard is about cost. Fail closed when it is about correctness. The
               rate limiter is about cost, so a Redis outage must not make a live match unscorable.
             </Note>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Rate limits, with real numbers</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Rate limits, with real numbers
+            </h3>
             <p>
               Ball writes are capped at 120 per minute per scorer per match. That is deliberately
               generous, because a fast over is six balls in under a minute and a draining offline
@@ -387,7 +388,9 @@ export function EngineeringPage() {
               <code>Retry-After</code> instead of a guess.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">When the innings ends</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              When the innings ends
+            </h3>
             <p>
               The reducer checks three conditions in this order: target chased, all out, overs
               complete. Wickets allowed is <code>battingXI.length - 1</code>, so ten for a full
@@ -411,15 +414,15 @@ export function EngineeringPage() {
             </p>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-lock"
             num="05"
             title="The lock reduces contention. The database guarantees correctness."
             standfirst="Never let a lock be your only defence. This chapter is the argument for that sentence, and the bench below is where you can break it yourself."
           >
-            <h3 className="serif text-[1.5rem] text-primary">The exact race</h3>
+            <h3 className="font-semibold tracking-[-0.02em] text-[1.5rem] text-primary">
+              The exact race
+            </h3>
             <p>
               Two requests arrive together when the last sequence is 41. Both read 41, both validate
               against the same old state, and both try to insert sequence 42.
@@ -437,29 +440,32 @@ export function EngineeringPage() {
 
             <LockLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Why the release needs a script</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Why the release needs a script
+            </h3>
             <p>
               <code>SET key token NX PX 5000</code> gives atomic mutual exclusion with automatic
               expiry, so a crashed holder cannot deadlock the match. A ball write holds the lock for
-              single-digit milliseconds, so a 5-second lease is three orders of magnitude of headroom.
+              single-digit milliseconds, so a 5-second lease is three orders of magnitude of
+              headroom.
             </p>
             <p>
-              The random token exists because a plain <code>DEL</code> on release is dangerous. If my
-              lease already expired and someone else acquired the lock, my <code>DEL</code> deletes
-              their lock, and now two writers each believe they are exclusive. The Lua script makes
-              "check that it is mine, then delete" one atomic operation. On failure the acquire backs
-              off across 20 attempts over about 1.5 seconds and then returns a 409, which is honest
-              and retryable.
+              The random token exists because a plain <code>DEL</code> on release is dangerous. If
+              my lease already expired and someone else acquired the lock, my <code>DEL</code>{' '}
+              deletes their lock, and now two writers each believe they are exclusive. The Lua
+              script makes "check that it is mine, then delete" one atomic operation. On failure the
+              acquire backs off across 20 attempts over about 1.5 seconds and then returns a 409,
+              which is honest and retryable.
             </p>
 
             <Callout kind="why" title="A single-node Redis lease is not a formal guarantee">
               <p>
                 It has no fencing token, and a paused holder can outlive its lease. I would not
-                pretend otherwise. So the lock is a contention optimiser and the correctness lives in
-                Postgres. <code>@@unique([inningsId, seq])</code> makes two balls at the same position
-                physically impossible to persist. <code>clientEventId</code> being unique turns a
-                duplicate submission into a constraint violation that the service catches and
-                converts into an idempotent success.
+                pretend otherwise. So the lock is a contention optimiser and the correctness lives
+                in Postgres. <code>@@unique([inningsId, seq])</code> makes two balls at the same
+                position physically impossible to persist. <code>clientEventId</code> being unique
+                turns a duplicate submission into a constraint violation that the service catches
+                and converts into an idempotent success.
               </p>
               <p className="mt-2">
                 The pathological case a fencing token would prevent surfaces one layer down as a{' '}
@@ -487,11 +493,11 @@ export function EngineeringPage() {
 
             <Callout kind="gap" title="Two scorers on one match is a real gap, not a mitigated one">
               <p>
-                The lock serialises them, so the log stays structurally valid with monotonic sequence
-                numbers and no collisions. But both are entering their own view of the same over, so
-                you get double-scored balls. <code>clientEventId</code> does not help at all, because
-                two people scoring the same six generate two different UUIDs. Idempotency
-                deduplicates retries, not observations.
+                The lock serialises them, so the log stays structurally valid with monotonic
+                sequence numbers and no collisions. But both are entering their own view of the same
+                over, so you get double-scored balls. <code>clientEventId</code> does not help at
+                all, because two people scoring the same six generate two different UUIDs.
+                Idempotency deduplicates retries, not observations.
               </p>
               <p className="mt-2">
                 The product assumes one scorer per match. I enforced authorization, meaning who may
@@ -503,8 +509,6 @@ export function EngineeringPage() {
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-idempotency"
@@ -530,14 +534,14 @@ export function EngineeringPage() {
               A new ball returns 201 and a duplicate returns 200, with identical bodies. The status
               distinction is useful in logs and metrics. The identical body is deliberate: a client
               replaying its offline queue must not be able to tell the difference, because a
-              different duplicate response means every consumer needs a branch for it and one of them
-              eventually gets it wrong.
+              different duplicate response means every consumer needs a branch for it and one of
+              them eventually gets it wrong.
             </p>
 
             <Callout kind="why" title="POST is not idempotent by spec, and that is fine">
               <p>
-                By spec, GET, PUT, DELETE, and HEAD are idempotent and POST is not. This POST is made
-                idempotent by an application-level idempotency key with a uniqueness constraint
+                By spec, GET, PUT, DELETE, and HEAD are idempotent and POST is not. This POST is
+                made idempotent by an application-level idempotency key with a uniqueness constraint
                 behind it, which is the standard pattern for making an unsafe method safe to retry.
                 Stripe does the same thing with <code>Idempotency-Key</code>. PUT was not an option,
                 because the client does not choose the resource's location. <code>seq</code> is
@@ -545,7 +549,9 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What seq guarantees</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What seq guarantees
+            </h3>
             <p>
               <code>seq</code> is the server-assigned position of an event within an innings. Under
               the lock, the next event gets <code>lastEventSeq + 1</code>, so it is monotonic and
@@ -567,15 +573,15 @@ export function EngineeringPage() {
             </p>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-redis"
             num="07"
             title="Redis, from first principles"
             standfirst="Four jobs, four data types, one test applied to each: if Redis disappeared, would I lose correctness, or would the system just get slower?"
           >
-            <h3 className="serif text-[1.5rem] text-primary">The parts of Redis this system uses</h3>
+            <h3 className="font-semibold tracking-[-0.02em] text-[1.5rem] text-primary">
+              The parts of Redis this system uses
+            </h3>
             <p>
               Redis is a single-threaded, in-memory key-value store. Single-threaded matters more
               than it sounds: every command runs to completion before the next one starts, so a
@@ -605,10 +611,10 @@ export function EngineeringPage() {
                 <code>ZCARD</code> reads the count.
               </li>
               <li>
-                <strong>Publish and subscribe.</strong> A message published to a channel is delivered
-                to every currently subscribed connection, and to nobody afterwards. No durability, no
-                replay. That is acceptable here because every message is a full snapshot and the next
-                one repairs anything missed.
+                <strong>Publish and subscribe.</strong> A message published to a channel is
+                delivered to every currently subscribed connection, and to nobody afterwards. No
+                durability, no replay. That is acceptable here because every message is a full
+                snapshot and the next one repairs anything missed.
               </li>
               <li>
                 <strong>Lua scripts.</strong> <code>EVAL</code> runs a script atomically on the
@@ -618,36 +624,39 @@ export function EngineeringPage() {
 
             <RedisKeyspace />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Two caching patterns, not a scattering of TTLs</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Two caching patterns, not a scattering of TTLs
+            </h3>
             <p>
-              Where a write path can refresh a value, the write path owns it. The snapshot is written
-              by the ball write and the authorization cache is invalidated by an assignment change,
-              with a <code>SCAN</code> over that match's authz keys the moment an assignment moves.
-              Where there is no clean write path, the value is read-through with a TTL and allowed to
-              be a few seconds stale. The TTL is the backstop, never the mechanism.
+              Where a write path can refresh a value, the write path owns it. The snapshot is
+              written by the ball write and the authorization cache is invalidated by an assignment
+              change, with a <code>SCAN</code> over that match's authz keys the moment an assignment
+              moves. Where there is no clean write path, the value is read-through with a TTL and
+              allowed to be a few seconds stale. The TTL is the backstop, never the mechanism.
             </p>
 
             <Callout kind="trap" title="The adapter needs its own connections">
               <p>
-                A Redis connection in subscriber mode is blocked on <code>SUBSCRIBE</code> and cannot
-                issue ordinary commands. The socket.io adapter therefore gets two dedicated
+                A Redis connection in subscriber mode is blocked on <code>SUBSCRIBE</code> and
+                cannot issue ordinary commands. The socket.io adapter therefore gets two dedicated
                 connections, separate from the general-purpose client. Share them and you get a
                 client that intermittently refuses commands, which is a horrible bug to diagnose.
               </p>
             </Callout>
 
-            <Callout kind="trap" title="Serverless leaks Redis connections unless you cache the client">
+            <Callout
+              kind="trap"
+              title="Serverless leaks Redis connections unless you cache the client"
+            >
               <p>
-                A reused warm instance must not open a new connection per invocation, or it leaks one
-                per request until the provider's concurrent-connection cap cuts it off. The client is
-                cached on <code>globalThis</code> for that reason. <code>lazyConnect</code> means a
-                cold start does not open three TCP connections before it knows whether the request
-                that woke it up needs Redis at all.
+                A reused warm instance must not open a new connection per invocation, or it leaks
+                one per request until the provider's concurrent-connection cap cuts it off. The
+                client is cached on <code>globalThis</code> for that reason.{' '}
+                <code>lazyConnect</code> means a cold start does not open three TCP connections
+                before it knows whether the request that woke it up needs Redis at all.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-dualwrite"
@@ -662,8 +671,8 @@ export function EngineeringPage() {
               read.
             </p>
             <p>
-              The ordering is load-bearing. Postgres first, always. The opposite order lets the cache
-              advertise a ball that is not durable.
+              The ordering is load-bearing. Postgres first, always. The opposite order lets the
+              cache advertise a ball that is not durable.
             </p>
 
             <SnapshotGuardLab />
@@ -676,16 +685,14 @@ export function EngineeringPage() {
 
             <Callout kind="gap" title="The read-then-write is not atomic either">
               <p>
-                There is a residual window. The lock makes it narrow, since both writes for one match
-                are serialised, but narrow is not closed. The fully correct version is a Lua
+                There is a residual window. The lock makes it narrow, since both writes for one
+                match are serialised, but narrow is not closed. The fully correct version is a Lua
                 compare-and-set that reads the stored seq and writes only if the incoming one is
                 higher, in one script. Roughly eight lines, and worth taking. Stating the remaining
                 gap precisely beats claiming the guard closes it.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-cache"
@@ -703,7 +710,7 @@ export function EngineeringPage() {
 
             <CacheMap />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               Two patterns, chosen by whether a write path exists
             </h3>
             <p>
@@ -727,7 +734,7 @@ export function EngineeringPage() {
               you are willing to be wrong.
             </Note>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               Why the TTLs are the numbers they are
             </h3>
             <p>
@@ -760,18 +767,19 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <Callout kind="trap" title="The slug cache is never invalidated, and that is a decision">
+            <Callout
+              kind="trap"
+              title="The slug cache is never invalidated, and that is a decision"
+            >
               <p>
-                <code>slug:{'{publicSlug}'}</code> maps a public slug to a match id for a day with no
-                delete anywhere. That is correct only because a slug is minted once and never
+                <code>slug:{'{publicSlug}'}</code> maps a public slug to a match id for a day with
+                no delete anywhere. That is correct only because a slug is minted once and never
                 reassigned. The moment anyone adds slug rotation or match deletion, this key becomes
                 a way to serve one match's score under another match's link, and the invalidation
                 has to be written in the same commit.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-standings"
@@ -798,7 +806,9 @@ export function EngineeringPage() {
 
             <StandingsLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Net run rate, and the two rules that decide arguments</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Net run rate, and the two rules that decide arguments
+            </h3>
             <p>
               Net run rate is runs scored per over faced minus runs conceded per over bowled, across
               the tournament and not averaged per match. Everything is stored and summed in balls,
@@ -822,7 +832,9 @@ export function EngineeringPage() {
               chase would punish a side for rain.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Ordering, and where it stops</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Ordering, and where it stops
+            </h3>
             <p>
               <code>sortStandings</code> compares points, then net run rate, then head to head, then
               team name. The head-to-head step only runs when exactly two teams share both points
@@ -841,7 +853,10 @@ export function EngineeringPage() {
               nothing to be clever about.
             </p>
 
-            <Callout kind="why" title="Points and net run rate are stored, then sorted at read time">
+            <Callout
+              kind="why"
+              title="Points and net run rate are stored, then sorted at read time"
+            >
               <p>
                 <code>PointsTable</code> holds totals, not positions. Position is computed on every
                 read by <code>sortStandings</code>, because a stored position is a derived value
@@ -873,8 +888,6 @@ export function EngineeringPage() {
             </Callout>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-realtime"
             num="11"
@@ -883,12 +896,14 @@ export function EngineeringPage() {
           >
             <HandshakeLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Why not server-sent events or polling</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Why not server-sent events or polling
+            </h3>
             <p>
               Polling pays a full request, headers, and connection setup per check, and its latency
-              is bounded by the interval. Server-sent events are a long-lived HTTP response streaming{' '}
-              <code>text/event-stream</code>, server to client only, with automatic reconnection and{' '}
-              <code>Last-Event-ID</code> built into the spec.
+              is bounded by the interval. Server-sent events are a long-lived HTTP response
+              streaming <code>text/event-stream</code>, server to client only, with automatic
+              reconnection and <code>Last-Event-ID</code> built into the spec.
             </p>
             <p>
               Server-sent events are a fair alternative, because the score mostly travels one way. I
@@ -899,15 +914,17 @@ export function EngineeringPage() {
               only thing holding it back is the viewer count.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Why socket.io rather than raw ws</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Why socket.io rather than raw ws
+            </h3>
             <p>
               The honest answer is the Redis adapter and rooms. With raw <code>ws</code> I would
               hand-roll room membership, the match-to-sockets map, cross-instance fan-out over Redis
               pub/sub including not re-delivering my own messages, client reconnection with backoff
-              and jitter, heartbeats, dead-connection detection, and packet encoding. That is several
-              hundred lines of infrastructure with subtle bugs, in a project whose value is the
-              cricket domain. <code>@socket.io/redis-adapter</code> is one line and it is the entire
-              horizontal scaling story.
+              and jitter, heartbeats, dead-connection detection, and packet encoding. That is
+              several hundred lines of infrastructure with subtle bugs, in a project whose value is
+              the cricket domain. <code>@socket.io/redis-adapter</code> is one line and it is the
+              entire horizontal scaling story.
             </p>
             <p>
               It costs about 40KB on the client bundle, a custom framing protocol you cannot{' '}
@@ -926,9 +943,9 @@ export function EngineeringPage() {
               </p>
               <p className="mt-2">
                 Both ends pin <code>transports: ['websocket']</code>. One connection, established
-                once, no affinity requirement. Pinning only one end does not help. Sticky sessions at
-                the load balancer are the alternative, but that is infrastructure I do not control on
-                this platform, and it degrades every scaling property I wanted.
+                once, no affinity requirement. Pinning only one end does not help. Sticky sessions
+                at the load balancer are the alternative, but that is infrastructure I do not
+                control on this platform, and it degrades every scaling property I wanted.
               </p>
             </Callout>
 
@@ -938,11 +955,14 @@ export function EngineeringPage() {
               Rooms are the addressing scheme. A room is a server-side set of socket ids you
               broadcast to by name, and this system uses exactly one pattern,{' '}
               <code>match:&lt;matchId&gt;</code>, produced by a shared <code>matchRoom()</code>{' '}
-              helper so client and server cannot disagree about the string. A ball in one match costs
-              nothing to viewers of any other match.
+              helper so client and server cannot disagree about the string. A ball in one match
+              costs nothing to viewers of any other match.
             </p>
 
-            <Callout kind="why" title="Viewers are counted in a sorted set, not with fetchSockets()">
+            <Callout
+              kind="why"
+              title="Viewers are counted in a sorted set, not with fetchSockets()"
+            >
               <p>
                 <code>fetchSockets()</code> broadcasts a request and waits for every subscribed
                 instance to answer. On a platform that freezes idle instances, a frozen instance
@@ -964,10 +984,10 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Why scoring never goes over the socket</h3>
-            <p>
-              Three reasons, and this is the most defensible decision in the project.
-            </p>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Why scoring never goes over the socket
+            </h3>
+            <p>Three reasons, and this is the most defensible decision in the project.</p>
             <p>
               <strong>Auth.</strong> HTTP gives a per-request <code>Authorization</code> header and
               middleware that already exists. A socket authenticates once at connect and then has to
@@ -982,11 +1002,10 @@ export function EngineeringPage() {
             <p>
               <strong>Disposability.</strong> Because nothing writes over the socket, the realtime
               layer is a read-only fan-out that could be deleted and replaced with polling in an
-              afternoon without touching the write path. Delete{' '}
-              <code>realtime/io.ts</code>, drop <code>attachRealtime</code> from both entrypoints,
-              and the bus falls back to its no-op publisher. On the client, replace the subscription
-              in <code>useLiveMatch</code> with a three-second poll of the snapshot endpoint it
-              already calls.
+              afternoon without touching the write path. Delete <code>realtime/io.ts</code>, drop{' '}
+              <code>attachRealtime</code> from both entrypoints, and the bus falls back to its no-op
+              publisher. On the client, replace the subscription in <code>useLiveMatch</code> with a
+              three-second poll of the snapshot endpoint it already calls.
             </p>
             <p>
               Look at the shared event map and there is no client-to-server event that mutates
@@ -998,31 +1017,32 @@ export function EngineeringPage() {
               <p>
                 Ask what a socket grants: exactly one thing, receiving score updates for a room you
                 named. Since nothing writes over it, authenticating it would protect a read that the
-                share link already grants to anyone with the URL. What is protected is discovery. The
-                only public address is a random slug with about 49 bits of entropy, 31 symbols to the
-                tenth power, with ambiguous glyphs removed so it survives being read aloud at a
-                ground. If private matches ever existed, the change is a signed token verified in a
-                socket middleware at handshake. One function, because the room model already exists.
+                share link already grants to anyone with the URL. What is protected is discovery.
+                The only public address is a random slug with about 49 bits of entropy, 31 symbols
+                to the tenth power, with ambiguous glyphs removed so it survives being read aloud at
+                a ground. If private matches ever existed, the change is a signed token verified in
+                a socket middleware at handshake. One function, because the room model already
+                exists.
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">The bus, and the seam it created</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              The bus, and the seam it created
+            </h3>
             <p>
               The write path calls <code>publishMatchEvent('ball', payload)</code> and never imports
               socket.io. The bus does two different things with that envelope. It hands it to a
-              pluggable transport publisher, attached by <code>attachRealtime</code>, defaulting to a
-              no-op that logs and drops. And it awaits any registered in-process subscribers. Pushing
-              to browsers and recomputing the points table are genuinely different concerns, and a
-              naive <code>io.emit</code> inside the service would have fused them permanently.
+              pluggable transport publisher, attached by <code>attachRealtime</code>, defaulting to
+              a no-op that logs and drops. And it awaits any registered in-process subscribers.
+              Pushing to browsers and recomputing the points table are genuinely different concerns,
+              and a naive <code>io.emit</code> inside the service would have fused them permanently.
             </p>
             <p>
               The first payoff is that tests and any future worker run with the no-op publisher and
-              need no socket server. The second payoff is Chapter 15, where a one-line change fixed a
-              silent data-loss bug precisely because the seam existed.
+              need no socket server. The second payoff is Chapter 15, where a one-line change fixed
+              a silent data-loss bug precisely because the seam existed.
             </p>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-client"
@@ -1039,23 +1059,25 @@ export function EngineeringPage() {
             <p>
               On a drop, <code>disconnect</code> fires, the badge flips to "Reconnecting", and
               socket.io retries with backoff from 500ms to a 5-second ceiling. On{' '}
-              <code>connect</code> the client does two things. It re-emits <code>join</code>, because
-              a new socket id is not in the old room. And it refetches the snapshot, because what
-              happened while it was away is unknowable and trusting stale local state is exactly how
-              a score goes wrong.
+              <code>connect</code> the client does two things. It re-emits <code>join</code>,
+              because a new socket id is not in the old room. And it refetches the snapshot, because
+              what happened while it was away is unknowable and trusting stale local state is
+              exactly how a score goes wrong.
             </p>
 
             <SnapshotGateLab />
 
             <p>
               The refetch is applied unconditionally while socket messages are gated, and the reason
-              is provenance. A refetch is a fresh read of the source of truth, so it is by definition
-              the most recent state, and gating it risks rejecting a newer state across an innings
-              rollover. A socket message is a push that the network may have delayed or reordered, so
-              it has to prove it is newer before it can move the score.
+              is provenance. A refetch is a fresh read of the source of truth, so it is by
+              definition the most recent state, and gating it risks rejecting a newer state across
+              an innings rollover. A socket message is a push that the network may have delayed or
+              reordered, so it has to prove it is newer before it can move the score.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Whole snapshots, not deltas</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Whole snapshots, not deltas
+            </h3>
             <p>
               Every broadcast carries the full snapshot, about 2 to 3KB. A client that misses one
               message is corrected by the next, so there is no replay protocol, no gap-filling
@@ -1065,13 +1087,16 @@ export function EngineeringPage() {
               get wrong.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Two systems, kept apart on purpose</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Two systems, kept apart on purpose
+            </h3>
             <p>
               React Query owns server state for the scorer console, which is the writer and
               invalidates on every mutation. The viewer page uses <code>useLiveMatch</code>, which
-              owns its snapshot in local state fed by the socket, with HTTP only for the initial load
-              and for resync. Pushing socket payloads into the query cache would put two systems in a
-              race to own one key, which is how a value starts flickering between two sources.
+              owns its snapshot in local state fed by the socket, with HTTP only for the initial
+              load and for resync. Pushing socket payloads into the query cache would put two
+              systems in a race to own one key, which is how a value starts flickering between two
+              sources.
             </p>
             <p>
               <code>invalidateMatch</code> invalidates four keys at once, and that coarseness is
@@ -1082,12 +1107,15 @@ export function EngineeringPage() {
               redundant refetches of small payloads.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Two hook details that matter</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Two hook details that matter
+            </h3>
             <p>
-              The latest snapshot is held in a ref, not read from state, inside the socket callbacks.
-              If <code>snapshot</code> were a dependency of the subscription effect, the effect would
-              tear down and rebuild the entire socket subscription on every ball. Unsubscribing and
-              resubscribing six times an over is wasteful and drops messages in the gap.
+              The latest snapshot is held in a ref, not read from state, inside the socket
+              callbacks. If <code>snapshot</code> were a dependency of the subscription effect, the
+              effect would tear down and rebuild the entire socket subscription on every ball.
+              Unsubscribing and resubscribing six times an over is wasteful and drops messages in
+              the gap.
             </p>
             <p>
               The socket is a module-level singleton, one per tab. A hook-owned socket opens a
@@ -1102,15 +1130,17 @@ export function EngineeringPage() {
                 A 401 on a request where a token existed means it expired mid-session, so{' '}
                 <code>apiFetch</code> refreshes once and replays the original request. Concurrent
                 401s all <code>??=</code> onto the same module-level <code>refreshInFlight</code>{' '}
-                promise. That is not only efficiency. With rotation, only the first of five refreshes
-                would succeed and the other four would look like token reuse, burn the family, and
-                sign the user out. An internal <code>_retried</code> flag prevents the loop, and
-                refresh is only attempted when a token existed, so an anonymous 401 does not trigger
-                a pointless attempt.
+                promise. That is not only efficiency. With rotation, only the first of five
+                refreshes would succeed and the other four would look like token reuse, burn the
+                family, and sign the user out. An internal <code>_retried</code> flag prevents the
+                loop, and refresh is only attempted when a token existed, so an anonymous 401 does
+                not trigger a pointless attempt.
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Making the console fast for a weekly scorer</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Making the console fast for a weekly scorer
+            </h3>
             <p>
               The common case is one tap. The run pad goes from 0 to 6 and commits immediately, with
               extras, wickets, and undo close by, plus keyboard shortcuts for a scorer on a laptop.
@@ -1119,24 +1149,22 @@ export function EngineeringPage() {
             </p>
             <p>
               Theming uses semantic CSS variables rather than Tailwind <code>dark:</code> classes,
-              because <code>dark:</code> doubles every colour decision at every call site and a third
-              theme would mean touching every component. A component says what a thing is and the
-              theme layer says what it looks like. The theme follows the OS by default, a manual
+              because <code>dark:</code> doubles every colour decision at every call site and a
+              third theme would mean touching every component. A component says what a thing is and
+              the theme layer says what it looks like. The theme follows the OS by default, a manual
               choice wins and survives a reload, and it is applied as a <code>data-theme</code>{' '}
               attribute on the root before first paint so there is no flash.
             </p>
 
             <Callout kind="gap" title="Live scores are not announced to screen readers">
               <p>
-                Semantic elements, real buttons, full keyboard operation of the pad, and alt text are
-                all in place. What is missing before anyone claims accessibility compliance is an{' '}
-                <code>aria-live</code> region for score updates, so a ball is announced instead of
-                silently mutating the DOM.
+                Semantic elements, real buttons, full keyboard operation of the pad, and alt text
+                are all in place. What is missing before anyone claims accessibility compliance is
+                an <code>aria-live</code> region for score updates, so a ball is announced instead
+                of silently mutating the DOM.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-offline"
@@ -1164,26 +1192,30 @@ export function EngineeringPage() {
 
             <OutboxLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Why IndexedDB, keyed by clientEventId</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Why IndexedDB, keyed by clientEventId
+            </h3>
             <p>
               <code>localStorage</code> is synchronous and blocks the main thread, which is
               unacceptable on a UI whose whole promise is that a tap feels instant. It is also
               string-only, so every read is a <code>JSON.parse</code> of the entire queue, capped
-              around 5MB, with no indexes. IndexedDB is async, stores structured objects, and indexes
-              by <code>matchId</code> and <code>createdAt</code>, which is exactly how the queue is
-              read.
+              around 5MB, with no indexes. IndexedDB is async, stores structured objects, and
+              indexes by <code>matchId</code> and <code>createdAt</code>, which is exactly how the
+              queue is read.
             </p>
             <p>
               Keying by <code>clientEventId</code> makes the store itself idempotent. Enqueueing the
               same ball twice is a <code>put</code> over one key, not a second row, and it is the
               same value the server enforces uniqueness on. The client key and the server constraint
               are literally the same identifier, with no mapping to get wrong. An in-memory{' '}
-              <code>Map</code> fallback covers browsers where IndexedDB is unavailable, so the module
-              degrades to "works but not durable" rather than throwing at import and taking the
-              console down.
+              <code>Map</code> fallback covers browsers where IndexedDB is unavailable, so the
+              module degrades to "works but not durable" rather than throwing at import and taking
+              the console down.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What is queued, and what is not</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What is queued, and what is not
+            </h3>
             <p>
               Ball submissions only: runs, extras, wicket details, player ids, and the
               client-generated <code>clientEventId</code>. Not queued: undo, corrections, toss,
@@ -1213,14 +1245,16 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What this outbox does not have</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What this outbox does not have
+            </h3>
             <p>
               No background worker, so nothing runs with the tab closed. No exponential backoff, no
-              retry schedule, no dead-letter policy, no cross-tab coordination. The drain is triggered
-              by exactly three things: an enqueue while online, the <code>online</code> event, and
-              the user pressing retry. For a scorer looking at the phone for the whole match, that
-              trigger set covers the real cases. For anything else it is genuinely insufficient, and
-              the fix is a Service Worker with Background Sync.
+              retry schedule, no dead-letter policy, no cross-tab coordination. The drain is
+              triggered by exactly three things: an enqueue while online, the <code>online</code>{' '}
+              event, and the user pressing retry. For a scorer looking at the phone for the whole
+              match, that trigger set covers the real cases. For anything else it is genuinely
+              insufficient, and the fix is a Service Worker with Background Sync.
             </p>
             <p>
               There is no manifest and no Service Worker in the shipped version, deliberately.
@@ -1231,12 +1265,15 @@ export function EngineeringPage() {
               parameter.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">The optimistic fold, and two bugs it had</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              The optimistic fold, and two bugs it had
+            </h3>
             <p>
               <code>foldQueuedBalls</code> takes the last server-confirmed <code>MatchState</code>{' '}
-              and replays every queued ball through <code>applyBall</code>, the identical reducer the
-              server runs. The console shows a real score, a real over ticker, real batsman figures,
-              correct strike rotation, and correct end-of-innings detection, computed locally.
+              and replays every queued ball through <code>applyBall</code>, the identical reducer
+              the server runs. The console shows a real score, a real over ticker, real batsman
+              figures, correct strike rotation, and correct end-of-innings detection, computed
+              locally.
             </p>
             <p>
               The old version built each optimistic event's <code>seq</code> as{' '}
@@ -1244,20 +1281,21 @@ export function EngineeringPage() {
               fold step already advances <code>lastEventSeq</code>, so the sequence numbers were
               wrong once more than one ball was queued. Now each event is built from the current
               folded state. The second fix re-pointed the "clear the manual crease overrides" effect
-              at the displayed sequence rather than the server's. Offline the server's sequence never
-              moves, so a manual striker or bowler override would stick and freeze the crease for the
-              rest of the innings.
+              at the displayed sequence rather than the server's. Offline the server's sequence
+              never moves, so a manual striker or bowler override would stick and freeze the crease
+              for the rest of the innings.
             </p>
 
             <Callout kind="why" title="The fold also carries previousOverBowlerId">
               <p>
                 The consecutive-overs rule needs to know who bowled the previous over, and the
-                server's answer froze the moment the connection dropped. If the scorer bowls two full
-                overs offline, a stale value offers the wrong bowler options at the over boundary and
-                lets through a ball the server will reject with <code>CONSECUTIVE_OVERS</code> on
-                sync. Because a failed ball halts the entire queue, that one stale value would strand
-                every delivery behind it. So the fold watches for <code>currentOverNumber</code>{' '}
-                changing and updates the value from the ball that completed the over.
+                server's answer froze the moment the connection dropped. If the scorer bowls two
+                full overs offline, a stale value offers the wrong bowler options at the over
+                boundary and lets through a ball the server will reject with{' '}
+                <code>CONSECUTIVE_OVERS</code> on sync. Because a failed ball halts the entire
+                queue, that one stale value would strand every delivery behind it. So the fold
+                watches for <code>currentOverNumber</code> changing and updates the value from the
+                ball that completed the over.
               </p>
             </Callout>
 
@@ -1266,8 +1304,8 @@ export function EngineeringPage() {
                 IndexedDB is shared across tabs on the same origin, so both tabs see the same queued
                 balls. But <code>subscribeToBallQueue</code> is an in-memory <code>Set</code> per
                 tab, so tab B does not re-render when tab A enqueues. Worse, when connectivity
-                returns both tabs' <code>online</code> handlers fire and both start draining, and the{' '}
-                <code>draining</code> guard is a React ref, so it is per tab and does not help.
+                returns both tabs' <code>online</code> handlers fire and both start draining, and
+                the <code>draining</code> guard is a React ref, so it is per tab and does not help.
               </p>
               <p className="mt-2">
                 Idempotency saves the outcome. The loser's submissions come back 200 with the same
@@ -1287,8 +1325,6 @@ export function EngineeringPage() {
             </Note>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="ch-auth"
             num="14"
@@ -1296,28 +1332,31 @@ export function EngineeringPage() {
             standfirst="The thing JavaScript can read is short-lived and low value. The thing that is long-lived is unreadable by JavaScript. That split is the whole design."
           >
             <p>
-              Registration creates an unverified account and sends a six-digit code. Once the code is
-              verified, the user is signed in. Login accepts a username or an email and returns a
+              Registration creates an unverified account and sends a six-digit code. Once the code
+              is verified, the user is signed in. Login accepts a username or an email and returns a
               short-lived access JWT in the response body plus an httpOnly refresh cookie.
             </p>
             <p>
               The access token lives in a module-scoped variable in the SPA. Memory only, never{' '}
               <code>localStorage</code>, which any JavaScript on the page can read, so a single XSS
-              in my code or in a dependency would exfiltrate a valid token. A closure variable is not
-              reachable from an injected script without already having execution in that context, and
-              it dies with the tab. It also expires in 15 minutes, so the window is small even in the
-              worst case. On reload, <code>AuthProvider</code> calls <code>/auth/refresh</code>, the
-              browser sends the httpOnly cookie automatically, and a fresh access token comes back.
+              in my code or in a dependency would exfiltrate a valid token. A closure variable is
+              not reachable from an injected script without already having execution in that
+              context, and it dies with the tab. It also expires in 15 minutes, so the window is
+              small even in the worst case. On reload, <code>AuthProvider</code> calls{' '}
+              <code>/auth/refresh</code>, the browser sends the httpOnly cookie automatically, and a
+              fresh access token comes back.
             </p>
             <p>
-              The refresh token is opaque rather than a JWT because it needs to be revocable. It is a
-              random value stored server-side as a hash, and revoking the row invalidates it
+              The refresh token is opaque rather than a JWT because it needs to be revocable. It is
+              a random value stored server-side as a hash, and revoking the row invalidates it
               immediately. A 30-day stateless JWT cannot do that.
             </p>
 
             <AuthLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What the JWT deliberately does not contain</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What the JWT deliberately does not contain
+            </h3>
             <p>
               User id, email, issuer, expiry. No role, no list of matches you may score. Permissions
               are read per request, so revoking a scorer assignment takes effect immediately instead
@@ -1333,15 +1372,17 @@ export function EngineeringPage() {
             </p>
             <p>
               A revoked scorer keeps access for up to 60 seconds only if the explicit invalidation
-              fails, since the TTL is the backstop rather than the mechanism. The worst case is mild:
-              someone who was authorised sixty seconds ago enters balls into an append-only log that
-              records exactly who they were, and every one is correctable. The alternative is a
-              Postgres query with a relation load on every ball write, six times an over per live
-              match, for a check whose answer changes maybe once a season. I would not cache a
+              fails, since the TTL is the backstop rather than the mechanism. The worst case is
+              mild: someone who was authorised sixty seconds ago enters balls into an append-only
+              log that records exactly who they were, and every one is correctable. The alternative
+              is a Postgres query with a relation load on every ball write, six times an over per
+              live match, for a check whose answer changes maybe once a season. I would not cache a
               security decision this way if the action it guarded were irreversible.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Account enumeration</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Account enumeration
+            </h3>
             <p>
               Login returns an identical message for an unknown user and a wrong password, and
               identical timing, via <code>burnPasswordComparison</code>. Without it, "no such
@@ -1366,7 +1407,9 @@ export function EngineeringPage() {
               stats URL. Email addresses, which are secret, are never confirmed or denied anywhere.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">XSS and CSRF are different attacks</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              XSS and CSRF are different attacks
+            </h3>
             <p>
               XSS is attacker script running in my origin. Mitigated by React's escaping, no{' '}
               <code>dangerouslySetInnerHTML</code>, Helmet's headers, and keeping the access token
@@ -1387,17 +1430,15 @@ export function EngineeringPage() {
               <p>
                 The refresh cookie was scoped to path <code>/auth</code>. Login worked, the session
                 worked, and every reload came back signed out, only in the deployed environment. A
-                cookie path is matched against the URL the browser requests, not the path your router
-                thinks it is mounted at. The browser never asks for <code>/auth</code>. In
-                development it asks for <code>/api/auth/refresh</code> through the Vite proxy, and in
-                production the platform mounts the function under <code>/api</code>. The cookie was
-                set, plainly visible in devtools, and never sent again. Path <code>/</code> fixed it,
-                and the reasoning is now a comment in the code.
+                cookie path is matched against the URL the browser requests, not the path your
+                router thinks it is mounted at. The browser never asks for <code>/auth</code>. In
+                development it asks for <code>/api/auth/refresh</code> through the Vite proxy, and
+                in production the platform mounts the function under <code>/api</code>. The cookie
+                was set, plainly visible in devtools, and never sent again. Path <code>/</code>{' '}
+                fixed it, and the reasoning is now a comment in the code.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-serverless"
@@ -1406,17 +1447,19 @@ export function EngineeringPage() {
             standfirst="One Vercel project. The SPA at /, the API under /api, the socket at /api/socket.io. Four decisions in this codebase exist only because of how that platform behaves."
           >
             <p>
-              Same-origin buys three things. The refresh cookie stays first-party, which is what makes{' '}
-              <code>sameSite=strict</code> viable. CORS disappears from the browser path. The socket
-              connects to <code>window.location.origin</code>, so there is no separate socket host to
-              configure per environment. The dev setup mirrors it through the Vite proxy on purpose,
-              so development and production have the same origin topology rather than two different
-              sets of bugs.
+              Same-origin buys three things. The refresh cookie stays first-party, which is what
+              makes <code>sameSite=strict</code> viable. CORS disappears from the browser path. The
+              socket connects to <code>window.location.origin</code>, so there is no separate socket
+              host to configure per environment. The dev setup mirrors it through the Vite proxy on
+              purpose, so development and production have the same origin topology rather than two
+              different sets of bugs.
             </p>
 
             <FreezeLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">The four platform-forced changes</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              The four platform-forced changes
+            </h3>
             <ol className="flex list-decimal flex-col gap-3 pl-5 text-secondary marker:text-muted">
               <li>
                 <strong>WebSocket-only transport</strong>, because the polling handshake is
@@ -1438,14 +1481,14 @@ export function EngineeringPage() {
               </li>
             </ol>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               WebSockets under a 300-second function limit
             </h3>
             <p>
               The function exports an <code>http.Server</code>, so socket.io uses the normal HTTP
               upgrade path and the platform keeps the instance alive while the connection is active.
-              The connection is then torn down at the function's maximum duration, 300 seconds on the
-              free plan, so a live-match socket reconnects at least every five minutes.
+              The connection is then torn down at the function's maximum duration, 300 seconds on
+              the free plan, so a live-match socket reconnects at least every five minutes.
             </p>
             <p>
               It does not matter, because the client is snapshot-first. On reconnect it rejoins the
@@ -1458,11 +1501,13 @@ export function EngineeringPage() {
             <p>
               Past a few hundred concurrent viewers I would split the socket layer onto a long-lived
               host and keep the API serverless. That split is cheap precisely because the realtime
-              layer owns no truth. Its only state is room membership, which the Redis adapter already
-              externalises.
+              layer owns no truth. Its only state is room membership, which the Redis adapter
+              already externalises.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Two database URLs</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Two database URLs
+            </h3>
             <p>
               <code>DATABASE_URL</code> is the pooled Neon endpoint used by the running app.{' '}
               <code>DIRECT_URL</code> is the direct endpoint used by Prisma migrations, because
@@ -1476,30 +1521,33 @@ export function EngineeringPage() {
               external pooler that multiplexes many short-lived clients onto few real backends.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What a cold start does, in order</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What a cold start does, in order
+            </h3>
             <p>
               The module graph loads, env is parsed and validated, subscribers register, socket.io
               attaches, Redis is constructed but not connected, and Prisma connects on the first
               query. Env parsing happens at import time and throws rather than calling{' '}
-              <code>process.exit(1)</code>. On serverless this runs during module init, where an exit
-              is reported as an opaque crash with no output, while a thrown error carries the
-              itemised zod message into the platform's logs. It logs with <code>console</code> rather
-              than the logger, because the logger itself depends on env.
+              <code>process.exit(1)</code>. On serverless this runs during module init, where an
+              exit is reported as an opaque crash with no output, while a thrown error carries the
+              itemised zod message into the platform's logs. It logs with <code>console</code>{' '}
+              rather than the logger, because the logger itself depends on env.
             </p>
             <p>
-              Subscriber registration is at module scope in the serverless entry, so a cold start has
-              its subscribers in place before the request that woke it reaches the write path. Lazy
-              registration would mean the very first <code>match:completed</code> on a fresh instance
-              has no listener and the points table silently does not rebuild. That bug appears only
-              on the first request after a scale-up, which is the worst possible place to find one.
+              Subscriber registration is at module scope in the serverless entry, so a cold start
+              has its subscribers in place before the request that woke it reaches the write path.
+              Lazy registration would mean the very first <code>match:completed</code> on a fresh
+              instance has no listener and the points table silently does not rebuild. That bug
+              appears only on the first request after a scale-up, which is the worst possible place
+              to find one.
             </p>
 
             <Callout kind="trap" title="Two build-passes-deploy-fails bugs, both pinned in config">
               <p>
                 The rewrite has to target a static <code>api/server</code> rather than a{' '}
                 <code>[...path]</code> catch-all, because the catch-all matched only a single path
-                segment. <code>/api/health</code> resolved and <code>/api/health/live</code> returned
-                404 at the platform before ever reaching Express.
+                segment. <code>/api/health</code> resolved and <code>/api/health/live</code>{' '}
+                returned 404 at the platform before ever reaching Express.
               </p>
               <p className="mt-2">
                 Prisma needs <code>binaryTargets</code> including <code>rhel-openssl-3.0.x</code>,
@@ -1509,28 +1557,26 @@ export function EngineeringPage() {
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
               createApp() does not call listen()
             </h3>
             <p>
               The factory only builds the Express app. The normal entrypoint creates a server and
-              listens, the Vercel entrypoint exports it, and tests pass the app straight to supertest
-              without opening a port.
+              listens, the Vercel entrypoint exports it, and tests pass the app straight to
+              supertest without opening a port.
             </p>
             <p>
               The two entrypoints differ in exactly three ways that cannot be expressed as
-              conditionals. The serverless one exports rather than listens, because the platform owns
-              the socket and hands over the upgrade. It mounts the app under <code>/api</code> on an
-              outer Express instance, because the platform's rewrite preserves the original path, so{' '}
-              <code>/api/health</code> arrives as <code>/api/health</code> and Express strips the
-              prefix so every route stays mounted where it already expects to be. And it registers no
-              signal handlers, because the platform freezes or discards instances instead of sending
-              SIGTERM. Both call the same <code>createApp</code>, the same{' '}
+              conditionals. The serverless one exports rather than listens, because the platform
+              owns the socket and hands over the upgrade. It mounts the app under <code>/api</code>{' '}
+              on an outer Express instance, because the platform's rewrite preserves the original
+              path, so <code>/api/health</code> arrives as <code>/api/health</code> and Express
+              strips the prefix so every route stays mounted where it already expects to be. And it
+              registers no signal handlers, because the platform freezes or discards instances
+              instead of sending SIGTERM. Both call the same <code>createApp</code>, the same{' '}
               <code>attachRealtime</code>, and the same subscriber registration.
             </p>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-scale"
@@ -1540,7 +1586,9 @@ export function EngineeringPage() {
           >
             <FanoutChart />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Second to break: the standings recompute</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Second to break: the standings recompute
+            </h3>
             <p>
               Every match completion rebuilds an entire tournament from the event log. That is
               O(matches x innings x events) per completion, bounded and cheap at 49 matches, and
@@ -1553,17 +1601,19 @@ export function EngineeringPage() {
               that stops existing. It is a good trade at this scale and a bad one at 49,000 matches.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What I would change, in order</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What I would change, in order
+            </h3>
             <ol className="flex list-decimal flex-col gap-3 pl-5 text-secondary marker:text-muted">
               <li>
                 Deltas with a periodic keyframe. An order of magnitude off the per-message cost, and
                 the client already tolerates gaps, so it is a small change.
               </li>
               <li>
-                Put the snapshot behind a CDN with a one-second TTL and let the overwhelming majority
-                of viewers poll that, keeping sockets for the small set that needs sub-second
-                latency. At that population the right answer stops being "a better WebSocket" and
-                starts being "cache the number".
+                Put the snapshot behind a CDN with a one-second TTL and let the overwhelming
+                majority of viewers poll that, keeping sockets for the small set that needs
+                sub-second latency. At that population the right answer stops being "a better
+                WebSocket" and starts being "cache the number".
               </li>
               <li>
                 Scope the standings recompute to affected teams, or make it incremental with a
@@ -1578,24 +1628,27 @@ export function EngineeringPage() {
             <Callout kind="gap" title="fillInningsTotals queries ball events once per innings">
               <p>
                 That is the clearest performance defect in the codebase. It should be one{' '}
-                <code>findMany</code> with <code>inningsId: {'{'} in: [...] {'}'}</code> and a
-                group-by in memory, or better, a single SQL aggregate applying the supersede logic in
-                the query. It has not hurt because it runs once per match completion over a bounded
-                set, and "it has not hurt yet" is not a defence.
+                <code>findMany</code> with{' '}
+                <code>
+                  inningsId: {'{'} in: [...] {'}'}
+                </code>{' '}
+                and a group-by in memory, or better, a single SQL aggregate applying the supersede
+                logic in the query. It has not hurt because it runs once per match completion over a
+                bounded set, and "it has not hurt yet" is not a defence.
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">The connection ceiling is not the wall</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              The connection ceiling is not the wall
+            </h3>
             <p>
               On a long-lived Node host, tens of thousands of connections per instance. The limits
               are file descriptors and per-connection heap, and it is I/O bound rather than CPU
-              bound. On this deployment it is a different question entirely, because the function has
-              a hard 300-second ceiling regardless of connection count. Either way, connection count
-              is not the bottleneck at any scale. Fan-out volume is.
+              bound. On this deployment it is a different question entirely, because the function
+              has a hard 300-second ceiling regardless of connection count. Either way, connection
+              count is not the bottleneck at any scale. Fan-out volume is.
             </p>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-ops"
@@ -1610,8 +1663,8 @@ export function EngineeringPage() {
               calls, and React components are not unit-tested, on purpose.
             </p>
             <p>
-              That is also exactly the code that was made pure, which is not a coincidence. Purity is
-              what makes it cheap to test, and cheap tests are the ones that actually get run.
+              That is also exactly the code that was made pure, which is not a coincidence. Purity
+              is what makes it cheap to test, and cheap tests are the ones that actually get run.
             </p>
             <p>
               Two tests earn their place. The net run rate bowled-out case is written so it fails
@@ -1633,53 +1686,59 @@ export function EngineeringPage() {
                 The offline queue is the least tested and most fragile part, and it is testable
                 today: <code>fake-indexeddb</code> for the store, a stubbed <code>submit</code>, a
                 mocked <code>navigator.onLine</code>. The property that matters most is that{' '}
-                <code>foldQueuedBalls</code> produces the same state the server produces for the same
-                inputs, which is only testable because both sides call the same pure reducer.
+                <code>foldQueuedBalls</code> produces the same state the server produces for the
+                same inputs, which is only testable because both sides call the same pure reducer.
               </p>
             </Callout>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Errors have one shape</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Errors have one shape
+            </h3>
             <p>
-              Every failure is an <code>AppError</code> with a status, a machine-readable code, and a
-              message, so the error middleware serialises exactly one shape:{' '}
+              Every failure is an <code>AppError</code> with a status, a machine-readable code, and
+              a message, so the error middleware serialises exactly one shape:{' '}
               <code>{'{ error: { code, message, details? } }'}</code>. Anything else that escapes a
-              handler is an unexpected bug and becomes a generic 500 with the detail logged and never
-              leaked.
+              handler is an unexpected bug and becomes a generic 500 with the detail logged and
+              never leaked.
             </p>
             <p>
               <code>AppError</code> carries an <code>expected</code> flag defaulting to{' '}
-              <code>status &lt; 500</code>, so a 404 or a validation failure logs at info rather than
-              error. Otherwise you train yourself to ignore your own error log and an alert on
+              <code>status &lt; 500</code>, so a 404 or a validation failure logs at info rather
+              than error. Otherwise you train yourself to ignore your own error log and an alert on
               error-level becomes meaningless.
             </p>
             <p>
-              The client branches on the code, never on the message.{' '}
-              <code>BAD_REQUEST</code> means "these are field errors" and{' '}
-              <code>ApiError.fieldErrors</code> maps them onto form inputs. Domain rules come back as
-              422 with messages written for a human, like "A bowler cannot bowl two overs in a row",
-              and are shown verbatim because the scorer is the person who needs to act on them.
-              Messages are for humans and can be reworded. Codes are the contract.
+              The client branches on the code, never on the message. <code>BAD_REQUEST</code> means
+              "these are field errors" and <code>ApiError.fieldErrors</code> maps them onto form
+              inputs. Domain rules come back as 422 with messages written for a human, like "A
+              bowler cannot bowl two overs in a row", and are shown verbatim because the scorer is
+              the person who needs to act on them. Messages are for humans and can be reworded.
+              Codes are the contract.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Two health endpoints, two questions</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Two health endpoints, two questions
+            </h3>
             <p>
               <code>/health/live</code> says the process is up and depends on nothing external, or a
-              Redis blip would make an orchestrator kill a healthy process. <code>/health</code> pings
-              Postgres and Redis and returns 503 when either is unreachable, which is what a load
-              balancer should act on. Conflating them is how you get a cascading restart loop during
-              a dependency outage.
+              Redis blip would make an orchestrator kill a healthy process. <code>/health</code>{' '}
+              pings Postgres and Redis and returns 503 when either is unreachable, which is what a
+              load balancer should act on. Conflating them is how you get a cascading restart loop
+              during a dependency outage.
             </p>
             <p>
-              Logs are structured JSON with Pino, carrying match ids, event ids, user ids, durations,
-              and error details, and never tokens, OTPs, password hashes, or authentication request
-              bodies. Health checks are excluded so they do not drown out useful traffic. Before
-              calling this production-ready I would add Sentry with source maps, latency and
-              error-rate percentiles on the ball-write path, Redis and Postgres connection
-              saturation, socket connection count and reconnect rate, and an alert on
+              Logs are structured JSON with Pino, carrying match ids, event ids, user ids,
+              durations, and error details, and never tokens, OTPs, password hashes, or
+              authentication request bodies. Health checks are excluded so they do not drown out
+              useful traffic. Before calling this production-ready I would add Sentry with source
+              maps, latency and error-rate percentiles on the ball-write path, Redis and Postgres
+              connection saturation, socket connection count and reconnect rate, and an alert on
               standings-recompute failures, which are otherwise silent by construction.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">"The score jumped backwards"</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              "The score jumped backwards"
+            </h3>
             <p>
               First question: did the server's score go backwards, or only the client's display?
               Three hypotheses, each with a distinct signature in the data.
@@ -1701,28 +1760,26 @@ export function EngineeringPage() {
               </li>
             </ol>
             <p>
-              For "my six was not counted", pull the innings' event log, because it is append-only so
-              the answer is definitely in there. The ball was never submitted, so nothing is in the
-              log and you check the client's IndexedDB queue and the ball-write rate limiter. Or it
-              was submitted and undone, so an <code>UNDO</code> supersedes it with an author and a
-              timestamp. Or it was recorded as something else, so the ball is there with different
+              For "my six was not counted", pull the innings' event log, because it is append-only
+              so the answer is definitely in there. The ball was never submitted, so nothing is in
+              the log and you check the client's IndexedDB queue and the ball-write rate limiter. Or
+              it was submitted and undone, so an <code>UNDO</code> supersedes it with an author and
+              a timestamp. Or it was recorded as something else, so the ball is there with different
               runs and a <code>CORRECTION</code> fixes it.
             </p>
 
             <Callout kind="gap" title="The evidence exists. A screen for it does not.">
               <p>
                 <code>GET /matches/:id/events</code> returns the full log including undos and
-                corrections, so the data is queryable today. What is missing is a screen that renders
-                it for a human, which is the difference between the evidence existing and the
-                evidence being usable. An append-only log whose main value is dispute resolution
+                corrections, so the data is queryable today. What is missing is a screen that
+                renders it for a human, which is the difference between the evidence existing and
+                the evidence being usable. An append-only log whose main value is dispute resolution
                 should have a dispute-resolution UI. Related: a correction to a finished match
-                requires republishing <code>match:completed</code>, and today nothing republishes it.
-                The data model supports it. The plumbing is not wired.
+                requires republishing <code>match:completed</code>, and today nothing republishes
+                it. The data model supports it. The plumbing is not wired.
               </p>
             </Callout>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="ch-gaps"
@@ -1735,9 +1792,9 @@ export function EngineeringPage() {
                 <strong>Offline queue failure handling.</strong> A rejected ball blocks everything
                 behind it, there is no backoff, two tabs can drain at once, and the UI does not show
                 enough about the ball that failed. The design is right and the implementation is
-                thin. One day of work: split transport failures from semantic rejections, backoff with
-                jitter on the former, surface the ball and offer edit-or-discard on the latter, and a
-                Web Lock around the drain.
+                thin. One day of work: split transport failures from semantic rejections, backoff
+                with jitter on the former, surface the ball and offer edit-or-discard on the latter,
+                and a Web Lock around the drain.
               </li>
               <li>
                 <strong>The player-stats projection re-implements the fold.</strong> Two places in
@@ -1746,8 +1803,8 @@ export function EngineeringPage() {
                 reducer is per innings, which is a shape problem, not a real obstacle.
               </li>
               <li>
-                <strong>No single-writer claim.</strong> Two assigned scorers can both score. The log
-                stays structurally valid and the content can still be wrong.
+                <strong>No single-writer claim.</strong> Two assigned scorers can both score. The
+                log stays structurally valid and the content can still be wrong.
               </li>
               <li>
                 <strong>No Postgres advisory lock fallback.</strong> Redis going down is the one
@@ -1758,15 +1815,22 @@ export function EngineeringPage() {
                 exists and nobody can read it.
               </li>
               <li>
-                <strong>The N+1 in <code>fillInningsTotals</code>.</strong> Fifteen minutes.
+                <strong>
+                  The N+1 in <code>fillInningsTotals</code>.
+                </strong>{' '}
+                Fifteen minutes.
               </li>
               <li>
-                <strong>No <code>aria-live</code> region on the live score.</strong> Needed before
-                anyone claims accessibility compliance.
+                <strong>
+                  No <code>aria-live</code> region on the live score.
+                </strong>{' '}
+                Needed before anyone claims accessibility compliance.
               </li>
             </ol>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Where this system loses data</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Where this system loses data
+            </h3>
             <p>
               One place: the client outbox. A ball can sit in IndexedDB behind a rejected item and
               then disappear if the device is cleared or replaced before the scorer resolves it.
@@ -1774,23 +1838,27 @@ export function EngineeringPage() {
             <p>
               Nowhere else. Once a ball reaches Postgres it is in an append-only table with a unique
               key, never updated and never deleted. Redis holds nothing that is not derivable. A
-              failed snapshot write degrades a read to a rebuild. A failed publish loses a broadcast,
-              which the next one corrects. Notification emails are fire-and-forget and can be lost,
-              which is exactly why the durable in-app notice is a row written first.
+              failed snapshot write degrades a read to a rebuild. A failed publish loses a
+              broadcast, which the next one corrects. Notification emails are fire-and-forget and
+              can be lost, which is exactly why the durable in-app notice is a row written first.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What was left out, and how that was decided</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What was left out, and how that was decided
+            </h3>
             <p>
               The test was whether a feature needed data the system does not have, or introduced a
               large new rules system without improving basic scoring. Out by that test: venue-clash
-              detection and calendar scheduling, which is why <code>scheduledAt</code> is nullable and
-              the round-robin generator is a pure function of team ids. Super overs, powerplays, and
-              bowler over-quotas, all of which are additions to <code>validateBall</code> that change
-              nothing about storage, which is itself the argument that the storage model is right.
-              Live commentary and video.
+              detection and calendar scheduling, which is why <code>scheduledAt</code> is nullable
+              and the round-robin generator is a pure function of team ids. Super overs, powerplays,
+              and bowler over-quotas, all of which are additions to <code>validateBall</code> that
+              change nothing about storage, which is itself the argument that the storage model is
+              right. Live commentary and video.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">What I would tell the next person</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              What I would tell the next person
+            </h3>
             <p>
               The decisions that mattered were about where responsibility lives, not about clever
               code. Making the reducer pure let it run in four places and agree by construction.
@@ -1806,8 +1874,6 @@ export function EngineeringPage() {
             </p>
           </Chapter>
 
-          {/* ============================================================ */}
-
           <Chapter
             id="appendix-cricket"
             num="A"
@@ -1821,36 +1887,45 @@ export function EngineeringPage() {
 
             <StrikeLab />
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Legal deliveries and the over</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Legal deliveries and the over
+            </h3>
             <p>
               Wides and no-balls do not advance the over. Everything else does. Six legal deliveries
               complete an over, and the same bowler may not bowl two in a row.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Who faced it, and who is charged</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Who faced it, and who is charged
+            </h3>
             <p>
               <code>facedDelivery = !isWide</code>. A batsman is credited with facing a no-ball,
               because he had to play it, and never a wide, which was never reachable.{' '}
               <code>bowlerRuns = runsOffBat + (isWide || isNoBall ? extraRuns : 0)</code>. Wide and
-              no-ball extras hit the bowler's economy. Byes and leg-byes do not, because they are the
-              batting side's runs and not the bowler's fault.
+              no-ball extras hit the bowler's economy. Byes and leg-byes do not, because they are
+              the batting side's runs and not the bowler's fault.
             </p>
             <p>
-              A maiden is a completed over with zero bowler-runs. The <code>legalBalls &gt;= 6</code>{' '}
-              clause exists so an over cut short by the end of an innings is not a maiden, however
-              tidy it looked.
+              A maiden is a completed over with zero bowler-runs. The{' '}
+              <code>legalBalls &gt;= 6</code> clause exists so an over cut short by the end of an
+              innings is not a maiden, however tidy it looked.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Dismissals</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Dismissals
+            </h3>
             <p>
               Which dismissals are possible differs off a wide and off a no-ball. A run-out needs a
-              fielder. Only a batsman at the crease can be dismissed. Runs cannot come off the bat on
-              a wide or a bye. When a ball is a wicket, the reducer sets whichever end the dismissed
-              batsman occupied to null, so the UI prompts for a replacement. The scorer names them on
-              the next ball, which is why the reducer never has to infer a new batsman.
+              fielder. Only a batsman at the crease can be dismissed. Runs cannot come off the bat
+              on a wide or a bye. When a ball is a wicket, the reducer sets whichever end the
+              dismissed batsman occupied to null, so the UI prompts for a replacement. The scorer
+              names them on the next ball, which is why the reducer never has to infer a new
+              batsman.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Net run rate, and the trap in it</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Net run rate, and the trap in it
+            </h3>
             <p>
               Net run rate is runs scored divided by overs faced, minus runs conceded divided by
               overs bowled, aggregated across the tournament rather than averaged per match. The
@@ -1859,17 +1934,18 @@ export function EngineeringPage() {
             <Callout kind="trap" title="The bowled-out rule">
               <p>
                 A side dismissed inside its quota is charged the full quota of overs, not the balls
-                it actually faced. The naive implementation sums what happened, which flatters a team
-                that collapsed. Bowled out for 60 in 12 overs computes as a 5.00 run rate instead of
-                the correct 3.00 over 20 overs. A team can miss a playoff spot on that.
+                it actually faced. The naive implementation sums what happened, which flatters a
+                team that collapsed. Bowled out for 60 in 12 overs computes as a 5.00 run rate
+                instead of the correct 3.00 over 20 overs. A team can miss a playoff spot on that.
               </p>
               <p className="mt-2">
-                It is isolated in one function, <code>chargeableBalls</code>, so it cannot be applied
-                inconsistently. A successful chase is not charged the full quota, because that innings
-                ended by achievement rather than failure. So <code>chargeableBalls</code> keys off{' '}
-                <code>endReason</code>: only <code>ALL_OUT</code> triggers the quota substitution.{' '}
-                <code>OVERS_COMPLETE</code> gets actual balls, which is the same number anyway, and{' '}
-                <code>TARGET_CHASED</code> gets what it used.
+                It is isolated in one function, <code>chargeableBalls</code>, so it cannot be
+                applied inconsistently. A successful chase is not charged the full quota, because
+                that innings ended by achievement rather than failure. So{' '}
+                <code>chargeableBalls</code> keys off <code>endReason</code>: only{' '}
+                <code>ALL_OUT</code> triggers the quota substitution. <code>OVERS_COMPLETE</code>{' '}
+                gets actual balls, which is the same number anyway, and <code>TARGET_CHASED</code>{' '}
+                gets what it used.
               </p>
             </Callout>
             <p>
@@ -1878,7 +1954,9 @@ export function EngineeringPage() {
               by a human rather than require trust.
             </p>
 
-            <h3 className="serif mt-4 text-[1.5rem] text-primary">Standings and ties</h3>
+            <h3 className="font-semibold tracking-[-0.02em] mt-4 text-[1.5rem] text-primary">
+              Standings and ties
+            </h3>
             <p>
               Sort order is points, then net run rate, then head-to-head, then team name.
               Head-to-head applies only when exactly two teams share the points-and-NRR key. With
@@ -1891,8 +1969,6 @@ export function EngineeringPage() {
               the kind of thing that makes users think the system is broken.
             </p>
           </Chapter>
-
-          {/* ============================================================ */}
 
           <Chapter
             id="appendix-fundamentals"
@@ -1926,17 +2002,14 @@ export function EngineeringPage() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-
 function Preface() {
   return (
     <div className="eng-prose flex flex-col gap-8 pt-16 sm:pt-24">
       <div>
-        <p className="eyebrow mb-4">Howzat · engineering</p>
-        <h1 className="serif text-[2.75rem] leading-[1.05] text-primary sm:text-[4rem]">
+        <h1 className="font-semibold tracking-[-0.02em] text-2xl leading-[1.05] text-primary">
           How one score stays true in five places at once
         </h1>
-        <p className="serif mt-5 text-[1.25rem] leading-[1.5] text-secondary">
+        <p className="font-semibold tracking-[-0.02em] mt-5 text-[1.25rem] leading-[1.5] text-secondary">
           A live cricket scoring system, taken apart. Every diagram on this page is interactive, and
           several of them run the production reducer in your browser. Read it top to bottom and you
           should be able to open a pull request against this codebase on your first day.
@@ -1957,8 +2030,8 @@ function Preface() {
             retries live in one place, which makes the realtime layer disposable.
           </Law>
           <Law n={3}>
-            socket.io was chosen for the Redis adapter and rooms. Horizontal scaling is one line, and
-            I would have written the alternative worse.
+            socket.io was chosen for the Redis adapter and rooms. Horizontal scaling is one line,
+            and I would have written the alternative worse.
           </Law>
           <Law n={4}>
             <code>transports: ['websocket']</code>, because the long-polling handshake is
@@ -1994,7 +2067,8 @@ function Preface() {
       <div className="rounded-[var(--radius-md)] border border-line bg-sunken px-5 py-4">
         <p className="eyebrow mb-2">How to read this page</p>
         <p className="text-[0.875rem] text-secondary">
-          Eighteen chapters ordered logically: write path, concurrency, derived caches, edge routing, and security. Hover right margin for index.
+          Eighteen chapters ordered logically: write path, concurrency, derived caches, edge
+          routing, and security. Hover right margin for index.
         </p>
       </div>
     </div>

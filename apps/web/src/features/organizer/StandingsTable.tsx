@@ -27,11 +27,11 @@ export function StandingsTable({
 
   return (
     <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-      <Table className="min-w-[46rem]">
+      <Table className="min-w-[30rem]">
         <thead>
-          <tr className="border-b border-line">
-            <Th className="w-12">#</Th>
-            <Th align="left">Side</Th>
+          <tr className="border-b border-line bg-sunken">
+            <Th className="w-8">#</Th>
+            <Th align="left">Team</Th>
             <Th>P</Th>
             <Th>W</Th>
             <Th>{isFootball ? 'D' : 'L'}</Th>
@@ -39,10 +39,10 @@ export function StandingsTable({
             {isFootball ? null : <Th>NR</Th>}
             <Th align="right">Pts</Th>
             <Th align="right">{isFootball ? 'GD' : 'NRR'}</Th>
-            <Th align="right" className="hidden lg:table-cell">
+            <Th align="right" className="hidden xl:table-cell">
               {isFootball ? 'GF' : 'For'}
             </Th>
-            <Th align="right" className="hidden lg:table-cell">
+            <Th align="right" className="hidden xl:table-cell">
               {isFootball ? 'GA' : 'Against'}
             </Th>
           </tr>
@@ -55,14 +55,12 @@ export function StandingsTable({
             return (
               <tr
                 key={row.team.id}
-                className="border-b border-line transition-colors last:border-0 hover:bg-hover/50"
+                className="border-b border-line transition-colors last:border-0 hover:bg-hover"
               >
-                <td className="mono px-4 py-4 text-center text-[0.8125rem] text-muted">
-                  {row.position}
-                </td>
+                <td className="mono px-3 py-2 text-center text-xs text-muted">{row.position}</td>
 
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-3.5">
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2.5">
                     <TeamMark
                       shortName={row.team.shortName}
                       color={row.team.primaryColor}
@@ -84,17 +82,17 @@ export function StandingsTable({
 
                 <td
                   className={cn(
-                    'mono px-4 py-4 text-right',
+                    'mono px-3 py-2 text-right',
                     margin > 0 ? 'text-success' : margin < 0 ? 'text-alert' : 'text-secondary',
                   )}
                 >
                   {isFootball ? row.goalDifferenceText : row.nrrText}
                 </td>
 
-                <td className="mono hidden px-4 py-4 text-right text-[0.8125rem] text-muted lg:table-cell">
+                <td className="mono hidden px-3 py-2 text-right text-xs text-muted xl:table-cell">
                   {isFootball ? row.goalsFor : `${row.runsScored}/${row.oversFaced}`}
                 </td>
-                <td className="mono hidden px-4 py-4 text-right text-[0.8125rem] text-muted lg:table-cell">
+                <td className="mono hidden px-3 py-2 text-right text-xs text-muted xl:table-cell">
                   {isFootball ? row.goalsAgainst : `${row.runsConceded}/${row.oversBowled}`}
                 </td>
               </tr>

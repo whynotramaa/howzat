@@ -17,11 +17,6 @@ function classify(ball: BallSummary): MomentKind | null {
   return null;
 }
 
-/**
- * Watches the snapshot for the three deliveries worth interrupting the page
- * for. The first snapshot only seeds the watermark, because arriving at a
- * match that is already 40 overs old must not replay its last six.
- */
 export function useMoment(
   lastEventSeq: number,
   recentBalls: ReadonlyArray<BallSummary>,
@@ -53,18 +48,10 @@ export function useMoment(
   return moment;
 }
 
-/*
- * The drawings.
- *
- * Everything is one stroke width, drawn on a 320x220 board, and inked in by
- * `stroke-dashoffset`. `--len` is a generous over-estimate of each path's
- * length, which is all the animation needs to run cleanly.
- */
-
 const COPY: Record<MomentKind, { word: string; note: string; ink: string }> = {
-  four: { word: 'Four', note: 'Boundary', ink: 'var(--accent)' },
-  six: { word: 'Six', note: 'Maximum', ink: 'var(--accent)' },
-  wicket: { word: 'Wicket', note: 'Out', ink: 'var(--live)' },
+  four: { word: 'Four', note: 'Boundary', ink: 'var(--accent-fill)' },
+  six: { word: 'Six', note: 'Maximum', ink: 'var(--accent-fill)' },
+  wicket: { word: 'Wicket', note: 'Out', ink: 'var(--text-primary)' },
 };
 
 function Stroke({
@@ -94,7 +81,6 @@ function Stroke({
   );
 }
 
-/** The ball racing away, then the rope it beat. */
 function FourDrawing() {
   return (
     <>
@@ -114,7 +100,6 @@ function FourDrawing() {
   );
 }
 
-/** Over the rope and gone, with the crowd noise scribbled in. */
 function SixDrawing() {
   return (
     <>
@@ -134,7 +119,6 @@ function SixDrawing() {
   );
 }
 
-/** Three stumps, two bails leaving, one appeal. */
 function WicketDrawing() {
   return (
     <>
@@ -193,10 +177,20 @@ export function MomentOverlay({ moment }: { moment: Moment | null }) {
       data-kind={moment.kind}
       role="status"
       aria-live="polite"
-      style={{ '--moment-ink': ink } as React.CSSProperties}
+      style={
+        {
+          '--moment-ink': ink,
+          '--moment-on': moment.kind === 'wicket' ? 'var(--surface-raised)' : 'var(--on-accent)',
+        } as React.CSSProperties
+      }
     >
       {Array.from({ length: rings }, (_, i) => (
-        <span key={i} aria-hidden className="moment-ring" style={{ '--i': i } as React.CSSProperties} />
+        <span
+          key={i}
+          aria-hidden
+          className="moment-ring"
+          style={{ '--i': i } as React.CSSProperties}
+        />
       ))}
       {moment.kind !== 'wicket'
         ? SPARKS.slice(0, moment.kind === 'six' ? 22 : 10).map((spark, i) => (
@@ -229,11 +223,6 @@ export function MomentOverlay({ moment }: { moment: Moment | null }) {
   );
 }
 
-/**
- * One displacement filter roughens every stroke at once, which is what stops
- * the drawings reading as vector art. Rendered once per page so anything with
- * `.sketch` can use it.
- */
 export function SketchFilter() {
   return (
     <svg aria-hidden width="0" height="0" className="absolute">

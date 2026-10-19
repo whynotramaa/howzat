@@ -192,6 +192,7 @@ export interface MatchWithInningsDto extends MatchDto {
 }
 
 export interface ScorerStateDto {
+  acceptedEventIds?: string[];
   match: MatchDto;
   innings: InningsDto | null;
   state: MatchState | null;

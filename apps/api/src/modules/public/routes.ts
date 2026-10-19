@@ -111,7 +111,7 @@ publicRouter.get(
       return;
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=5');
+    res.setHeader('Cache-Control', 'no-store');
     res.json(snapshot);
   }),
 );

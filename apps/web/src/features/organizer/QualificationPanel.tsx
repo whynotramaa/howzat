@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
-import { Card, CardBody, SectionHeading } from '@/components/ui/Card';
+import { Input, Select } from '@/components/ui/Input';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { api } from '@/lib/api';
 
@@ -43,77 +43,68 @@ export function QualificationPanel({
   const total = query.data?.scenarios.length ?? 0;
 
   return (
-    <section className="flex flex-col gap-7">
-      <SectionHeading
-        eyebrow="What-if desk"
-        title="Qualification scenarios"
-        description="Remaining fixture outcomes affecting team position."
-      />
-      <Card>
-        <CardBody className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex min-w-52 flex-1 flex-col gap-2 text-sm text-secondary">
-              Team
-              <select
-                className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary"
-                value={targetTeamId}
-                onChange={(event) => setTargetTeamId(event.target.value)}
-              >
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="w-28 flex flex-col gap-2 text-sm text-secondary">
-              Spots
-              <input
-                className="h-11 rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-primary"
-                type="number"
-                min={1}
-                max={teams.length}
-                value={spots}
-                onChange={(event) => setSpots(Math.max(1, Number(event.target.value) || 1))}
-              />
-            </label>
-            <Button
-              variant="secondary"
-              onClick={() => void query.refetch()}
-              disabled={query.isFetching}
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[0.8125rem] font-semibold">Qualification</h2>
+      <div className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-line bg-raised p-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-48 flex-1">
+            <Select
+              label="Team"
+              value={targetTeamId}
+              onChange={(event) => setTargetTeamId(event.target.value)}
             >
-              Refresh
-            </Button>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </Select>
           </div>
+          <div className="w-24">
+            <Input
+              label="Spots"
+              type="number"
+              min={1}
+              max={teams.length}
+              value={spots}
+              onChange={(event) => setSpots(Math.max(1, Number(event.target.value) || 1))}
+            />
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => void query.refetch()}
+            disabled={query.isFetching}
+          >
+            Refresh
+          </Button>
+        </div>
 
-          {query.isPending ? <Skeleton className="h-24" /> : null}
-          {query.error ? <ErrorText error={query.error} /> : null}
-          {query.data?.tooComplex ? (
-            <p className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-4 py-3 text-sm text-primary">
-              There are {query.data.relevantFixtureCount} relevant fixtures. Narrow the tournament
-              or revisit this after the next result.
-            </p>
-          ) : query.data ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Metric label="Can qualify" value={`${qualifying}/${total}`} />
-              <Metric label="Relevant matches" value={query.data.relevantFixtureCount} />
-              <Metric
-                label="NRR calls"
-                value={query.data.scenarios.filter((scenario) => scenario.requiresNrr).length}
-              />
-            </div>
-          ) : null}
-        </CardBody>
-      </Card>
+        {query.isPending ? <Skeleton className="h-16" /> : null}
+        {query.error ? <ErrorText error={query.error} /> : null}
+        {query.data?.tooComplex ? (
+          <p className="text-[0.8125rem] text-secondary">
+            {query.data.relevantFixtureCount} fixtures left. Too many to enumerate yet.
+          </p>
+        ) : query.data ? (
+          <dl className="grid grid-cols-3 divide-x divide-line rounded-[var(--radius-md)] border border-line">
+            <Metric label="Qualifies in" value={`${qualifying}/${total}`} />
+            <Metric label="Fixtures" value={query.data.relevantFixtureCount} />
+            <Metric
+              label="On NRR"
+              value={query.data.scenarios.filter((scenario) => scenario.requiresNrr).length}
+            />
+          </dl>
+        ) : null}
+      </div>
     </section>
   );
 }
 
-function Metric({ label, value }: { label: string; value: React.ReactNode }) {
+function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-line bg-sunken px-4 py-4">
-      <p className="mono text-2xl font-medium text-primary">{value}</p>
-      <p className="eyebrow mt-2">{label}</p>
+    <div className="px-3 py-2.5">
+      <dt className="eyebrow">{label}</dt>
+      <dd className="tabular text-lg font-semibold tracking-[-0.03em]">{value}</dd>
     </div>
   );
 }

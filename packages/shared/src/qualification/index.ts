@@ -37,7 +37,11 @@ export interface QualificationInput {
 const DEFAULT_MAX_RELEVANT_FIXTURES = 8;
 
 export function qualificationScenarios(input: QualificationInput): QualificationResult {
-  const maxRelevantFixtures = input.maxRelevantFixtures ?? DEFAULT_MAX_RELEVANT_FIXTURES;
+  const requested = input.maxRelevantFixtures;
+  const maxRelevantFixtures =
+    requested !== undefined && Number.isInteger(requested) && requested > 0
+      ? Math.min(requested, DEFAULT_MAX_RELEVANT_FIXTURES)
+      : DEFAULT_MAX_RELEVANT_FIXTURES;
   const target = input.teams.find((team) => team.teamId === input.targetTeamId);
 
   if (!target) {

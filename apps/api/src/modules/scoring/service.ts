@@ -10,10 +10,9 @@ import {
   type MatchSnapshot,
   type MatchState,
 } from '@howzat/shared';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { logger } from '../../lib/logger';
-import { notFound, unprocessable } from '../../lib/errors';
+import { conflict, notFound, unprocessable } from '../../lib/errors';
 import { matchLockKey, withLock } from '../../lib/lock';
 import { publishMatchEvent } from '../../realtime/bus';
 import {
@@ -74,21 +73,18 @@ export async function recordBall(
   return withLock(matchLockKey(matchId), async () => {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      select: { id: true, publicSlug: true, status: true, resultText: true },
+      select: { id: true, publicSlug: true, status: true, resultText: true, revision: true },
     });
 
     if (!match) throw notFound('Match');
 
-    const innings = await loadLiveInnings(matchId);
-
     const existing = await prisma.ballEvent.findUnique({
       where: { clientEventId: input.clientEventId },
-      select: { inningsId: true },
     });
 
     if (existing) {
+      assertSameRequest(existing, matchId, input, 'BALL');
       const { state, snapshot } = await project(match, existing.inningsId);
-      await writeSnapshot(snapshot);
 
       logger.debug({ matchId, clientEventId: input.clientEventId }, 'Duplicate ball ignored');
 
@@ -101,6 +97,9 @@ export async function recordBall(
       };
     }
 
+    const innings = await loadLiveInnings(matchId);
+    if (input.inningsId && input.inningsId !== innings.id)
+      throw unprocessable('WRONG_INNINGS', 'This queued ball belongs to another innings');
     const context = await loadInningsContext(innings.id);
     const events = await loadEvents(innings.id);
     const state = buildState(context, events);
@@ -121,47 +120,29 @@ export async function recordBall(
     const legal = isLegalDelivery(input.extraType);
     const legalThisOver = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
 
-    const created = await prisma.ballEvent
-      .create({
-        data: {
-          matchId,
-          inningsId: innings.id,
-          clientEventId: input.clientEventId,
-          seq: state.lastEventSeq + 1,
-          overNumber: state.currentOverNumber,
-          ballNumber: Math.min(legalThisOver + 1, BALLS_PER_OVER),
-          eventType: 'BALL',
-          isLegalDelivery: legal,
-          runsOffBat: input.runsOffBat,
-          extraRuns: input.extraRuns,
-          extraType: input.extraType,
-          isWicket: input.isWicket,
-          wicketType: input.wicketType,
-          dismissedPlayerId: input.dismissedPlayerId,
-          fielderId: input.fielderId,
-          strikerId: input.strikerId,
-          nonStrikerId: input.nonStrikerId,
-          bowlerId: input.bowlerId,
-          createdBy: userId,
-        },
-      })
-      .catch(async (err) => {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-          return null;
-        }
-        throw err;
-      });
-
-    if (!created) {
-      const { state: current, snapshot } = await project(match, innings.id);
-      return {
-        snapshot,
-        state: current,
-        duplicate: true,
-        inningsCompleted: current.isComplete,
-        matchCompleted: false,
-      };
-    }
+    const created = await prisma.ballEvent.create({
+      data: {
+        matchId,
+        inningsId: innings.id,
+        clientEventId: input.clientEventId,
+        seq: state.lastEventSeq + 1,
+        overNumber: state.currentOverNumber,
+        ballNumber: Math.min(legalThisOver + 1, BALLS_PER_OVER),
+        eventType: 'BALL',
+        isLegalDelivery: legal,
+        runsOffBat: input.runsOffBat,
+        extraRuns: input.extraRuns,
+        extraType: input.extraType,
+        isWicket: input.isWicket,
+        wicketType: input.wicketType,
+        dismissedPlayerId: input.dismissedPlayerId,
+        fielderId: input.fielderId,
+        strikerId: input.strikerId,
+        nonStrikerId: input.nonStrikerId,
+        bowlerId: input.bowlerId,
+        createdBy: userId,
+      },
+    });
 
     const nextState = buildState(context, [...events, toBallEvent(created)]);
     const snapshot = buildSnapshot(match, nextState, context, await dlsSnapshotFor(matchId));
@@ -174,7 +155,7 @@ export async function recordBall(
 
       const refreshed = await prisma.match.findUnique({
         where: { id: matchId },
-        select: { status: true, resultText: true },
+        select: { status: true, resultText: true, revision: true },
       });
 
       if (refreshed) {
@@ -186,7 +167,7 @@ export async function recordBall(
       // revised target exists — so the snapshot has to be told again.
       snapshot.dls = await dlsSnapshotFor(matchId);
 
-      void publishMatchEvent('innings:complete', {
+      await publishMatchEvent('innings:complete', {
         matchId,
         inningsNumber: nextState.inningsNumber,
         snapshot,
@@ -194,7 +175,7 @@ export async function recordBall(
     }
 
     await writeSnapshot(snapshot);
-    void publishMatchEvent('ball', { matchId, snapshot, seq: created.seq });
+    await publishMatchEvent('ball', { matchId, snapshot, seq: created.seq });
 
     return {
       snapshot,
@@ -215,7 +196,7 @@ export async function correctBall(
   return withLock(matchLockKey(matchId), async () => {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      select: { id: true, publicSlug: true, status: true, resultText: true },
+      select: { id: true, publicSlug: true, status: true, resultText: true, revision: true },
     });
 
     if (!match) throw notFound('Match');
@@ -230,10 +211,10 @@ export async function correctBall(
 
     const duplicate = await prisma.ballEvent.findUnique({
       where: { clientEventId: replacement.clientEventId },
-      select: { id: true },
     });
 
     if (duplicate) {
+      assertSameRequest(duplicate, matchId, replacement, 'CORRECTION', target.id);
       const { state, snapshot } = await project(match, target.inningsId);
       return {
         snapshot,
@@ -244,7 +225,34 @@ export async function correctBall(
       };
     }
 
+    const live = await loadLiveInnings(matchId);
+    if (match.status !== 'LIVE' || live.id !== target.inningsId) {
+      throw unprocessable('MATCH_CLOSED', 'Only the current live innings can be corrected');
+    }
+
     const events = await loadEvents(target.inningsId);
+    const active = materializeEvents(events);
+    if (active.at(-1)?.id !== target.id && active.at(-1)?.supersedesEventId !== target.id) {
+      throw unprocessable('HISTORICAL_EDIT', 'Undo later balls before correcting this delivery');
+    }
+    const context = await loadInningsContext(target.inningsId);
+    const before = buildState(
+      context,
+      events.filter((event) => event.id !== target.id && event.supersedesEventId !== target.id),
+    );
+    const verdict = validateBall(before, replacement, context, {
+      matchStatus: match.status,
+      previousOverBowlerId: previousOverBowlerId(
+        events.filter((event) => event.id !== target.id && event.supersedesEventId !== target.id),
+        before,
+      ),
+    });
+    if (!verdict.ok)
+      throw unprocessable(
+        'INVALID_BALL',
+        verdict.issues[0]?.message ?? 'Invalid correction',
+        verdict.issues,
+      );
     const highestSeq = events.reduce((max, event) => Math.max(max, event.seq), 0);
 
     await prisma.ballEvent.create({
@@ -273,9 +281,15 @@ export async function correctBall(
     });
 
     const { state, snapshot } = await project(match, target.inningsId);
+    if (state.isComplete) {
+      await closeInnings(target.inningsId, state);
+      const updated = await prisma.match.findUniqueOrThrow({ where: { id: matchId } });
+      snapshot.status = updated.status;
+      snapshot.resultText = updated.resultText;
+    }
 
     await writeSnapshot(snapshot);
-    void publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
+    await publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
 
     return {
       snapshot,
@@ -296,11 +310,30 @@ export async function undoLastBall(
   return withLock(matchLockKey(matchId), async () => {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      select: { id: true, publicSlug: true, status: true, resultText: true },
+      select: { id: true, publicSlug: true, status: true, resultText: true, revision: true },
     });
 
     if (!match) throw notFound('Match');
 
+    const prior = await prisma.ballEvent.findUnique({ where: { clientEventId } });
+    if (prior) {
+      if (
+        prior.matchId !== matchId ||
+        prior.eventType !== 'UNDO' ||
+        (targetEventId && targetEventId !== prior.supersedesEventId)
+      )
+        throw conflict('This request ID belongs to a different action');
+      const { state, snapshot } = await project(match, prior.inningsId);
+      return {
+        state,
+        snapshot,
+        duplicate: true,
+        inningsCompleted: state.isComplete,
+        matchCompleted: match.status === 'COMPLETED',
+      };
+    }
+    if (match.status !== 'LIVE')
+      throw unprocessable('MATCH_CLOSED', 'Only a live innings can be undone');
     const innings = await loadLiveInnings(matchId);
     const events = await loadEvents(innings.id);
 
@@ -318,6 +351,9 @@ export async function undoLastBall(
       ? deliveries.find((event) => event.id === targetEventId)
       : deliveries[deliveries.length - 1];
 
+    if (target && target.id !== deliveries.at(-1)?.id) {
+      throw unprocessable('HISTORICAL_EDIT', 'Undo the latest delivery first');
+    }
     if (!target) {
       throw unprocessable('NOTHING_TO_UNDO', 'There is no ball left to undo in this innings');
     }
@@ -356,7 +392,7 @@ export async function undoLastBall(
     const { state, snapshot } = await project(match, innings.id);
 
     await writeSnapshot(snapshot);
-    void publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
+    await publishMatchEvent('ball', { matchId, snapshot, seq: snapshot.lastEventSeq });
 
     return {
       snapshot,
@@ -369,7 +405,13 @@ export async function undoLastBall(
 }
 
 async function project(
-  match: { id: string; publicSlug: string; status: string; resultText: string | null },
+  match: {
+    id: string;
+    publicSlug: string;
+    status: string;
+    resultText: string | null;
+    revision?: number;
+  },
   inningsId: string,
 ): Promise<{ state: MatchState; context: InningsContext; snapshot: MatchSnapshot }> {
   const context = await loadInningsContext(inningsId);
@@ -381,4 +423,21 @@ async function project(
     context,
     snapshot: buildSnapshot(match, state, context, await dlsSnapshotFor(match.id)),
   };
+}
+
+function assertSameRequest(
+  existing: Record<string, unknown>,
+  matchId: string,
+  input: BallRequestInput,
+  eventType: string,
+  target?: string,
+): void {
+  if (
+    existing.matchId !== matchId ||
+    existing.eventType !== eventType ||
+    (target && existing.supersedesEventId !== target) ||
+    Object.entries(input).some(([key, value]) => existing[key] !== value)
+  ) {
+    throw conflict('This request ID has already been used for a different action');
+  }
 }

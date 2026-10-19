@@ -11,76 +11,89 @@ import {
 
 export function useOfflineBallQueue(
   matchId: string,
-  submit: (input: BallRequestInput) => Promise<unknown>,
+  userId: string,
+  inningsId: string | undefined,
+  submit: (input: BallRequestInput, inningsId: string) => Promise<unknown>,
 ) {
   const [items, setItems] = useState<QueuedBall[]>([]);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'failed'>('idle');
+  const [error, setError] = useState<string | null>(null);
   const draining = useRef(false);
-
   const refresh = useCallback(async () => {
-    setItems(await listQueuedBalls(matchId));
-  }, [matchId]);
-
+    try {
+      setItems(await listQueuedBalls(matchId, userId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Offline storage failed');
+    }
+  }, [matchId, userId]);
   const drain = useCallback(async () => {
-    if (draining.current || !navigator.onLine) return;
+    if (draining.current || !navigator.onLine || !userId) return;
     draining.current = true;
     setSyncState('syncing');
     try {
-      const synced = await drainBallQueue(matchId, submit);
-      await refresh();
-      const remaining = await listQueuedBalls(matchId);
+      const synced = await drainBallQueue(matchId, userId, submit);
+      const remaining = await listQueuedBalls(matchId, userId);
+      setItems(remaining);
+      setError(null);
       setSyncState(
-        remaining.some((item) => item.status === 'failed')
-          ? 'failed'
-          : synced > 0
-            ? 'synced'
-            : 'idle',
+        remaining.some((item) => item.status === 'failed') ? 'failed' : synced ? 'synced' : 'idle',
       );
+    } catch (err) {
+      setSyncState('failed');
+      setError(err instanceof Error ? err.message : 'Will retry when connected');
     } finally {
       draining.current = false;
     }
-  }, [matchId, refresh, submit]);
-
+  }, [matchId, userId, submit]);
   const enqueue = useCallback(
     async (input: BallRequestInput) => {
-      setSyncState('idle');
-      await enqueueBall(matchId, input);
+      if (!inningsId) throw new Error('The innings has not loaded.');
+      await enqueueBall(matchId, input, { userId, inningsId });
       await refresh();
-      if (navigator.onLine) await drain();
+      void drain();
     },
-    [drain, matchId, refresh],
+    [matchId, userId, inningsId, refresh, drain],
   );
-
   const retryFailed = useCallback(async () => {
-    await resetFailedBalls(matchId);
+    await resetFailedBalls(matchId, userId);
     await refresh();
     await drain();
-  }, [drain, matchId, refresh]);
-
+  }, [matchId, userId, refresh, drain]);
   useEffect(() => {
-    void refresh();
-    const unsubscribe = subscribeToBallQueue(() => void refresh());
-    const wentOnline = () => {
+    let active = true;
+    setItems([]);
+    void refresh().then(() => {
+      if (active) void drain();
+    });
+    const unsubscribe = subscribeToBallQueue(() => {
+      if (active) void refresh();
+    });
+    const online = () => {
       setIsOnline(true);
       void drain();
     };
-    const wentOffline = () => setIsOnline(false);
-    window.addEventListener('online', wentOnline);
-    window.addEventListener('offline', wentOffline);
+    const offline = () => setIsOnline(false);
+    const timer = window.setInterval(() => {
+      if (navigator.onLine) void drain();
+    }, 15_000);
+    window.addEventListener('online', online);
+    window.addEventListener('offline', offline);
     return () => {
+      active = false;
       unsubscribe();
-      window.removeEventListener('online', wentOnline);
-      window.removeEventListener('offline', wentOffline);
+      window.clearInterval(timer);
+      window.removeEventListener('online', online);
+      window.removeEventListener('offline', offline);
     };
-  }, [drain, refresh]);
-
+  }, [refresh, drain]);
   return {
     items,
     pending: items.filter((item) => item.status === 'pending'),
     failed: items.filter((item) => item.status === 'failed'),
     isOnline,
     syncState,
+    error,
     enqueue,
     drain,
     retryFailed,

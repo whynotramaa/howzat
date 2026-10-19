@@ -8,7 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { logger } from '../../lib/logger';
-import { unprocessable } from '../../lib/errors';
+import { conflict, unprocessable } from '../../lib/errors';
 import { matchLockKey, withLock } from '../../lib/lock';
 import { publishMatchEvent } from '../../realtime/bus';
 import {
@@ -46,10 +46,17 @@ export async function recordFootballEvent(
 
     const existing = await prisma.footballEvent.findUnique({
       where: { clientEventId: input.clientEventId },
-      select: { id: true },
     });
 
     if (existing) {
+      if (
+        existing.matchId !== matchId ||
+        existing.eventType !== 'EVENT' ||
+        Object.entries(input).some(
+          ([key, value]) => existing[key as keyof typeof existing] !== value,
+        )
+      )
+        throw conflict('This request ID belongs to a different incident');
       const { snapshot, seq } = await project(matchId);
       await writeFootballSnapshot(snapshot);
 
@@ -87,6 +94,27 @@ export async function recordFootballEvent(
       }
     }
 
+    if (input.kind !== 'SUBSTITUTION') {
+      const playerTeam =
+        input.kind === 'OWN_GOAL'
+          ? input.teamId === match.team1Id
+            ? match.team2Id
+            : match.team1Id
+          : input.teamId;
+      if (
+        input.playerId &&
+        !match.matchPlayers.some((p) => p.playerId === input.playerId && p.teamId === playerTeam)
+      )
+        throw unprocessable('WRONG_TEAM', 'Choose a player from the correct side');
+      if (
+        input.assistPlayerId &&
+        !match.matchPlayers.some(
+          (p) => p.playerId === input.assistPlayerId && p.teamId === input.teamId,
+        )
+      )
+        throw unprocessable('WRONG_TEAM', 'The assist must belong to the scoring side');
+    }
+
     if (input.assistPlayerId && input.assistPlayerId === input.playerId) {
       throw unprocessable('SELF_ASSIST', 'A player cannot assist their own goal');
     }
@@ -112,7 +140,7 @@ export async function recordFootballEvent(
     const reading = clockReadingFor(toClockDto(match.clock));
     const seq = await nextSeq(matchId);
 
-    const created = await insertEvent({
+    await insertEvent({
       matchId,
       clientEventId: input.clientEventId,
       seq,
@@ -129,12 +157,6 @@ export async function recordFootballEvent(
       createdBy: userId,
     });
 
-    if (created === 'DUPLICATE') {
-      const { snapshot, seq: currentSeq } = await project(matchId);
-      await writeFootballSnapshot(snapshot);
-      return { snapshot, duplicate: true, seq: currentSeq };
-    }
-
     const { snapshot } = await project(matchId);
     await writeFootballSnapshot(snapshot);
     await publishMatchEvent('football:event', { matchId, snapshot, seq });
@@ -150,17 +172,25 @@ export async function undoFootballEvent(
   userId: string,
 ): Promise<FootballEventResult> {
   return withLock(matchLockKey(matchId), async () => {
-    await loadFootballMatch(matchId);
+    const match = await loadFootballMatch(matchId);
 
     const existing = await prisma.footballEvent.findUnique({
       where: { clientEventId },
-      select: { id: true },
     });
 
     if (existing) {
+      if (
+        existing.matchId !== matchId ||
+        existing.eventType !== 'UNDO' ||
+        (targetEventId && targetEventId !== existing.supersedesEventId)
+      )
+        throw conflict('This request ID belongs to a different action');
       const { snapshot, seq } = await project(matchId);
       return { snapshot, duplicate: true, seq };
     }
+
+    if (match.status !== 'LIVE' && match.status !== 'INNINGS_BREAK')
+      throw unprocessable('MATCH_CLOSED', 'Only an active match can be edited');
 
     const events = await loadFootballEvents(matchId);
     const standing = materializeFootballEvents(events);
@@ -180,7 +210,7 @@ export async function undoFootballEvent(
 
     const seq = await nextSeq(matchId);
 
-    const created = await insertEvent({
+    await insertEvent({
       matchId,
       clientEventId,
       seq,
@@ -196,11 +226,6 @@ export async function undoFootballEvent(
       stoppage: target.stoppage,
       createdBy: userId,
     });
-
-    if (created === 'DUPLICATE') {
-      const { snapshot, seq: currentSeq } = await project(matchId);
-      return { snapshot, duplicate: true, seq: currentSeq };
-    }
 
     const { snapshot } = await project(matchId);
     await writeFootballSnapshot(snapshot);
@@ -303,16 +328,7 @@ async function nextSeq(matchId: string): Promise<number> {
   return (last?.seq ?? 0) + 1;
 }
 
-async function insertEvent(
-  data: Prisma.FootballEventUncheckedCreateInput,
-): Promise<'OK' | 'DUPLICATE'> {
-  try {
-    await prisma.footballEvent.create({ data });
-    return 'OK';
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-      return 'DUPLICATE';
-    }
-    throw err;
-  }
+async function insertEvent(data: Prisma.FootballEventUncheckedCreateInput): Promise<'OK'> {
+  await prisma.footballEvent.create({ data });
+  return 'OK';
 }

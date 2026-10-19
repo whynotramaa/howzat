@@ -1,3 +1,4 @@
+import { writeVersionedSnapshot } from '../../lib/snapshotCache';
 import {
   buildFootballState,
   defaultFormation,
@@ -20,8 +21,6 @@ import { prisma } from '../../lib/prisma';
 import { redis } from '../../lib/redis';
 import { logger } from '../../lib/logger';
 import { notFound, unprocessable } from '../../lib/errors';
-
-const SNAPSHOT_TTL_SECONDS = 60 * 60 * 6;
 
 export const footballSnapshotKey = (matchId: string) => `football:${matchId}`;
 
@@ -247,6 +246,7 @@ export function buildFootballSnapshot(
   const away = match.team2!;
 
   return {
+    revision: match.revision,
     sport: 'FOOTBALL',
     matchId: match.id,
     publicSlug: match.publicSlug,
@@ -282,26 +282,7 @@ export async function rebuildFootballSnapshot(matchId: string): Promise<Football
 
 export async function writeFootballSnapshot(snapshot: FootballSnapshot): Promise<void> {
   try {
-    const existing = await readCachedFootballSnapshot(snapshot.matchId);
-
-    if (existing && existing.lastEventSeq > snapshot.lastEventSeq) {
-      logger.debug(
-        {
-          matchId: snapshot.matchId,
-          cached: existing.lastEventSeq,
-          incoming: snapshot.lastEventSeq,
-        },
-        'Skipped stale football snapshot write',
-      );
-      return;
-    }
-
-    await redis.set(
-      footballSnapshotKey(snapshot.matchId),
-      JSON.stringify(snapshot),
-      'EX',
-      SNAPSHOT_TTL_SECONDS,
-    );
+    await writeVersionedSnapshot(footballSnapshotKey(snapshot.matchId), snapshot);
   } catch (err) {
     logger.error({ err, matchId: snapshot.matchId }, 'Football snapshot write failed');
   }
@@ -323,7 +304,12 @@ export async function readCachedFootballSnapshot(
 export async function getFootballSnapshot(matchId: string): Promise<FootballSnapshot | null> {
   const cached = await readCachedFootballSnapshot(matchId);
 
-  if (cached) {
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: { revision: true },
+  });
+  if (!match) throw notFound('Match');
+  if (cached && cached.revision === match.revision) {
     return cached.clock
       ? { ...cached, clock: { ...cached.clock, serverNow: new Date().toISOString() } }
       : cached;

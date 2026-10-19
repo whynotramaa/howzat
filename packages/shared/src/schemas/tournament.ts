@@ -21,7 +21,10 @@ export const createTournamentSchema = z
   .object({
     name: nameSchema,
     sport: z.enum(SPORTS).default('CRICKET'),
-    format: z.enum(TOURNAMENT_FORMATS).default('LEAGUE'),
+    format: z
+      .enum(TOURNAMENT_FORMATS)
+      .refine((format) => format !== 'KNOCKOUT', 'Choose League or League with playoffs')
+      .default('LEAGUE'),
     teamsCount: z.number().int().min(MIN_TEAMS).max(MAX_TEAMS),
     playersPerTeam: z
       .number()
@@ -65,7 +68,10 @@ export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;
 
 export const updateTournamentSchema = z.object({
   name: nameSchema.optional(),
-  format: z.enum(TOURNAMENT_FORMATS).optional(),
+  format: z
+    .enum(TOURNAMENT_FORMATS)
+    .refine((format) => format !== 'KNOCKOUT', 'Choose League or League with playoffs')
+    .optional(),
   teamsCount: z.number().int().min(MIN_TEAMS).max(MAX_TEAMS).optional(),
   playersPerTeam: z.number().int().min(MIN_PLAYERS_PER_TEAM).max(MAX_PLAYERS_PER_TEAM).optional(),
   oversPerInnings: z.number().int().min(1).max(50).optional(),

@@ -2,10 +2,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { CareerStatsDto, PlayerProfileDto } from '@howzat/shared';
 import { api } from '@/lib/api';
-import { Card, CardBody, CardHeader, EmptyState, SectionHeading } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/Card';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { LeaderRow } from '@/components/ui/Score';
-import { Reveal } from '@/components/ui/Reveal';
 import { useAuth } from '@/features/auth/AuthProvider';
 
 export function PlayerProfilePage() {
@@ -35,60 +34,42 @@ export function PlayerProfilePage() {
   const hasPlayed = career.matches > 0;
 
   return (
-    <div className="flex flex-col gap-12">
-      <header className="flex flex-col gap-8">
-        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-7">
-          <div className="flex items-center gap-5">
-            <span
-              aria-hidden
-              className="serif grid size-16 shrink-0 place-items-center rounded-full border border-[var(--accent-line)] text-2xl text-primary"
-            >
-              {data.user.name.slice(0, 1).toUpperCase()}
-            </span>
-
-            <div className="min-w-0">
-              <p className="eyebrow">{isSelf ? 'Your record' : 'Player record'}</p>
-              <h1 className="serif mt-2.5 text-[2.25rem] text-primary sm:text-[2.75rem]">
-                {data.user.name}
-              </h1>
-              <p className="mono mt-1.5 text-[0.8125rem] text-muted">@{data.user.username}</p>
-            </div>
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-inverse text-base font-semibold text-on-inverse"
+          >
+            {data.user.name.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold tracking-[-0.02em]">{data.user.name}</h1>
+            <p className="text-xs text-muted">@{data.user.username}</p>
           </div>
-
-          <dl className="flex gap-10">
-            <Tally label="Matches" value={career.matches} />
-            <Tally label="Organized" value={data.tournamentsOrganized} />
-            <Tally label="Scored" value={data.matchesScored} />
-          </dl>
         </div>
-
-        <div className="rule" />
       </header>
+
+      <dl className="grid grid-cols-3 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+        <Tally label="Matches" value={career.matches} />
+        <Tally label="Organized" value={data.tournamentsOrganized} />
+        <Tally label="Scored" value={data.matchesScored} />
+      </dl>
 
       {hasPlayed ? (
         <>
-          <div className="grid gap-5 lg:grid-cols-3">
-            <Reveal index={0}>
-              <BattingCard batting={career.batting} />
-            </Reveal>
-            <Reveal index={1}>
-              <BowlingCard bowling={career.bowling} />
-            </Reveal>
-            <Reveal index={2}>
-              <FieldingCard fielding={career.fielding} />
-            </Reveal>
+          <div className="grid overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised lg:grid-cols-3">
+            <BattingCard batting={career.batting} />
+            <BowlingCard bowling={career.bowling} />
+            <FieldingCard fielding={career.fielding} />
           </div>
 
           <RecentMatches matches={data.recentMatches} />
         </>
       ) : (
         <EmptyState
-          title="No innings on the record yet"
-          description={
-            isSelf
-              ? 'Once an organizer adds you to a squad by your username, every match you play lands here.'
-              : `${data.user.name} hasn't played a completed match on Howzat yet.`
-          }
+          title="No matches yet"
+          description={isSelf ? 'Matches you play in a squad show up here.' : 'Nothing played yet.'}
         />
       )}
     </div>
@@ -97,9 +78,9 @@ export function PlayerProfilePage() {
 
 function Tally({ label, value }: { label: string; value: number }) {
   return (
-    <div>
-      <dd className="mono text-[1.75rem] leading-none font-medium text-primary">{value}</dd>
-      <dt className="eyebrow mt-2.5">{label}</dt>
+    <div className="flex flex-col gap-0.5 border-line px-4 py-3 not-first:border-l">
+      <dt className="eyebrow">{label}</dt>
+      <dd className="tabular text-xl font-semibold tracking-[-0.03em]">{value}</dd>
     </div>
   );
 }
@@ -164,17 +145,16 @@ function StatCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="h-full">
-      <CardHeader className="flex items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">{title}</p>
-          <p className="score-figure mt-3 text-[2.5rem] text-primary">{headline}</p>
-          <p className="mt-1 text-[0.8125rem] text-muted">{headlineLabel}</p>
-        </div>
-      </CardHeader>
-
-      <CardBody className="flex flex-col gap-3">{children}</CardBody>
-    </Card>
+    <section className="flex flex-col gap-4 border-line p-4 not-last:border-b lg:not-last:border-r lg:not-last:border-b-0">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[0.8125rem] font-semibold">{title}</h2>
+        <p className="tabular text-2xl font-semibold tracking-[-0.04em]">
+          {headline}{' '}
+          <span className="text-xs font-normal tracking-normal text-muted">{headlineLabel}</span>
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5 [&_span]:text-[0.8125rem]">{children}</div>
+    </section>
   );
 }
 
@@ -182,23 +162,23 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
   if (matches.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-7">
-      <SectionHeading eyebrow="Match log" title="Recent matches" />
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[0.8125rem] font-semibold">Recent</h2>
 
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
-        <table className="w-full min-w-[40rem] text-sm">
+        <table className="w-full min-w-[34rem] text-[0.8125rem]">
           <thead>
-            <tr className="border-b border-line">
-              <th scope="col" className="eyebrow px-6 py-3.5 text-left font-medium">
+            <tr className="border-b border-line bg-sunken">
+              <th scope="col" className="eyebrow px-4 py-2 text-left font-medium">
                 Match
               </th>
-              <th scope="col" className="eyebrow px-5 py-3.5 text-right font-medium">
+              <th scope="col" className="eyebrow px-5 py-2 text-right font-medium">
                 Batting
               </th>
-              <th scope="col" className="eyebrow px-5 py-3.5 text-right font-medium">
+              <th scope="col" className="eyebrow px-5 py-2 text-right font-medium">
                 Bowling
               </th>
-              <th scope="col" className="eyebrow px-6 py-3.5 text-right font-medium">
+              <th scope="col" className="eyebrow px-4 py-2 text-right font-medium">
                 Fielding
               </th>
             </tr>
@@ -211,33 +191,31 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
               return (
                 <tr
                   key={match.matchId}
-                  className="border-b border-line transition-colors last:border-0 hover:bg-hover/50"
+                  className="border-b border-line transition-colors last:border-0 hover:bg-hover"
                 >
-                  <td className="px-6 py-4">
-                    <p className="text-primary">
+                  <td className="px-4 py-2">
+                    <p className="font-medium">
                       {match.teamName}
                       {match.opponentName ? (
                         <span className="text-muted"> v {match.opponentName}</span>
                       ) : null}
                     </p>
-                    <p className="mt-0.5 text-[0.6875rem] tracking-[0.06em] text-muted uppercase">
-                      {match.tournamentName}
-                    </p>
+                    <p className="text-xs text-muted">{match.tournamentName}</p>
                   </td>
 
-                  <td className="mono px-5 py-4 text-right text-primary">
+                  <td className="tabular px-5 py-2 text-right text-primary">
                     {match.batted
                       ? `${match.runs}${match.isOut ? '' : '*'} (${match.ballsFaced})`
                       : '—'}
                   </td>
 
-                  <td className="mono px-5 py-4 text-right text-primary">
+                  <td className="tabular px-5 py-2 text-right text-primary">
                     {match.bowled
                       ? `${match.wickets}/${match.runsConceded} (${match.oversBowled})`
                       : '—'}
                   </td>
 
-                  <td className="mono px-6 py-4 text-right text-primary">
+                  <td className="tabular px-4 py-2 text-right text-primary">
                     {dismissals > 0 ? dismissals : '—'}
                   </td>
                 </tr>

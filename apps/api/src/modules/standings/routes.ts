@@ -1,5 +1,6 @@
+import { z } from 'zod';
 import { Router } from 'express';
-import { asyncHandler, requireParam } from '../../lib/http';
+import { asyncHandler, requireParam, parseQuery } from '../../lib/http';
 import { requireAuth } from '../../middleware/auth';
 import { loadOwnedTournament } from '../tournaments/guards';
 import { getStandings, recomputeStandings } from './service';
@@ -25,16 +26,18 @@ standingsRouter.get(
     const tournamentId = requireParam(req, 'tournamentId');
     await loadOwnedTournament(tournamentId, req.user!.id);
 
-    const targetTeamId = String(req.query.teamId ?? '');
-    const qualificationSpots = Math.max(1, Number(req.query.spots ?? 4));
-    const maxRelevantFixtures = req.query.maxFixtures
-      ? Math.max(1, Number(req.query.maxFixtures))
-      : undefined;
-
-    if (!targetTeamId) {
-      res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'teamId is required' } });
-      return;
-    }
+    const {
+      teamId: targetTeamId,
+      spots: qualificationSpots,
+      maxFixtures: maxRelevantFixtures,
+    } = parseQuery(
+      z.object({
+        teamId: z.string().min(1),
+        spots: z.coerce.number().int().min(1).max(32).default(4),
+        maxFixtures: z.coerce.number().int().min(1).max(8).optional(),
+      }),
+      req.query,
+    );
 
     res.json(
       await getQualificationScenarios(

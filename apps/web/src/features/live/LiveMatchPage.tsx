@@ -1,3 +1,4 @@
+import { InningsInsight } from '@/components/ui/Matchday';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -26,12 +27,6 @@ import { cn } from '@/lib/cn';
 import { MomentOverlay, useMoment } from './Moment';
 import { useLiveMatch, type ConnectionState } from './useLiveMatch';
 
-/*
- * The public page.
- *
- * A spectator wants one number first and the detail second, so the board is
- * the only loud thing on the page and everything under it is a ruled sheet.
- */
 type View = 'live' | 'scorecard' | 'commentary';
 
 const VIEWS = [
@@ -55,15 +50,15 @@ export function LiveMatchPage() {
 
   useEffect(() => {
     if (!snapshot) return;
-    document.title = `${matchLabel} — ${snapshot.batting.runs}/${snapshot.batting.wickets} · Howzat`;
+    document.title = `${matchLabel} · ${snapshot.batting.runs}/${snapshot.batting.wickets} · Howzat`;
   }, [matchLabel, snapshot]);
 
   return (
     <div className="flex min-h-dvh flex-col">
       <MomentOverlay moment={moment} />
 
-      <header className="sticky top-0 z-30 border-b border-line bg-[color-mix(in_oklab,var(--surface)_84%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex h-14 w-full max-w-[60rem] items-center gap-4 px-4 sm:px-6">
+      <header className="app-topbar border-b border-line">
+        <div className="mx-auto flex h-14 w-full max-w-[64rem] items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="shrink-0 transition-opacity hover:opacity-70">
             <Wordmark size="sm" />
           </Link>
@@ -89,17 +84,16 @@ export function LiveMatchPage() {
             </div>
           ) : null}
 
-          <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             {viewers > 0 ? (
               <span
                 title={`${viewers} watching now`}
-                className="mono flex items-center gap-1.5 text-[0.6875rem] text-muted"
+                className="flex items-center gap-1.5 text-xs text-muted"
               >
                 <EyeIcon />
                 <span key={viewers} className="figure-in tabular text-secondary">
                   {viewers.toLocaleString()}
                 </span>
-                <span className="hidden sm:inline">watching</span>
               </span>
             ) : null}
             <ConnectionBadge state={connection} />
@@ -111,16 +105,16 @@ export function LiveMatchPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[60rem] flex-1 px-4 py-5 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-[64rem] flex-1 px-4 py-5 sm:px-6 sm:py-8">
         {isLoading ? (
           <div className="flex flex-col gap-6">
             <Skeleton className="h-72" />
             <Skeleton className="h-40" />
           </div>
-        ) : error ? (
+        ) : error && !snapshot ? (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-5 py-4 text-primary"
+            className="rounded-[var(--radius-md)] bg-alert-soft px-4 py-3 text-[0.8125rem] text-alert"
           >
             {error}
           </p>
@@ -128,7 +122,23 @@ export function LiveMatchPage() {
           <NotStarted />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
+            <h1 className="text-xl font-semibold tracking-[-0.02em]">
+              {snapshot.batting.name} <span className="font-normal text-muted">v</span>{' '}
+              {snapshot.bowling.name}
+            </h1>
             <Board snapshot={snapshot} slug={slug} />
+            <InningsInsight
+              balls={snapshot.batting.balls}
+              quota={
+                snapshot.batting.quotaOvers
+                  ? Number(snapshot.batting.quotaOvers.split('.')[0]) * 6 +
+                    Number(snapshot.batting.quotaOvers.split('.')[1] ?? 0)
+                  : (snapshot.batting.oversQuota ?? 20) * 6
+              }
+              wickets={snapshot.batting.wickets}
+              runs={snapshot.batting.runs}
+              target={snapshot.target}
+            />
 
             <Tabs items={VIEWS} value={view} onChange={setView} />
 
@@ -144,12 +154,10 @@ export function LiveMatchPage() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-[60rem] flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-6">
-          <p className="text-[0.8125rem] text-muted">
-            Scored ball by ball on <span className="text-primary">Howzat</span>.
-          </p>
-          <Link to="/" className="text-[0.8125rem] text-accent transition-opacity hover:opacity-70">
-            Run your own tournament →
+        <div className="mx-auto flex h-12 w-full max-w-[64rem] items-center justify-between gap-3 px-4 text-xs text-muted sm:px-6">
+          <span>Scored on Howzat</span>
+          <Link to="/" className="hover:text-primary">
+            Run a tournament
           </Link>
         </div>
       </footer>
@@ -161,18 +169,13 @@ const EMPTY_BALLS: BallSummary[] = [];
 
 function NotStarted() {
   return (
-    <section className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-16 text-center">
-      <StumpsIcon className="size-7 text-muted" />
-      <p className="eyebrow">Not a ball bowled yet</p>
-      <p className="serif text-[2rem] text-primary">Match yet to begin</p>
-      <p className="max-w-md text-sm text-secondary">
-        The score updates here automatically once the first ball is recorded.
-      </p>
+    <section className="grid-canvas flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-16 text-center">
+      <StumpsIcon className="size-6 text-muted" />
+      <p className="text-[0.8125rem] font-semibold">Not started</p>
+      <p className="text-xs text-muted">Updates live from the first ball.</p>
     </section>
   );
 }
-
-/* ── The board ───────────────────────────────────────────────────────────── */
 
 function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
   const { batting, bowling, required, target } = snapshot;
@@ -190,7 +193,7 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
           </span>
         ) : (
           <span data-tone="live" className="eyebrow flex items-center gap-2">
-            <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
+            <span aria-hidden className="live-dot" />
             Live
           </span>
         )
@@ -206,12 +209,12 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
     >
       {snapshot.resultText ? (
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 px-4 py-3 sm:px-6">
-          <p className="serif flex min-w-0 items-center gap-2.5 text-[1.375rem] text-primary">
-            <TrophyIcon className="size-5 shrink-0" />
+          <p className="flex min-w-0 items-center gap-2 text-[0.8125rem] font-semibold">
+            <TrophyIcon className="size-4 shrink-0 text-accent" />
             {snapshot.resultText}
           </p>
           <PdfButton
-            size="md"
+            size="sm"
             variant="secondary"
             build={() => import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(slug))}
           />
@@ -260,14 +263,12 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
             key: `${index}-${ball}`,
             display: ball,
           }))}
-          emptyLabel="First ball of the over coming up"
+          emptyLabel="New over"
         />
       </div>
     </Scoreboard>
   );
 }
-
-/* ── Live ────────────────────────────────────────────────────────────────── */
 
 function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   const window = recentWindow(snapshot.recentBalls);
@@ -310,7 +311,9 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
           },
           {
             label: 'Last wicket',
-            value: lastWicket ? `${lastWicket.name} at ${lastWicket.teamRuns}-${lastWicket.wicket}` : 'None',
+            value: lastWicket
+              ? `${lastWicket.name} at ${lastWicket.teamRuns}-${lastWicket.wicket}`
+              : 'None',
           },
         ]}
         note={`Last ${window.balls} balls: ${window.runs} runs, ${window.fours} fours, ${window.sixes} sixes`}
@@ -319,7 +322,7 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
       <Panel
         title="Momentum"
         icon={<TrendIcon />}
-        meta={<span className="mono text-[0.6875rem] text-muted">runs per over</span>}
+        meta={<span className="text-xs text-muted">per over</span>}
         bodyClassName="flex flex-col gap-4"
       >
         <RunsPerOver balls={snapshot.recentBalls} />
@@ -338,11 +341,7 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
       </Panel>
 
       {snapshot.fallOfWickets.length > 0 ? (
-        <Panel
-          title="Fall of wickets"
-          icon={<StumpsIcon />}
-          bodyClassName="flex flex-col gap-2.5"
-        >
+        <Panel title="Fall of wickets" icon={<StumpsIcon />} bodyClassName="flex flex-col gap-2.5">
           {snapshot.fallOfWickets
             .slice()
             .reverse()
@@ -359,18 +358,11 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   );
 }
 
-/* ── Derivations ─────────────────────────────────────────────────────────── */
-
 function oversToBalls(overs: string): number {
   const [whole = '0', part = '0'] = overs.split('.');
   return Number(whole) * 6 + Number(part);
 }
 
-/**
- * The unbroken stand. Runs come exactly from the last fall of wicket; balls
- * come from the over count at that fall, which is why both are honest numbers
- * rather than a guess off the recent-ball window.
- */
 function currentPartnership(snapshot: MatchSnapshot): { runs: number; balls: number } {
   const last: FallOfWicket | undefined = snapshot.fallOfWickets[snapshot.fallOfWickets.length - 1];
 
@@ -389,7 +381,6 @@ interface BallWindow {
   wickets: number;
 }
 
-/** Everything the snapshot can honestly say: the last 30 deliveries, no more. */
 function recentWindow(recentBalls: BallSummary[]): BallWindow {
   return recentBalls.reduce<BallWindow>(
     (totals, ball) => ({
@@ -403,8 +394,6 @@ function recentWindow(recentBalls: BallSummary[]): BallWindow {
     { balls: 0, runs: 0, dots: 0, fours: 0, sixes: 0, wickets: 0 },
   );
 }
-
-/* ── Scorecard ───────────────────────────────────────────────────────────── */
 
 interface ScorecardResponse {
   matchId: string;
@@ -450,12 +439,12 @@ function ScorecardView({ slug }: { slug: string }) {
   if (error) {
     return (
       <p role="alert" className="text-sm text-alert">
-        The scorecard could not be loaded. The live score above is unaffected.
+        Scorecard unavailable.
       </p>
     );
   }
   if (!data || data.innings.length === 0) {
-    return <p className="text-sm text-muted">No innings have been played yet.</p>;
+    return <p className="text-sm text-muted">No innings yet</p>;
   }
 
   return (
@@ -469,7 +458,7 @@ function ScorecardView({ slug }: { slug: string }) {
             key={innings.number}
             className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised"
           >
-            <div className="flex items-center justify-between gap-4 bg-inverse px-4 py-3 text-on-inverse sm:px-5">
+            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
               <div className="flex min-w-0 items-center gap-3">
                 <TeamMark
                   shortName={innings.battingTeam.shortName}
@@ -477,14 +466,16 @@ function ScorecardView({ slug }: { slug: string }) {
                   size="sm"
                 />
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold">{innings.battingTeam.name}</h3>
-                  <p className="text-[0.6875rem] text-muted-on-inverse">Innings {innings.number}</p>
+                  <h3 className="truncate text-[0.8125rem] font-semibold">
+                    {innings.battingTeam.name}
+                  </h3>
+                  <p className="text-xs text-muted">Innings {innings.number}</p>
                 </div>
               </div>
 
               <p className="score-figure shrink-0 text-xl">
                 {innings.runs}-{innings.wickets}
-                <span className="tabular ml-1.5 text-[0.8125rem] font-medium text-muted-on-inverse">
+                <span className="tabular ml-1.5 text-[0.8125rem] font-medium text-muted">
                   ({innings.overs})
                 </span>
               </p>
@@ -509,11 +500,11 @@ function ScorecardView({ slug }: { slug: string }) {
                 <tbody>
                   {innings.batting.map((batter) => (
                     <tr key={batter.playerId} className="border-b border-line">
-                      <td className="py-2.5 pl-4 sm:pl-5">
+                      <td className="py-2 pl-4 sm:pl-5">
                         <p
                           className={cn(
-                            'text-sm font-semibold',
-                            batter.isOut ? 'text-primary' : 'text-accent',
+                            'text-[0.8125rem] font-medium',
+                            !batter.isOut && 'text-accent',
                           )}
                         >
                           {batter.name}
@@ -530,7 +521,9 @@ function ScorecardView({ slug }: { slug: string }) {
                       <Td align="right">{batter.fours}</Td>
                       <Td align="right">{batter.sixes}</Td>
                       <Td align="right" className="pr-4 sm:pr-5">
-                        {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(2) : '0.00'}
+                        {batter.balls > 0
+                          ? ((batter.runs / batter.balls) * 100).toFixed(2)
+                          : '0.00'}
                       </Td>
                     </tr>
                   ))}
@@ -538,7 +531,7 @@ function ScorecardView({ slug }: { slug: string }) {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5 text-sm sm:px-5">
+            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2 text-[0.8125rem] sm:px-5">
               <span className="font-semibold text-primary">Extras</span>
               <span className="tabular text-secondary">
                 <span className="font-bold text-primary">{innings.extras.total}</span> (w{' '}
@@ -546,7 +539,7 @@ function ScorecardView({ slug }: { slug: string }) {
                 {innings.extras.legByes})
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4 bg-sunken px-4 py-2.5 text-sm sm:px-5">
+            <div className="flex items-center justify-between gap-4 bg-sunken px-4 py-2 text-[0.8125rem] sm:px-5">
               <span className="font-semibold text-primary">Total</span>
               <span className="tabular text-secondary">
                 <span className="font-bold text-primary">
@@ -577,7 +570,7 @@ function ScorecardView({ slug }: { slug: string }) {
                     const bowled = oversToBalls(bowler.overs);
                     return (
                       <tr key={bowler.playerId} className="border-b border-line last:border-b-0">
-                        <td className="py-2.5 pl-4 text-sm font-semibold text-primary sm:pl-5">
+                        <td className="py-2 pl-4 text-[0.8125rem] font-medium sm:pl-5">
                           {bowler.name}
                         </td>
                         <Td align="right">{bowler.overs}</Td>
@@ -598,9 +591,7 @@ function ScorecardView({ slug }: { slug: string }) {
 
             {innings.fallOfWickets.length > 0 ? (
               <div className="border-t border-line">
-                <p className="bg-sunken px-4 py-2 text-[0.6875rem] font-semibold text-muted uppercase sm:px-5">
-                  Fall of wickets
-                </p>
+                <p className="eyebrow bg-sunken px-4 py-2 sm:px-5">Fall of wickets</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-4 py-3 text-[0.8125rem] sm:px-5">
                   {innings.fallOfWickets.map((wicket) => (
                     <span key={wicket.wicket} className="tabular text-secondary">
@@ -620,8 +611,6 @@ function ScorecardView({ slug }: { slug: string }) {
   );
 }
 
-/* ── Commentary ──────────────────────────────────────────────────────────── */
-
 function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
   if (snapshot.recentBalls.length === 0) {
     return <p className="text-sm text-muted">Nothing bowled yet.</p>;
@@ -639,8 +628,8 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
             <li
               key={ball.seq}
               className={cn(
-                'flex items-start gap-3 border-b border-line px-4 py-3 last:border-b-0',
-                ball.isWicket && 'bg-live-soft',
+                'flex items-start gap-3 border-b border-line px-4 py-2.5 last:border-b-0',
+                ball.isWicket && 'bg-accent-soft',
               )}
             >
               <div className="flex w-10 shrink-0 flex-col items-center gap-1.5">
@@ -651,17 +640,12 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
-                <p
-                  className={cn(
-                    'text-sm font-semibold',
-                    ball.isWicket ? 'text-live' : 'text-primary',
-                  )}
-                >
+                <p className={cn('text-[0.8125rem] font-semibold', ball.isWicket && 'text-accent')}>
                   {eventLabel(ball)}
                 </p>
                 <p
                   className={cn(
-                    'mt-0.5 text-sm leading-snug',
+                    'mt-0.5 text-[0.8125rem] leading-snug',
                     big ? 'text-primary' : 'text-secondary',
                   )}
                 >
@@ -715,14 +699,14 @@ const commentary = {
     'A busy three for the batting side.',
   ],
   four: [
-    'Cracking stroke through the gap!',
+    'Cracking stroke through the gap.',
     'That races away for four.',
-    'Timed beautifully, boundary!',
+    'Timed beautifully for a boundary.',
   ],
-  six: ['That is launched into the stands!', 'Maximum! What a hit.', 'High, handsome, and six.'],
+  six: ['That is launched into the stands!', 'Maximum. What a hit.', 'High, handsome, and six.'],
   wicket: [
     'The breakthrough arrives.',
-    'Gone! The bowler wins this duel.',
+    'Gone. The bowler wins this duel.',
     'That changes the momentum.',
   ],
   extra: [
@@ -752,8 +736,6 @@ function commentaryLine(ball: BallSummary): string {
   return lines[ball.seq % lines.length] ?? lines[0];
 }
 
-/* ── Chrome ──────────────────────────────────────────────────────────────── */
-
 function ConnectionBadge({ state }: { state: ConnectionState }) {
   if (state === 'live') return null;
 
@@ -765,7 +747,7 @@ function ConnectionBadge({ state }: { state: ConnectionState }) {
 
   return (
     <span className="eyebrow flex items-center gap-2 text-muted">
-      <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
+      <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-warning" />
       {labels[state]}
     </span>
   );

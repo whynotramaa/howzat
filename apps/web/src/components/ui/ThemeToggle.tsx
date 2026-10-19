@@ -1,79 +1,64 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
 
-type Theme = 'system' | 'light' | 'dark';
+type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'howzat-theme';
-
-const OPTIONS: ReadonlyArray<{ value: Theme; label: string; glyph: string }> = [
-  { value: 'system', label: 'System', glyph: '◐' },
-  { value: 'light', label: 'Light', glyph: '☀' },
-  { value: 'dark', label: 'Dark', glyph: '☾' },
-];
-
-function readStoredTheme(): Theme {
+function storedTheme(): Theme {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'light' || stored === 'dark' ? stored : 'system';
+    return localStorage.getItem('howzat-theme') === 'dark' ? 'dark' : 'light';
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
 export function ThemeToggle({ tone = 'default' }: { tone?: 'default' | 'inverse' }) {
-  const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
-
+  const [theme, setTheme] = useState<Theme>(storedTheme);
+  const next: Theme = theme === 'dark' ? 'light' : 'dark';
   useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === 'system') {
-      root.removeAttribute('data-theme');
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch {}
-    } else {
-      root.setAttribute('data-theme', theme);
-      try {
-        localStorage.setItem(STORAGE_KEY, theme);
-      } catch {}
-    }
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('howzat-theme', theme);
+    } catch {}
   }, [theme]);
-
+  useEffect(() => {
+    const update = (event: StorageEvent) => {
+      if (event.key === 'howzat-theme') setTheme(storedTheme());
+    };
+    window.addEventListener('storage', update);
+    return () => window.removeEventListener('storage', update);
+  }, []);
   return (
-    <div
-      role="radiogroup"
-      aria-label="Colour theme"
+    <button
+      type="button"
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+      onClick={() => setTheme(next)}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-full border p-0.5',
+        'grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] transition-colors',
         tone === 'inverse'
-          ? 'border-[var(--line-inverse)] bg-transparent'
-          : 'border-line bg-raised',
+          ? 'text-on-inverse hover:bg-white/10'
+          : 'text-muted hover:bg-hover hover:text-primary',
       )}
     >
-      {OPTIONS.map((option) => {
-        const active = theme === option.value;
-
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={option.label}
-            title={option.label}
-            onClick={() => setTheme(option.value)}
-            className={cn(
-              'grid size-7 place-items-center rounded-full text-[0.8125rem] leading-none',
-              'transition-colors duration-[var(--dur-fast)]',
-              active
-                ? 'bg-accent-soft text-accent'
-                : 'text-muted hover:bg-hover hover:text-secondary',
-            )}
-          >
-            <span aria-hidden>{option.glyph}</span>
-          </button>
-        );
-      })}
-    </div>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        {theme === 'dark' ? (
+          <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />
+        ) : (
+          <>
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
+          </>
+        )}
+      </svg>
+    </button>
   );
 }

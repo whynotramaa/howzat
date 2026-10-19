@@ -72,7 +72,7 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
 
         <div className="min-w-0">
           <p
-            className="incident-word serif text-[1.75rem] leading-none whitespace-nowrap"
+            className="incident-word text-[1.5rem] font-semibold tracking-[-0.03em] leading-none whitespace-nowrap"
             style={{ color: tone }}
           >
             {FOOTBALL_EVENT_LABELS[shown.kind]}

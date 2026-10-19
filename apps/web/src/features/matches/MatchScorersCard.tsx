@@ -38,8 +38,7 @@ export function MatchScorersCard({
   return (
     <Card>
       <CardHeader>
-        <p className="eyebrow">Permissions</p>
-        <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
+        <h2 className="font-semibold tracking-[-0.02em] mt-2.5 text-base text-primary">Scorers</h2>
         <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
           Assign users with an account to score this match.
         </p>

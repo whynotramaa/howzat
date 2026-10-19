@@ -9,18 +9,12 @@ import {
 import { Btn, Controls, Figure, Icon } from './chrome';
 import { cn } from '@/lib/cn';
 
-/* ================================================================== *
- * 1. Every cache in the system, and what it costs when Redis is gone
- * ================================================================== */
-
 interface CacheEntry {
   key: string;
   what: string;
   ttl: string;
   refresh: string;
-  /** What a reader gets when Redis answers nothing. */
   down: string;
-  /** Whether losing it costs correctness or only speed. */
   fatal: boolean;
 }
 
@@ -61,7 +55,7 @@ const CACHES: CacheEntry[] = [
     key: 'slug:{publicSlug}',
     what: 'Public slug to match id',
     ttl: '24 hours',
-    refresh: 'Never invalidated — a slug never changes owner',
+    refresh: 'Never invalidated, a slug never changes owner',
     down: 'One indexed lookup instead of none.',
     fatal: false,
   },
@@ -88,7 +82,7 @@ export function CacheMap() {
 
   return (
     <Figure
-      label="Figure 10 — the cache inventory"
+      label="Figure 10 · the cache inventory"
       hint="Press Kill Redis. Every card flips to what a reader gets instead. Nothing turns red, and that is the point."
       controls={
         <Controls label="The whole cache tier" tone={down ? 'danger' : undefined}>
@@ -131,10 +125,6 @@ export function CacheMap() {
   );
 }
 
-/* ================================================================== *
- * 2. The points table, folded by the real production functions
- * ================================================================== */
-
 const TEAMS = [
   { id: 'kin', name: 'Kingfishers' },
   { id: 'rov', name: 'Rovers' },
@@ -150,14 +140,7 @@ interface Knobs {
   dls: boolean;
 }
 
-/**
- * Three completed twenty-over matches. The knobs change one fact each, and the
- * table below is folded by `aggregateStandings` and `sortStandings` — the same
- * two functions the API calls. Nothing here reimplements the maths.
- */
 function buildResults(knobs: Knobs): MatchResult[] {
-  // `chargeableBalls` charges an all-out side its full quota. Turning the knob
-  // off drops the end reason, so the side is charged only the balls it faced.
   const allOut = knobs.quota ? ('ALL_OUT' as const) : null;
 
   return [
@@ -241,7 +224,7 @@ const KNOB_NOTE: Record<keyof Knobs, string> = {
   quota:
     'Off: a side bowled out in 18 overs is charged 18 overs, and losing badly with balls to spare improves its run rate. On, which is the real rule, it is charged the full 20.',
   abandon:
-    'Match three is abandoned. Both sides take a point, and neither innings contributes a single run or ball to net run rate — the fold skips them entirely.',
+    'Match three is abandoned. Both sides take a point, and neither innings contributes a single run or ball to net run rate, the fold skips them entirely.',
   dls: 'Match two was called with Titans on 122 and a DLS par of 118. Net run rate charges the first innings the par score, not the runs actually made, so the two rows stay comparable.',
 };
 
@@ -265,7 +248,7 @@ export function StandingsLab() {
 
   return (
     <Figure
-      label="Figure 11 — the points table, folded live"
+      label="Figure 11 · the points table, folded live"
       hint="Change a fact about one match and watch the table move. This runs the same aggregateStandings and sortStandings the API runs."
       controls={
         <Controls label="Change one fact">
@@ -302,7 +285,9 @@ export function StandingsLab() {
             {rows.map((row, i) => (
               <tr key={row.teamId} className="border-b border-line/60 last:border-0">
                 <td className="py-2 pr-2 text-muted">{i + 1}</td>
-                <td className="py-2 pr-2 whitespace-nowrap text-primary">{TEAM_NAME(row.teamId)}</td>
+                <td className="py-2 pr-2 whitespace-nowrap text-primary">
+                  {TEAM_NAME(row.teamId)}
+                </td>
                 <td className="py-2 pr-2 text-secondary">{row.played}</td>
                 <td className="py-2 pr-2 text-secondary">{row.won}</td>
                 <td className="py-2 pr-2 text-secondary">{row.lost}</td>
@@ -330,7 +315,9 @@ export function StandingsLab() {
       </div>
 
       <p className="mt-4 min-h-[3.25rem] rounded-[var(--radius-sm)] border border-line bg-sunken px-3 py-2.5 text-[0.8125rem] text-secondary">
-        {last ? KNOB_NOTE[last] : 'Three matches played. Press a button to change one fact about one of them.'}
+        {last
+          ? KNOB_NOTE[last]
+          : 'Three matches played. Press a button to change one fact about one of them.'}
       </p>
     </Figure>
   );

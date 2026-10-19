@@ -1,7 +1,8 @@
+import { writeHandler as asyncHandler } from '../../lib/writeHandler';
 import { Router } from 'express';
 import { updatePlayerSchema } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
-import { asyncHandler, parseBody, requireParam } from '../../lib/http';
+import { parseBody, requireParam } from '../../lib/http';
 import { requireAuth } from '../../middleware/auth';
 import { assertSquadEditable, loadOwnedPlayer } from '../tournaments/guards';
 import { toPlayerDto } from '../teams/serialize';

@@ -14,21 +14,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary: cn(
-    'bg-accent text-on-accent shadow-[var(--shadow-xs)]',
-    'hover:bg-accent-strong',
+    'bg-accent-fill text-on-accent shadow-[inset_0_-1px_0_rgb(0_0_0/0.12)]',
+    'hover:bg-[color-mix(in_oklab,var(--accent-fill)_90%,#000)]',
   ),
   secondary: cn(
-    'border border-line-strong bg-raised text-primary',
-    'hover:bg-hover',
+    'border border-line bg-raised text-primary shadow-[var(--shadow-xs)]',
+    'hover:border-line-strong hover:bg-hover',
   ),
   quiet: 'text-secondary hover:bg-hover hover:text-primary',
-  danger: 'border border-[var(--alert)] bg-transparent text-alert hover:bg-alert-soft',
+  danger: 'border border-line bg-raised text-alert hover:border-[var(--alert)] hover:bg-alert-soft',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[0.8125rem] gap-1.5',
-  md: 'h-10 px-4 text-sm gap-2',
-  lg: 'h-12 px-6 text-[0.9375rem] gap-2.5',
+  sm: 'h-8 px-2.5 text-[0.8125rem] gap-1.5',
+  md: 'h-9 px-3.5 text-[0.8125rem] gap-2',
+  lg: 'h-10 px-4 text-sm gap-2',
 };
 
 export function Button({
@@ -43,13 +43,15 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
+      type="button"
       {...props}
+      aria-busy={isLoading || undefined}
       disabled={disabled || isLoading}
       className={cn(
         'group relative inline-flex shrink-0 select-none items-center justify-center',
-        'rounded-[var(--radius-md)] font-semibold whitespace-nowrap',
+        'rounded-[var(--radius-md)] font-medium whitespace-nowrap',
         'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
-        'active:scale-[0.97]',
+        'active:scale-[0.98]',
         'disabled:pointer-events-none disabled:opacity-40',
         variants[variant],
         sizes[size],
@@ -78,8 +80,8 @@ export function TextAction({
       type="button"
       {...props}
       className={cn(
-        'text-sm text-secondary underline decoration-[var(--line-strong)] decoration-1 underline-offset-4',
-        'transition-colors hover:text-primary hover:decoration-[var(--accent-strong)]',
+        'text-[0.8125rem] text-secondary underline decoration-[var(--line-strong)] decoration-1 underline-offset-4',
+        'transition-colors hover:text-primary hover:decoration-[var(--accent-fill)]',
         'disabled:pointer-events-none disabled:opacity-40 disabled:no-underline',
         className,
       )}

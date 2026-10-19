@@ -5,11 +5,11 @@ import { cn } from '@/lib/cn';
 type Tone = 'neutral' | 'accent' | 'success' | 'live' | 'warning';
 
 const tones: Record<Tone, string> = {
-  neutral: 'border-line bg-sunken text-secondary',
+  neutral: 'border-line bg-raised text-secondary',
   accent: 'border-[var(--accent-line)] bg-accent-soft text-accent',
-  success: 'border-[var(--success)]/35 bg-success-soft text-success',
-  live: 'border-[var(--live)] bg-live text-white',
-  warning: 'border-[var(--warning)]/40 bg-warning-soft text-warning',
+  success: 'border-line bg-raised text-success',
+  live: 'border-[var(--accent-line)] bg-accent-soft text-accent',
+  warning: 'border-line bg-warning-soft text-warning',
 };
 
 export function Pill({
@@ -24,8 +24,8 @@ export function Pill({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border px-2 py-1',
-        'text-[0.6875rem] leading-none font-semibold tracking-[0.04em] uppercase',
+        'inline-flex h-5 shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border px-1.5',
+        'text-[0.6875rem] leading-none font-medium',
         tones[tone],
         className,
       )}
@@ -49,9 +49,7 @@ export function StatusPill({ status }: { status: MatchStatus }) {
 
   return (
     <Pill tone={tone}>
-      {status === 'LIVE' ? (
-        <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
-      ) : null}
+      {status === 'LIVE' ? <span aria-hidden className="live-dot" /> : null}
       {label}
     </Pill>
   );
@@ -67,9 +65,9 @@ export function TeamMark({
   size?: 'sm' | 'md' | 'lg';
 }) {
   const sizes = {
-    sm: 'size-8 text-[0.625rem]',
-    md: 'size-11 text-[0.6875rem]',
-    lg: 'size-14 text-xs',
+    sm: 'size-6 text-[0.5625rem]',
+    md: 'size-8 text-[0.625rem]',
+    lg: 'size-11 text-[0.6875rem]',
   } as const;
 
   return (
@@ -77,8 +75,8 @@ export function TeamMark({
       aria-hidden
       className={cn(
         'grid shrink-0 place-items-center rounded-[var(--radius-sm)]',
-        'font-semibold tracking-[0.06em] text-white',
-        'ring-1 ring-black/15 ring-inset',
+        'font-semibold tracking-[0.02em] text-white',
+        'ring-1 ring-black/10 ring-inset',
         sizes[size],
       )}
       style={{ background: color }}

@@ -6,240 +6,184 @@ import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { Wordmark } from '@/components/Wordmark';
 import { cn } from '@/lib/cn';
 
-const NAV = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/tournaments', label: 'Tournaments' },
-  { to: '/profile', label: 'My record' },
-] as const;
-
-export function AppShell() {
-  const { user, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { pathname } = useLocation();
-
-  const navHref = (to: string) => (to === '/profile' ? `/players/${user?.username ?? ''}` : to);
-
-  // The scoring console is an instrument, not a page: it takes the whole width
-  // below the app header and brings its own dark surface.
-  const consoleRoute = /^\/(matches\/[^/]+\/score|score\/)/.test(pathname);
-
+function useOnline() {
+  const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMenuOpen(false);
-    }
-
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleKey);
-
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
     return () => {
-      document.body.style.overflow = overflow;
-      document.removeEventListener('keydown', handleKey);
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
     };
-  }, [menuOpen]);
-
-  useEffect(() => {
-    const query = window.matchMedia('(min-width: 48rem)');
-    const handleChange = () => {
-      if (query.matches) setMenuOpen(false);
-    };
-
-    query.addEventListener('change', handleChange);
-    return () => query.removeEventListener('change', handleChange);
   }, []);
+  return online;
+}
 
+function NavIcon({ d }: { d: string }) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="relative z-40 border-b border-line bg-surface">
-        <div className="mx-auto flex h-[4.5rem] w-full max-w-[78rem] items-center gap-4 px-5 sm:px-8 md:gap-8 lg:px-12">
-          <Link
-            to="/dashboard"
-            className="shrink-0 transition-opacity hover:opacity-70"
-            aria-label="Howzat — home"
-          >
-            <Wordmark />
-          </Link>
-
-          <nav aria-label="Main" className="hidden h-full items-stretch gap-1 md:flex">
-            {NAV.map((item) => (
-              <NavLink
-                key={item.to}
-                to={navHref(item.to)}
-                className={({ isActive }) =>
-                  cn(
-                    'relative inline-flex items-center px-3 text-[0.8125rem] font-medium',
-                    'transition-colors duration-[var(--dur-fast)]',
-                    isActive ? 'text-primary' : 'text-muted hover:text-secondary',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {item.label}
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'absolute inset-x-2 bottom-0 h-[2px] transition-opacity',
-                        isActive ? 'bg-[var(--accent-strong)] opacity-100' : 'opacity-0',
-                      )}
-                    />
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3 sm:gap-4">
-            <NotificationBell />
-
-            <div className="hidden items-center gap-4 md:flex">
-              <ThemeToggle />
-
-              <div className="text-right leading-tight">
-                <p className="text-[0.8125rem] font-medium text-primary">{user?.name}</p>
-                <p className="mono text-[0.6875rem] text-muted">@{user?.username}</p>
-              </div>
-
-              <span aria-hidden className="h-7 w-px bg-line" />
-
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="text-[0.8125rem] text-muted transition-colors hover:text-primary"
-              >
-                Sign out
-              </button>
-            </div>
-
-            <MenuButton open={menuOpen} onToggle={() => setMenuOpen((value) => !value)} />
-          </div>
-        </div>
-
-        {menuOpen ? (
-          <div
-            id="main-menu"
-            className="sheet-in absolute inset-x-0 top-full border-b border-line bg-surface shadow-[var(--shadow-lg)] md:hidden"
-          >
-            <nav
-              aria-label="Main"
-              className="mx-auto flex w-full max-w-[78rem] flex-col px-5 py-2 sm:px-8"
-            >
-              {NAV.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={navHref(item.to)}
-                  className={({ isActive }) =>
-                    cn(
-                      'relative flex items-center py-3.5 pl-4 text-[0.9375rem] font-medium',
-                      'transition-colors duration-[var(--dur-fast)]',
-                      isActive ? 'text-primary' : 'text-muted',
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'absolute inset-y-2.5 left-0 w-[2px] transition-opacity',
-                          isActive ? 'bg-[var(--accent-strong)] opacity-100' : 'opacity-0',
-                        )}
-                      />
-                      {item.label}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
-
-            <div
-              className={cn(
-                'mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4',
-                'border-t border-line px-5 py-4 sm:px-8',
-                'pb-[max(1rem,env(safe-area-inset-bottom))]',
-              )}
-            >
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-[0.8125rem] font-medium text-primary">{user?.name}</p>
-                <p className="mono truncate text-[0.6875rem] text-muted">@{user?.username}</p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <ThemeToggle />
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="text-[0.8125rem] text-muted transition-colors hover:text-primary"
-                >
-                  Sign out
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </header>
-
-      {menuOpen ? (
-        <div
-          aria-hidden
-          onClick={() => setMenuOpen(false)}
-          className="scrim-in fixed inset-0 z-30 bg-[var(--scrim)] md:hidden"
-        />
-      ) : null}
-
-      <main
-        className={cn(
-          'flex-1',
-          !consoleRoute && 'mx-auto w-full max-w-[78rem] px-5 py-10 sm:px-8 sm:py-14 lg:px-12',
-        )}
-      >
-        <Outlet />
-      </main>
-
-      {consoleRoute ? null : (
-        <footer className="border-t border-line">
-          <div className="mx-auto flex w-full max-w-[78rem] flex-wrap items-center justify-between gap-4 px-5 py-7 sm:px-8 lg:px-12">
-            <p className="eyebrow">Made with ❤️ by whynotramaa</p>
-          </div>
-        </footer>
-      )}
-    </div>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={d} />
+    </svg>
   );
 }
 
-function MenuButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
-  const bar = 'absolute left-0 h-[1.5px] w-full rounded-full bg-current';
-  const timing = 'transition-transform duration-[var(--dur)] ease-[var(--ease)]';
+export function AppShell() {
+  const { user, logout } = useAuth();
+  const { pathname } = useLocation();
+  const online = useOnline();
+  const items = [
+    {
+      to: '/dashboard',
+      label: 'Overview',
+      icon: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
+    },
+    {
+      to: '/tournaments',
+      label: 'Tournaments',
+      icon: 'M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 13v6m-4 2h8',
+    },
+    {
+      to: `/players/${user?.username ?? ''}`,
+      label: 'Profile',
+      icon: 'M20 21v-2a7 7 0 0 0-14 0v2M13 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+    },
+  ];
+  const scoring = /\/score(\/|$)/.test(pathname);
+  const section = scoring
+    ? 'Scoring'
+    : pathname.startsWith('/tournaments') || pathname.startsWith('/teams')
+      ? 'Tournaments'
+      : pathname.startsWith('/players')
+        ? 'Profile'
+        : pathname.startsWith('/matches')
+          ? 'Match'
+          : 'Overview';
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      aria-controls="main-menu"
-      aria-label={open ? 'Close menu' : 'Open menu'}
-      className={cn(
-        'relative grid size-9 shrink-0 place-items-center rounded-[var(--radius-sm)] md:hidden',
-        'text-secondary transition-colors hover:bg-hover hover:text-primary',
-      )}
-    >
-      <span aria-hidden className="relative block h-4 w-[18px]">
-        <span className={cn(bar, timing, 'top-0', open && 'translate-y-[7.25px] rotate-45')} />
-        <span
+    <div className="min-h-dvh">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <aside className="app-sidebar hidden md:flex">
+        <Link
+          to="/dashboard"
+          aria-label="Howzat home"
+          className="flex h-12 items-center border-b border-line px-4"
+        >
+          <Wordmark size="sm" />
+        </Link>
+        <nav aria-label="Main" className="flex flex-col gap-px p-2">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  'relative flex h-8 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[0.8125rem]',
+                  'transition-colors duration-[var(--dur-fast)]',
+                  isActive
+                    ? 'bg-hover font-medium text-primary before:absolute before:inset-y-2 before:-left-2 before:w-0.5 before:rounded-full before:bg-accent-fill'
+                    : 'text-secondary hover:bg-hover hover:text-primary',
+                )
+              }
+            >
+              <NavIcon d={item.icon} />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto border-t border-line p-2">
+          <div className="flex items-center gap-2.5 px-2 py-1.5">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-inverse text-xs font-semibold text-on-inverse">
+              {user?.name.slice(0, 1)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[0.8125rem] font-medium">{user?.name}</p>
+              <p className="truncate text-[0.6875rem] text-muted">@{user?.username}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="flex h-8 w-full items-center rounded-[var(--radius-md)] px-2.5 text-left text-[0.8125rem] text-muted transition-colors hover:bg-hover hover:text-primary"
+          >
+            Sign out
+          </button>
+        </div>
+      </aside>
+      <div className="min-w-0 md:ml-[220px]">
+        <header className="app-topbar flex h-12 items-center justify-between gap-3 border-b border-line px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5 text-[0.8125rem]">
+            <Link to="/dashboard" className="md:hidden" aria-label="Howzat home">
+              <Wordmark showName={false} size="sm" />
+            </Link>
+            <span className="hidden text-muted sm:inline">{user?.username}</span>
+            <span aria-hidden className="hidden text-line-strong sm:inline">
+              /
+            </span>
+            <span className="font-medium">{section}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span
+              className="mr-2 hidden items-center gap-1.5 text-xs text-muted sm:flex"
+              title={online ? 'Connected' : 'Offline'}
+            >
+              <span className={cn('size-1.5 rounded-full', online ? 'bg-success' : 'bg-warning')} />
+              {online ? 'Online' : 'Offline'}
+            </span>
+            <ThemeToggle />
+            <NotificationBell />
+          </div>
+        </header>
+        <main
+          id="main-content"
           className={cn(
-            bar,
-            'top-1/2 -translate-y-1/2 transition-transform duration-[var(--dur-fast)] ease-[var(--ease)]',
-            open ? 'scale-x-0' : 'scale-x-100',
+            'mx-auto w-full max-w-[1280px] pb-24 md:pb-10',
+            scoring ? 'px-2 pt-4 sm:px-5' : 'px-4 py-6 sm:px-6 lg:px-8 lg:py-8',
           )}
-        />
-        <span className={cn(bar, timing, 'bottom-0', open && '-translate-y-[7.25px] -rotate-45')} />
-      </span>
-    </button>
+        >
+          <Outlet />
+        </main>
+      </div>
+      <nav
+        aria-label="Main mobile"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-raised pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              cn(
+                'flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem]',
+                isActive ? 'font-medium text-primary' : 'text-muted',
+              )
+            }
+          >
+            <NavIcon d={item.icon} />
+            {item.label}
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className="flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] text-muted"
+        >
+          <NavIcon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+          Sign out
+        </button>
+      </nav>
+    </div>
   );
 }

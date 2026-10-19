@@ -48,21 +48,19 @@ export function NotificationBell() {
         aria-haspopup="menu"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         className={cn(
-          'relative grid size-9 place-items-center rounded-[var(--radius-sm)] border transition-colors',
+          'relative grid size-8 place-items-center rounded-[var(--radius-md)] transition-colors',
           'duration-[var(--dur-fast)]',
-          open
-            ? 'border-[var(--accent-line)] bg-accent-soft text-accent'
-            : 'border-line text-muted hover:border-line-strong hover:text-primary',
+          open ? 'bg-hover text-primary' : 'text-muted hover:bg-hover hover:text-primary',
         )}
       >
-        <BellGlyph ringing={unread > 0} />
+        <BellGlyph />
 
         {unread > 0 ? (
           <span
             aria-hidden
             className={cn(
-              'mono absolute -top-1.5 -right-1.5 grid min-w-[1.125rem] place-items-center rounded-full',
-              'border border-[var(--surface)] bg-live px-1 text-[0.625rem] leading-[1.0625rem] font-medium text-white',
+              'mono absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full',
+              'border border-[var(--surface)] bg-accent-fill px-1 text-[0.5625rem] leading-[0.9375rem] font-semibold text-on-accent',
             )}
           >
             {unread > 9 ? '9+' : unread}
@@ -78,8 +76,8 @@ export function NotificationBell() {
             'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-[var(--shadow-md)]',
           )}
         >
-          <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
-            <p className="eyebrow">Notifications</p>
+          <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
+            <p className="text-[0.8125rem] font-semibold">Notifications</p>
             {unread > 0 ? (
               <button
                 type="button"
@@ -92,9 +90,7 @@ export function NotificationBell() {
           </div>
 
           {items.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[0.8125rem] text-muted">
-              Nothing yet. You will hear from us when an organizer adds you to a squad.
-            </p>
+            <p className="px-4 py-8 text-center text-[0.8125rem] text-muted">Nothing yet</p>
           ) : (
             <ul className="max-h-[26rem] overflow-y-auto">
               {items.map((notification) => (
@@ -104,7 +100,7 @@ export function NotificationBell() {
                     role="menuitem"
                     onClick={() => handleOpen(notification)}
                     className={cn(
-                      'flex w-full gap-3 border-b border-line px-4 py-3.5 text-left last:border-0',
+                      'flex w-full gap-3 border-b border-line px-4 py-3 text-left last:border-0',
                       'transition-colors duration-[var(--dur-fast)] hover:bg-hover',
                       notification.readAt ? 'opacity-70' : null,
                     )}
@@ -113,7 +109,7 @@ export function NotificationBell() {
                       aria-hidden
                       className={cn(
                         'mt-1.5 size-1.5 shrink-0 rounded-full',
-                        notification.readAt ? 'bg-transparent' : 'bg-[var(--accent-strong)]',
+                        notification.readAt ? 'bg-transparent' : 'bg-accent-fill',
                       )}
                     />
                     <span className="min-w-0 flex-1">
@@ -138,7 +134,7 @@ export function NotificationBell() {
   );
 }
 
-function BellGlyph({ ringing }: { ringing: boolean }) {
+function BellGlyph() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -148,7 +144,7 @@ function BellGlyph({ ringing }: { ringing: boolean }) {
       strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('size-[1.125rem]', ringing && 'text-accent')}
+      className="size-4"
     >
       <path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z" />
       <path d="M10.3 18.5a2 2 0 0 0 3.4 0" />

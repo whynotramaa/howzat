@@ -5,24 +5,20 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn(
-        'animate-pulse rounded-[var(--radius-lg)] border border-line bg-sunken',
-        className,
-      )}
+      className={cn('animate-pulse rounded-[var(--radius-md)] bg-sunken', className)}
     />
   );
 }
 
 export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-6 sm:p-8">
-      <div className="h-3 w-24 animate-pulse rounded-full bg-sunken" />
-      <div className="mt-4 h-7 w-2/5 animate-pulse rounded bg-sunken" />
-      <div className="mt-7 flex flex-col gap-3">
+    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-4">
+      <div className="h-4 w-2/5 animate-pulse rounded bg-sunken" />
+      <div className="mt-4 flex flex-col gap-2.5">
         {Array.from({ length: rows }).map((_, index) => (
           <div
             key={index}
-            className="h-4 animate-pulse rounded bg-sunken"
+            className="h-3 animate-pulse rounded bg-sunken"
             style={{ width: `${88 - index * 14}%` }}
           />
         ))}
@@ -50,8 +46,8 @@ export function ErrorText({ error }: { error: unknown }) {
     <div
       role="alert"
       className={cn(
-        'rounded-[var(--radius-md)] border border-[var(--alert)] bg-alert-soft px-4 py-3.5',
-        'text-sm text-primary',
+        'rounded-[var(--radius-md)] border border-[var(--alert)]/40 bg-alert-soft px-3 py-2.5',
+        'text-[0.8125rem] text-primary',
       )}
     >
       <p className="font-medium">{message}</p>
@@ -60,7 +56,7 @@ export function ErrorText({ error }: { error: unknown }) {
           {details.map((detail, index) => (
             <li key={detail.teamName ?? index}>
               {detail.teamName ? (
-                <span className="font-medium text-primary">{detail.teamName} — </span>
+                <span className="font-medium text-primary">{detail.teamName}: </span>
               ) : null}
               {detail.reason}
             </li>

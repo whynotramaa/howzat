@@ -2,10 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Btn, Controls, Figure, Hand, Icon, LogPane, useLog, Wire } from './chrome';
 import { cn } from '@/lib/cn';
 
-/* ================================================================== *
- * 1. The lock bench
- * ================================================================== */
-
 type Holder = 'A' | 'B' | null;
 
 interface LockState {
@@ -30,7 +26,6 @@ export function LockLab() {
   const [now, setNow] = useState(() => Date.now());
   const { lines, push, clear } = useLog();
 
-  // One timer drives the TTL readout and the automatic expiry.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
@@ -49,7 +44,10 @@ export function LockLab() {
 
   const acquire = (who: 'A' | 'B') => {
     if (lock.holder) {
-      push(`${who}: SET lock:match:42 <token> NX PX 5000 → nil. Held by ${lock.holder}. Backing off.`, 'warn');
+      push(
+        `${who}: SET lock:match:42 <token> NX PX 5000 → nil. Held by ${lock.holder}. Backing off.`,
+        'warn',
+      );
       return;
     }
     const t = token();
@@ -67,7 +65,10 @@ export function LockLab() {
     if (safeRelease) {
       if (lock.token === mine) {
         setLock({ holder: null, token: null, expiresAt: null });
-        push(`${who}: EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) end" → 1. Released.`, 'ok');
+        push(
+          `${who}: EVAL "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) end" → 1. Released.`,
+          'ok',
+        );
       } else {
         push(
           `${who}: EVAL compare-and-delete → 0. The stored token is not mine, so nothing was deleted. This is the script earning its keep.`,
@@ -95,18 +96,18 @@ export function LockLab() {
 
   return (
     <Figure
-      label="Figure 6 — the lock bench"
+      label="Figure 6 · the lock bench"
       hint="Set the release mode to Plain DEL. Then: A acquires, wait five seconds for the lease to expire, B acquires, A releases. Watch what A deletes."
       controls={
         <>
-          <Controls label="Writer A — the scorer's request">
+          <Controls label="Writer A · the scorer's request">
             <Btn onClick={() => acquire('A')} tone="primary">
               <Icon name="lock" />
               Acquire
             </Btn>
             <Btn onClick={() => release('A')}>Release</Btn>
           </Controls>
-          <Controls label="Writer B — its own retry">
+          <Controls label="Writer B · its own retry">
             <Btn onClick={() => acquire('B')} tone="primary">
               <Icon name="lock" />
               Acquire
@@ -139,7 +140,12 @@ export function LockLab() {
         <Icon name="hand" /> scroll the drawing sideways
       </p>
       <div className="eng-scroll">
-        <svg viewBox="0 0 700 250" className="eng-svg min-w-[560px]" role="img" aria-label="Lock bench">
+        <svg
+          viewBox="0 0 700 250"
+          className="eng-svg min-w-[560px]"
+          role="img"
+          aria-label="Lock bench"
+        >
           <g className="sketch">
             <Wire
               d="M 186 62 L 276 100"
@@ -200,14 +206,24 @@ export function LockLab() {
               />
             ) : null}
 
-            <Box x={520} y={74} w={150} h={92} title="Postgres" sub="@@unique(inningsId, seq)" state="done" />
+            <Box
+              x={520}
+              y={74}
+              w={150}
+              h={92}
+              title="Postgres"
+              sub="@@unique(inningsId, seq)"
+              state="done"
+            />
             <Wire d="M 476 120 L 520 120" state="done" />
 
             <Hand x={520} y={62}>
               the real guarantee lives here
             </Hand>
             <Hand x={286} y={200}>
-              {heldTokens.A && heldTokens.B ? 'two writers hold tokens. one of them is wrong.' : 'a lease, not a promise'}
+              {heldTokens.A && heldTokens.B
+                ? 'two writers hold tokens. one of them is wrong.'
+                : 'a lease, not a promise'}
             </Hand>
           </g>
         </svg>
@@ -215,10 +231,6 @@ export function LockLab() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 2. Idempotency
- * ================================================================== */
 
 interface Row {
   id: number;
@@ -243,8 +255,6 @@ export function IdempotencyLab() {
 
   const total = rows.reduce((sum, row) => sum + row.runs, 0);
 
-  // Everything is computed from `rows` before any setState call. Side effects
-  // inside a state updater run twice under StrictMode.
   const post = useCallback(
     (key: string, runs: number, parallel = false) => {
       const seen = rows.some((row) => row.clientEventId === key);
@@ -274,8 +284,6 @@ export function IdempotencyLab() {
         runs: newTotal,
       };
 
-      // The second request of a genuine race passed the lookup before the first
-      // committed. Only the unique index separates them now.
       const raced: Reply | null = parallel
         ? checkOnly
           ? {
@@ -299,7 +307,7 @@ export function IdempotencyLab() {
 
   return (
     <Figure
-      label="Figure 7 — the same six, sent three times"
+      label="Figure 7 · the same six, sent three times"
       hint="Score a six, then press Retry twice. The row count never moves. Now turn the P2002 catch off and send two in parallel."
       controls={
         <>
@@ -357,7 +365,8 @@ export function IdempotencyLab() {
           <p className="mt-3 text-[0.875rem] text-secondary">
             Team total: <span className="score-figure text-[1.5rem] text-primary">{total}</span>
             <span className="ml-2 text-muted">
-              {rows.length} row{rows.length === 1 ? '' : 's'} for {replies.filter((r) => r.status !== 500).length} accepted request
+              {rows.length} row{rows.length === 1 ? '' : 's'} for{' '}
+              {replies.filter((r) => r.status !== 500).length} accepted request
               {replies.filter((r) => r.status !== 500).length === 1 ? '' : 's'}
             </span>
           </p>
@@ -384,7 +393,9 @@ export function IdempotencyLab() {
                   {reply.status}
                 </span>
                 <span className="text-[0.8125rem] text-secondary">{reply.note}</span>
-                <span className="mono ml-1 text-[0.6875rem] text-muted">body: {reply.runs} runs</span>
+                <span className="mono ml-1 text-[0.6875rem] text-muted">
+                  body: {reply.runs} runs
+                </span>
               </li>
             ))}
             {replies.length === 0 ? (
@@ -396,10 +407,6 @@ export function IdempotencyLab() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 3. The snapshot guard
- * ================================================================== */
 
 interface Pending {
   seq: number;
@@ -442,15 +449,23 @@ export function SnapshotGuardLab() {
 
   return (
     <Figure
-      label="Figure 8 — the slow write that lost the race"
+      label="Figure 8 · the slow write that lost the race"
       hint="Turn the seq guard off, then press the four buttons left to right. The score of every viewer in the ground rewinds."
       controls={
         <>
           <Controls label="Two balls, out of order">
-            <Btn onClick={() => start(42, 124)} tone="primary" disabled={inFlight.some((p) => p.seq === 42)}>
+            <Btn
+              onClick={() => start(42, 124)}
+              tone="primary"
+              disabled={inFlight.some((p) => p.seq === 42)}
+            >
               1. Ball 42 stalls
             </Btn>
-            <Btn onClick={() => start(43, 130)} tone="primary" disabled={inFlight.some((p) => p.seq === 43)}>
+            <Btn
+              onClick={() => start(43, 130)}
+              tone="primary"
+              disabled={inFlight.some((p) => p.seq === 43)}
+            >
               2. Ball 43 goes
             </Btn>
             <Btn onClick={() => land(43)} disabled={!inFlight.some((p) => p.seq === 43)}>
@@ -507,10 +522,6 @@ export function SnapshotGuardLab() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 4. Redis: the keyspace, and what a failure costs
- * ================================================================== */
 
 const KEYSPACE = [
   {
@@ -569,13 +580,13 @@ export function RedisKeyspace() {
 
   return (
     <Figure
-      label="Figure 9 — every Redis key in the system"
+      label="Figure 9 · every Redis key in the system"
       hint="Press Kill Redis. Each row swaps to what actually happens when that key is unreachable."
       controls={
         <Controls label="Dependency state" tone="danger">
           <Btn onClick={() => setDown((d) => !d)} active={down}>
             <Icon name="offline" />
-            {down ? 'Redis is down — bring it back' : 'Kill Redis'}
+            {down ? 'Redis is down, bring it back' : 'Kill Redis'}
           </Btn>
         </Controls>
       }

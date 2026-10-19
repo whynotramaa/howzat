@@ -1,3 +1,4 @@
+import { incrementWindow } from '../../lib/redis';
 import { Router } from 'express';
 import {
   changePasswordSchema,
@@ -14,7 +15,14 @@ import {
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, parseBody, parseQuery } from '../../lib/http';
-import { badRequest, conflict, forbidden, unauthorized, unprocessable } from '../../lib/errors';
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  unauthorized,
+  unprocessable,
+  tooManyRequests,
+} from '../../lib/errors';
 import { emailEnabled, isDevelopment } from '../../config/env';
 import { requireAuth } from '../../middleware/auth';
 import { assertOtpRequestAllowed, issueOtp, verifyOtp } from './otp';
@@ -127,6 +135,9 @@ authRouter.post(
   '/login',
   asyncHandler(async (req, res) => {
     const { identifier, password } = parseBody(loginSchema, req.body);
+    const attempts = await incrementWindow(`rl:login:${clientIp(req.ip)}:${identifier}`, 900);
+    if (attempts.count > 15)
+      throw tooManyRequests('Too many sign-in attempts. Try again later.', attempts.ttl);
 
     const user = identifier.includes('@')
       ? await prisma.user.findUnique({ where: { email: identifier } })
@@ -276,20 +287,24 @@ authRouter.patch(
       if (taken) throw conflict('That username is already taken');
     }
 
-    const user = await prisma.user.update({
-      where: { id: req.user!.id },
-      data: {
-        ...(input.name ? { name: input.name } : {}),
-        ...(input.username ? { username: input.username } : {}),
-      },
-    });
-
-    if (input.username) {
-      await prisma.player.updateMany({
-        where: { userId: user.id },
-        data: { username: user.username },
+    const user = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: req.user!.id },
+        data: {
+          ...(input.name ? { name: input.name } : {}),
+          ...(input.username ? { username: input.username } : {}),
+        },
       });
-    }
+
+      if (input.username) {
+        await tx.player.updateMany({
+          where: { userId: user.id },
+          data: { username: user.username },
+        });
+      }
+
+      return user;
+    });
 
     res.json(toAuthUser(user));
   }),

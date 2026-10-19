@@ -1,10 +1,11 @@
+import { withLock } from '../../lib/lock';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { OtpPurpose } from '@prisma/client';
 import { env } from '../../config/env';
 import { prisma } from '../../lib/prisma';
 import { incrementWindow } from '../../lib/redis';
-import { badRequest, tooManyRequests, unauthorized } from '../../lib/errors';
+import { badRequest, tooManyRequests } from '../../lib/errors';
 
 const OTP_COST = 10;
 
@@ -35,19 +36,21 @@ export async function issueOtp(
   email: string,
   purpose: OtpPurpose = 'EMAIL_VERIFICATION',
 ): Promise<string> {
-  const code = generateOtpCode();
-  const codeHash = await bcrypt.hash(code, OTP_COST);
-  const expiresAt = new Date(Date.now() + env.OTP_TTL_MINUTES * 60_000);
+  return withLock(`otp:${email}:${purpose}`, async () => {
+    const code = generateOtpCode();
+    const codeHash = await bcrypt.hash(code, OTP_COST);
+    const expiresAt = new Date(Date.now() + env.OTP_TTL_MINUTES * 60_000);
 
-  await prisma.$transaction([
-    prisma.otpCode.updateMany({
-      where: { email, purpose, consumedAt: null },
-      data: { consumedAt: new Date() },
-    }),
-    prisma.otpCode.create({ data: { email, purpose, codeHash, expiresAt } }),
-  ]);
+    await prisma.$transaction([
+      prisma.otpCode.updateMany({
+        where: { email, purpose, consumedAt: null },
+        data: { consumedAt: new Date() },
+      }),
+      prisma.otpCode.create({ data: { email, purpose, codeHash, expiresAt } }),
+    ]);
 
-  return code;
+    return code;
+  });
 }
 
 export async function verifyOtp(
@@ -59,39 +62,22 @@ export async function verifyOtp(
     where: { email, purpose, consumedAt: null },
     orderBy: { createdAt: 'desc' },
   });
-
   const rejection = badRequest('That code is incorrect or has expired');
-
   if (!record) throw rejection;
-
-  if (record.expiresAt.getTime() < Date.now()) {
-    await prisma.otpCode.update({
-      where: { id: record.id },
-      data: { consumedAt: new Date() },
-    });
-    throw rejection;
-  }
-
-  if (record.attempts >= env.OTP_MAX_ATTEMPTS) {
-    await prisma.otpCode.update({
-      where: { id: record.id },
-      data: { consumedAt: new Date() },
-    });
-    throw unauthorized('Too many incorrect attempts — request a new code');
-  }
-
-  const matches = await bcrypt.compare(code, record.codeHash);
-
-  if (!matches) {
-    await prisma.otpCode.update({
-      where: { id: record.id },
-      data: { attempts: { increment: 1 } },
-    });
-    throw rejection;
-  }
-
-  await prisma.otpCode.update({
-    where: { id: record.id },
+  const reserved = await prisma.otpCode.updateMany({
+    where: {
+      id: record.id,
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+      attempts: { lt: env.OTP_MAX_ATTEMPTS },
+    },
+    data: { attempts: { increment: 1 } },
+  });
+  if (reserved.count !== 1) throw rejection;
+  if (!(await bcrypt.compare(code, record.codeHash))) throw rejection;
+  const consumed = await prisma.otpCode.updateMany({
+    where: { id: record.id, consumedAt: null, expiresAt: { gt: new Date() } },
     data: { consumedAt: new Date() },
   });
+  if (consumed.count !== 1) throw rejection;
 }

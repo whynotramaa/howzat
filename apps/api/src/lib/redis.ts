@@ -45,15 +45,15 @@ export async function incrementWindow(
   key: string,
   windowSeconds: number,
 ): Promise<{ count: number; ttl: number }> {
-  const results = await redis.multi().incr(key).ttl(key).exec();
-
-  const count = Number(results?.[0]?.[1] ?? 0);
-  let ttl = Number(results?.[1]?.[1] ?? -1);
-
-  if (ttl < 0) {
-    await redis.expire(key, windowSeconds);
-    ttl = windowSeconds;
-  }
-
-  return { count, ttl };
+  const result = (await redis.eval(
+    `
+    local count = redis.call('INCR', KEYS[1])
+    if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+    return {count, redis.call('TTL', KEYS[1])}
+  `,
+    1,
+    key,
+    windowSeconds,
+  )) as [number, number];
+  return { count: result[0], ttl: result[1] };
 }

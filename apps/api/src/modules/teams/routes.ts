@@ -1,3 +1,4 @@
+import { writeHandler as asyncHandler } from '../../lib/writeHandler';
 import { Router } from 'express';
 import {
   bulkCreatePlayersSchema,
@@ -6,7 +7,7 @@ import {
   type TeamWithPlayersDto,
 } from '@howzat/shared';
 import { prisma } from '../../lib/prisma';
-import { asyncHandler, parseBody, requireParam } from '../../lib/http';
+import { parseBody, requireParam } from '../../lib/http';
 import { conflict } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { requireAuth } from '../../middleware/auth';

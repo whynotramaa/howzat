@@ -349,7 +349,10 @@ export async function addInterruption(
     }
 
     if (!match.dlsApplied) {
-      throw unprocessable('DLS_NOT_APPLIED', 'Turn DLS on for this match before logging a stoppage');
+      throw unprocessable(
+        'DLS_NOT_APPLIED',
+        'Turn DLS on for this match before logging a stoppage',
+      );
     }
 
     if (input.inningsNumber === 2 && !match.innings.some((entry) => entry.number === 2)) {
@@ -507,7 +510,7 @@ async function broadcastRevision(matchId: string): Promise<void> {
     return null;
   });
 
-  void publishMatchEvent('match:dls', { matchId, snapshot });
+  await publishMatchEvent('match:dls', { matchId, snapshot });
 }
 
 /**
@@ -561,7 +564,7 @@ export async function concludeUnderDls(
         data: { status: 'COMPLETED', endReason: 'DLS_TERMINATED' },
       });
 
-      void publishMatchEvent('match:completed', {
+      await publishMatchEvent('match:completed', {
         matchId,
         tournamentId: match.tournamentId,
         winnerTeamId: null,
@@ -619,7 +622,7 @@ export async function concludeUnderDls(
       'Match concluded under the DLS par score',
     );
 
-    void publishMatchEvent('match:completed', {
+    await publishMatchEvent('match:completed', {
       matchId,
       tournamentId: match.tournamentId,
       winnerTeamId,

@@ -1,3 +1,4 @@
+import { afterCommit } from '../../lib/transaction';
 import type { NotificationDto } from '@howzat/shared';
 import type { Notification } from '@prisma/client';
 import { env } from '../../config/env';
@@ -41,26 +42,28 @@ export async function notifySquadAdditions(
     })),
   });
 
-  void Promise.allSettled(
-    targets.map((target) =>
-      sendSquadAdditionEmail({
-        to: target.email,
-        name: target.name,
-        teamName: context.teamName,
-        tournamentName: context.tournamentName,
-        organizerName: context.organizerName,
-        dashboardUrl: `${env.WEB_BASE_URL}/dashboard`,
-      }),
-    ),
-  ).then((results) => {
-    const failed = results.filter((result) => result.status === 'rejected').length;
-    if (failed > 0) {
-      logger.warn(
-        { failed, total: targets.length, teamId: context.teamId },
-        'Some squad notification emails did not send; the in-app notices are unaffected',
-      );
-    }
-  });
+  await afterCommit(() =>
+    Promise.allSettled(
+      targets.map((target) =>
+        sendSquadAdditionEmail({
+          to: target.email,
+          name: target.name,
+          teamName: context.teamName,
+          tournamentName: context.tournamentName,
+          organizerName: context.organizerName,
+          dashboardUrl: `${env.WEB_BASE_URL}/dashboard`,
+        }),
+      ),
+    ).then((results) => {
+      const failed = results.filter((result) => result.status === 'rejected').length;
+      if (failed > 0) {
+        logger.warn(
+          { failed, total: targets.length, teamId: context.teamId },
+          'Some squad notification emails did not send; the in-app notices are unaffected',
+        );
+      }
+    }),
+  );
 }
 
 export interface ScorerAssignmentContext {

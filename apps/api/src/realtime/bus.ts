@@ -1,3 +1,5 @@
+import { prisma } from '../lib/prisma';
+import { afterCommit, transactions } from '../lib/transaction';
 import type { FootballSnapshot, MatchSnapshot } from '@howzat/shared';
 import { logger } from '../lib/logger';
 
@@ -42,16 +44,20 @@ export function onMatchEvent<K extends MatchEventName>(event: K, handler: Subscr
   subscribers.set(event, existing);
 }
 
-export function publishMatchEvent<K extends MatchEventName>(
+export async function publishMatchEvent<K extends MatchEventName>(
   event: K,
   payload: MatchEvents[K],
 ): Promise<void> {
-  try {
-    publisher.publish({ event, payload } as MatchEventEnvelope);
-  } catch (err) {
-    logger.error({ err, event }, 'Failed to publish match event');
+  if (event === 'match:completed') {
+    await prisma.match.update({
+      where: { id: payload.matchId },
+      data: { projectionPending: true },
+    });
   }
-
+  if (transactions.getStore()) {
+    await afterCommit(() => publishMatchEvent(event, payload));
+    return;
+  }
   const running = (subscribers.get(event) ?? []).map(async (handler) => {
     try {
       await handler(payload);
@@ -60,5 +66,10 @@ export function publishMatchEvent<K extends MatchEventName>(
     }
   });
 
-  return Promise.all(running).then(() => undefined);
+  await Promise.all(running);
+  try {
+    publisher.publish({ event, payload } as MatchEventEnvelope);
+  } catch (err) {
+    logger.error({ err, event }, 'Failed to publish match event');
+  }
 }

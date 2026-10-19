@@ -1,47 +1,51 @@
-import crypto from 'node:crypto';
-import { redis } from './redis';
-import { conflict } from './errors';
-
-const RELEASE_SCRIPT = `
-if redis.call("get", KEYS[1]) == ARGV[1] then
-  return redis.call("del", KEYS[1])
-else
-  return 0
-end`;
-
-interface Lock {
-  key: string;
-  token: string;
-}
-
-async function acquireLock(key: string, ttlMs = 5_000, attempts = 20): Promise<Lock> {
-  const token = crypto.randomBytes(16).toString('hex');
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const result = await redis.set(key, token, 'PX', ttlMs, 'NX');
-    if (result === 'OK') return { key, token };
-
-    await sleep(25 + attempt * 5);
-  }
-
-  throw conflict('That match is busy — another ball is being recorded. Try again.');
-}
-
-async function releaseLock(lock: Lock): Promise<void> {
-  await redis.eval(RELEASE_SCRIPT, 1, lock.key, lock.token).catch(() => {});
-}
-
-export async function withLock<T>(key: string, fn: () => Promise<T>, ttlMs = 5_000): Promise<T> {
-  const lock = await acquireLock(key, ttlMs);
-  try {
-    return await fn();
-  } finally {
-    await releaseLock(lock);
-  }
-}
+import { prisma } from './prisma';
+import { transactions } from './transaction';
+import { logger } from './logger';
 
 export const matchLockKey = (matchId: string) => `lock:match:${matchId}`;
+export const tournamentLockKey = (id: string) => `lock:tournament:${id}`;
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export async function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const existing = transactions.getStore();
+  if (existing) {
+    if (!existing.locks.has(key)) {
+      await prisma.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      existing.locks.add(key);
+    }
+    return fn();
+  }
+
+  const committed: Array<() => Promise<unknown>> = [];
+  const result = await prisma.$transaction(
+    async (client) => {
+      return transactions.run({ client, locks: new Set(), committed }, async () => {
+        if (key.startsWith('lock:match:')) {
+          const id = key.slice('lock:match:'.length);
+          const match = await prisma.match.findUnique({
+            where: { id },
+            select: { tournamentId: true },
+          });
+          if (match) {
+            return withLock(tournamentLockKey(match.tournamentId), () =>
+              withLock(key, async () => {
+                await prisma.match.update({ where: { id }, data: { revision: { increment: 1 } } });
+                return fn();
+              }),
+            );
+          }
+        }
+        return withLock(key, fn);
+      });
+    },
+    { maxWait: 10_000, timeout: 30_000 },
+  );
+
+  for (const work of committed) {
+    try {
+      await work();
+    } catch (err) {
+      logger.error({ err, key }, 'Post-commit work failed; persisted work remains retryable');
+    }
+  }
+  return result;
 }

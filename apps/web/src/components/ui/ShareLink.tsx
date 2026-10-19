@@ -1,3 +1,4 @@
+import { toast } from './Toast';
 import { useEffect, useState } from 'react';
 import { Button } from './Button';
 import { cn } from '@/lib/cn';
@@ -33,19 +34,22 @@ export function ShareLink({
     if (canShare) {
       try {
         await navigator.share({
-          title: matchLabel ? `${matchLabel} — live on Howzat` : 'Live on Howzat',
+          title: matchLabel ? `${matchLabel} live on Howzat` : 'Live on Howzat',
           text: matchLabel
             ? `Follow ${matchLabel} ball by ball.`
             : 'Follow the score ball by ball.',
           url,
         });
         return;
-      } catch {}
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+      }
     }
 
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
+      toast('Link copied');
     } catch {
       window.prompt('Copy this link', url);
     }
@@ -59,10 +63,19 @@ export function ShareLink({
       aria-live="polite"
       className={cn(copied && 'text-accent')}
     >
-      <span aria-hidden className="mono text-[0.8125rem]">
-        {copied ? '✓' : '⧉'}
+      <span aria-hidden>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d={copied ? 'm4 10 4 4 8-8' : 'M7 7h10v10H7zM3 12V3h9'} />
+        </svg>
       </span>
-      {copied ? 'Link copied' : label}
+      {copied ? 'Copied' : label}
     </Button>
   );
 }

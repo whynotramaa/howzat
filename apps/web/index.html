@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <title>Howzat — every ball, on the record</title>
+    <title>Howzat · every ball, on the record</title>
     <meta
       name="description"
       content="Run a local cricket tournament properly. Ball-by-ball scoring from your phone, a points table that keeps itself, and one link anyone can follow live."
@@ -13,7 +13,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Howzat" />
-    <meta property="og:title" content="Howzat — every ball, on the record" />
+    <meta property="og:title" content="Howzat · every ball, on the record" />
     <meta
       property="og:description"
       content="Run a local cricket tournament properly. Ball-by-ball scoring from your phone, a points table that keeps itself, and one link anyone can follow live."
@@ -23,32 +23,25 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Howzat — every ball, on the record" />
+    <meta property="og:image:alt" content="Howzat · every ball, on the record" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Howzat — every ball, on the record" />
+    <meta name="twitter:title" content="Howzat · every ball, on the record" />
     <meta
       name="twitter:description"
       content="Ball-by-ball scoring, a points table that keeps itself, and one link anyone can follow live."
     />
     <meta name="twitter:image" content="https://howzat-zeta.vercel.app/og.png" />
 
-    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0e1114" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,0..100;1,9..144,300..800,0..100&family=Schibsted+Grotesk:ital,wght@0,400..800;1,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500..700&display=swap"
-    />
+    <link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin />
 
     <script>
       (function () {
         try {
           var stored = localStorage.getItem('howzat-theme');
-          if (stored === 'light' || stored === 'dark') {
-            document.documentElement.setAttribute('data-theme', stored);
-          }
+          document.documentElement.setAttribute('data-theme', stored === 'dark' ? 'dark' : 'light');
         } catch (_) {}
       })();
     </script>

@@ -3,13 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import { PLAYER_ROLES, type PlayerDto, type PlayerRole, type Sport } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { Card, CardBody, CardHeader, SectionHeading } from '@/components/ui/Card';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { FootballAvatar } from '@/components/ui/FootballAvatar';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { Pill, TeamMark } from '@/components/ui/Pill';
-import { Reveal } from '@/components/ui/Reveal';
 import { Tabs } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import {
@@ -21,7 +19,7 @@ import {
 } from './queries';
 
 const ROLE_LABELS: Record<PlayerRole, string> = {
-  BATSMAN: 'Batsman',
+  BATSMAN: 'Batter',
   BOWLER: 'Bowler',
   ALL_ROUNDER: 'All-rounder',
   KEEPER: 'Keeper',
@@ -40,79 +38,37 @@ export function TeamDetailPage() {
   const shortOfStarting = Math.max(0, squad.squadSize - squad.players.length);
 
   return (
-    <div className="flex flex-col gap-12">
-      <div className="flex flex-col gap-8">
-        <BackLink to={`/tournaments/${squad.tournamentId}`}>Back to tournament</BackLink>
+    <div className="flex flex-col gap-6">
+      <BackLink to={`/tournaments/${squad.tournamentId}`}>Tournament</BackLink>
 
-        <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-6">
-          <div className="flex items-center gap-5">
-            <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="lg" />
-
-            <div className="min-w-0">
-              <p className="eyebrow">Squad</p>
-              <h1 className="serif mt-2.5 text-[2.25rem] text-primary sm:text-[2.75rem]">
-                {squad.name}
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-5">
-            <p className="mono text-[0.75rem] font-medium text-secondary">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="md" />
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold tracking-[-0.02em]">{squad.name}</h1>
+            <p className="tabular text-xs text-muted">
               {squad.sport === 'FOOTBALL'
                 ? `${squad.players.length} registered · ${squad.squadSize} start`
-                : `${squad.players.length} on ${squad.squadSize}`}
-            </p>
-            <p className="max-w-[15rem] text-[0.9375rem] text-secondary">
-              {squad.isEligible ? (
-                <span className="text-success">
-                  {squad.sport === 'FOOTBALL' && squad.players.length > squad.squadSize
-                    ? `Ready to play, with ${squad.players.length - squad.squadSize} on the bench.`
-                    : 'Full squad. This side can be scheduled and take the field.'}
-                </span>
-              ) : (
-                `${shortOfStarting} more player${shortOfStarting === 1 ? '' : 's'} before this side can be scheduled.`
-              )}
+                : `${squad.players.length} of ${squad.squadSize}`}
             </p>
           </div>
         </div>
+        {squad.isEligible ? (
+          <Pill tone="success">Ready</Pill>
+        ) : (
+          <Pill tone="warning">{shortOfStarting} short</Pill>
+        )}
+      </header>
 
-        <div className="rule" />
-      </div>
-
-      {remaining > 0 ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Reveal index={0}>
-            <AddPlayerCard teamId={teamId} tournamentId={squad.tournamentId} sport={squad.sport} />
-          </Reveal>
-          <Reveal index={1}>
-            <BulkAddCard
-              teamId={teamId}
-              tournamentId={squad.tournamentId}
-              remaining={remaining}
-              shortOfStarting={shortOfStarting}
-              startingSize={squad.squadSize}
-              sport={squad.sport}
-            />
-          </Reveal>
-        </div>
-      ) : null}
-
-      <section className="flex flex-col gap-7">
-        <SectionHeading
-          eyebrow={`${squad.players.length} registered`}
-          title="The squad"
-          description="Registered pool for team selection."
-        />
-
-        <Card>
+      <div className={cn('grid gap-6', remaining > 0 && 'lg:grid-cols-[minmax(0,1fr)_360px]')}>
+        <section className="min-w-0">
+          <h2 className="mb-2 text-[0.8125rem] font-semibold">Squad</h2>
           {squad.players.length === 0 ? (
-            <CardBody>
-              <p className="py-8 text-center text-secondary">
-                Nobody registered yet.
-              </p>
-            </CardBody>
+            <p className="grid-canvas rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-12 text-center text-[0.8125rem] text-muted">
+              No players yet
+            </p>
           ) : (
-            <ul>
+            <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
               {squad.players.map((player, index) => (
                 <PlayerRow
                   key={player.id}
@@ -126,8 +82,21 @@ export function TeamDetailPage() {
               ))}
             </ul>
           )}
-        </Card>
-      </section>
+        </section>
+
+        {remaining > 0 ? (
+          <aside className="flex min-w-0 flex-col gap-4">
+            <AddPlayerCard teamId={teamId} tournamentId={squad.tournamentId} sport={squad.sport} />
+            <BulkAddCard
+              teamId={teamId}
+              tournamentId={squad.tournamentId}
+              remaining={remaining}
+              shortOfStarting={shortOfStarting}
+              sport={squad.sport}
+            />
+          </aside>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -150,10 +119,8 @@ function PlayerRow({
   const deletePlayer = useDeletePlayer(teamId, tournamentId);
 
   return (
-    <li className="flex items-center gap-4 border-b border-line px-6 py-4 last:border-0 sm:px-8">
-      <span className="mono w-6 shrink-0 text-[0.8125rem] text-muted">
-        {String(index + 1).padStart(2, '0')}
-      </span>
+    <li className="ledger-row flex items-center gap-3 border-b border-line px-3 py-2 last:border-0">
+      <span className="tabular w-5 shrink-0 text-xs text-muted">{index + 1}</span>
 
       {sport === 'FOOTBALL' ? (
         <FootballAvatar seed={player.id} name={player.name} size="sm" color={color} />
@@ -162,18 +129,13 @@ function PlayerRow({
       )}
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-primary">{player.name}</span>
+        <span className="block truncate text-[0.8125rem] font-medium">{player.name}</span>
         {player.isRegistered ? (
-          <Link
-            to={`/players/${player.username}`}
-            className="mono text-[0.6875rem] text-accent underline decoration-transparent underline-offset-4 transition-colors hover:decoration-current"
-          >
+          <Link to={`/players/${player.username}`} className="text-xs text-muted hover:text-accent">
             @{player.username}
           </Link>
         ) : (
-          <span className="text-[0.6875rem] tracking-[0.08em] text-muted uppercase">
-            Guest — no account
-          </span>
+          <span className="text-xs text-muted">Guest</span>
         )}
       </span>
 
@@ -184,7 +146,7 @@ function PlayerRow({
         onClick={() => deletePlayer.mutate(player.id)}
         disabled={deletePlayer.isPending}
         aria-label={`Remove ${player.name}`}
-        className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
+        className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-sunken hover:text-alert"
       >
         <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
           <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
@@ -230,45 +192,35 @@ function AddPlayerCard({
     ) : null;
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <h3 className="serif text-xl text-primary">Register a player</h3>
-        <p className="mt-1.5 text-[0.8125rem] text-secondary">
-          Register by name or Howzat handle.
-        </p>
-      </CardHeader>
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+      <Tabs
+        className="px-2"
+        items={[
+          { value: 'name', label: 'By name' },
+          { value: 'account', label: 'By username' },
+        ]}
+        value={mode}
+        onChange={setMode}
+      />
 
-      <CardBody className="flex flex-col gap-6">
-        <Tabs
-          items={[
-            { value: 'name', label: 'By name' },
-            { value: 'account', label: 'By Howzat handle' },
-          ]}
-          value={mode}
-          onChange={setMode}
-        />
-
+      <div className="flex flex-col gap-4 p-4">
         {mode === 'name' ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
-              label="Player name"
+              label="Name"
               required
               placeholder="P. Kabra"
-              hint="Guest player record."
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
-
             {roleField}
-
             {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
-
-            <Button type="submit" isLoading={addPlayer.isPending} className="self-start">
-              Register player
+            <Button type="submit" size="sm" isLoading={addPlayer.isPending} className="self-start">
+              Add player
             </Button>
           </form>
         ) : (
-          <div className="flex flex-col gap-5">
+          <>
             {roleField}
             <UserSearchField
               onPick={(username) =>
@@ -282,10 +234,10 @@ function AddPlayerCard({
               isPending={addPlayer.isPending}
             />
             {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
-          </div>
+          </>
         )}
-      </CardBody>
-    </Card>
+      </div>
+    </section>
   );
 }
 
@@ -309,19 +261,16 @@ function UserSearchField({
   const searched = debounced.trim().length >= 2;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <Input
-        label="Find by username"
+        label="Username"
         placeholder="whynotramaa"
-        hint="Their runs and wickets land on their profile."
         value={term}
         onChange={(event) => setTerm(event.target.value)}
       />
 
       {searched && !results.isPending && items.length === 0 ? (
-        <p className="text-[0.8125rem] text-muted">
-          Nobody found. Register them by name instead — they can still play.
-        </p>
+        <p className="text-xs text-muted">No match. Add by name instead.</p>
       ) : null}
 
       {items.length > 0 ? (
@@ -329,13 +278,12 @@ function UserSearchField({
           {items.map((user) => (
             <li
               key={user.id}
-              className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0"
+              className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-0"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-primary">{user.name}</span>
-                <span className="mono text-[0.6875rem] text-muted">@{user.username}</span>
+                <span className="block truncate text-[0.8125rem] font-medium">{user.name}</span>
+                <span className="text-xs text-muted">@{user.username}</span>
               </span>
-
               <Button
                 type="button"
                 size="sm"
@@ -343,7 +291,7 @@ function UserSearchField({
                 disabled={isPending}
                 onClick={() => void onPick(user.username)}
               >
-                Register
+                Add
               </Button>
             </li>
           ))}
@@ -358,14 +306,12 @@ function BulkAddCard({
   tournamentId,
   remaining,
   shortOfStarting,
-  startingSize,
   sport,
 }: {
   teamId: string;
   tournamentId: string;
   remaining: number;
   shortOfStarting: number;
-  startingSize: number;
   sport: Sport;
 }) {
   const addPlayers = useAddPlayersBulk(teamId, tournamentId);
@@ -380,7 +326,6 @@ function BulkAddCard({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-
     await addPlayers.mutateAsync(
       names.map((name) => ({
         name,
@@ -389,54 +334,38 @@ function BulkAddCard({
         bowlingStyle: null,
       })),
     );
-
     setText('');
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <h3 className="serif text-xl text-primary">Paste the whole squad</h3>
-        <p className="mt-1.5 text-[0.8125rem] text-secondary">
-          One name per line ({startingSize} per squad).
-        </p>
-      </CardHeader>
+    <section className="rounded-[var(--radius-lg)] border border-line bg-raised p-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <Textarea
+          label="Paste names, one per line"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          rows={6}
+          placeholder={'P. Srivastava\nV. Kohli\nK. Kabra'}
+        />
 
-      <CardBody>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <Textarea
-            label="Names"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            rows={8}
-            placeholder={'P. Srivastava \nV. Kohli\nK. Kabra\n…'}
-          />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className={cn('tabular text-xs', overflow ? 'text-alert' : 'text-muted')}>
+            {sport === 'FOOTBALL' && shortOfStarting === 0
+              ? `${names.length} to the bench`
+              : `${names.length} of ${remaining} left`}
+          </p>
+          <Button
+            type="submit"
+            size="sm"
+            isLoading={addPlayers.isPending}
+            disabled={names.length === 0 || overflow}
+          >
+            {overflow ? `Remove ${names.length - remaining}` : `Add ${names.length || ''}`.trim()}
+          </Button>
+        </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className={cn('mono text-[0.8125rem]', overflow ? 'text-alert' : 'text-muted')}>
-              {names.length} name{names.length === 1 ? '' : 's'}
-              <span className="mx-1.5 text-line-strong">·</span>
-              {sport === 'FOOTBALL'
-                ? shortOfStarting > 0
-                  ? `${shortOfStarting} more to field a side`
-                  : 'enough to play — the rest are subs'
-                : `${remaining} slot${remaining === 1 ? '' : 's'} left`}
-            </p>
-
-            <Button
-              type="submit"
-              isLoading={addPlayers.isPending}
-              disabled={names.length === 0 || overflow}
-            >
-              {overflow
-                ? `Remove ${names.length - remaining} to fit`
-                : `Register ${names.length || ''}`.trim()}
-            </Button>
-          </div>
-
-          {addPlayers.error ? <ErrorText error={addPlayers.error} /> : null}
-        </form>
-      </CardBody>
-    </Card>
+        {addPlayers.error ? <ErrorText error={addPlayers.error} /> : null}
+      </form>
+    </section>
   );
 }

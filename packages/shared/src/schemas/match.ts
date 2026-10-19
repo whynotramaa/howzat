@@ -68,6 +68,7 @@ export type PlayingXiInput = z.infer<typeof playingXiSchema>;
 export const ballSchema = z
   .object({
     clientEventId: z.string().uuid('clientEventId must be a UUID'),
+    inningsId: idSchema.optional(),
     strikerId: idSchema,
     nonStrikerId: idSchema,
     bowlerId: idSchema,

@@ -1,3 +1,4 @@
+import { writeVersionedSnapshot } from '../../lib/snapshotCache';
 import {
   buildState,
   economy,
@@ -16,8 +17,6 @@ import { prisma } from '../../lib/prisma';
 import { redis } from '../../lib/redis';
 import { logger } from '../../lib/logger';
 import { notFound } from '../../lib/errors';
-
-const SNAPSHOT_TTL_SECONDS = 60 * 60 * 6;
 
 export const snapshotKey = (matchId: string) => `match:${matchId}`;
 
@@ -156,6 +155,7 @@ export function buildSnapshot(
     publicSlug: string;
     status: string;
     resultText: string | null;
+    revision?: number;
   },
   state: MatchState,
   context: InningsContext,
@@ -173,6 +173,7 @@ export function buildSnapshot(
   const bowler = state.bowlerId ? state.bowlers[state.bowlerId] : null;
 
   return {
+    revision: match.revision ?? 0,
     matchId: match.id,
     publicSlug: match.publicSlug,
     status: match.status,
@@ -247,21 +248,7 @@ export async function writeSnapshot(snapshot: MatchSnapshot): Promise<void> {
   const key = snapshotKey(snapshot.matchId);
 
   try {
-    const existing = await readCachedSnapshot(snapshot.matchId);
-
-    if (existing && existing.lastEventSeq > snapshot.lastEventSeq) {
-      logger.debug(
-        {
-          matchId: snapshot.matchId,
-          cached: existing.lastEventSeq,
-          incoming: snapshot.lastEventSeq,
-        },
-        'Skipped stale snapshot write',
-      );
-      return;
-    }
-
-    await redis.set(key, JSON.stringify(snapshot), 'EX', SNAPSHOT_TTL_SECONDS);
+    await writeVersionedSnapshot(key, snapshot);
   } catch (err) {
     logger.error({ err, matchId: snapshot.matchId }, 'Snapshot write failed');
   }
@@ -280,7 +267,12 @@ export async function readCachedSnapshot(matchId: string): Promise<MatchSnapshot
 
 export async function getSnapshot(matchId: string): Promise<MatchSnapshot | null> {
   const cached = await readCachedSnapshot(matchId);
-  if (cached) return cached;
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: { revision: true },
+  });
+  if (!match) throw notFound('Match');
+  if (cached && cached.revision === match.revision) return cached;
 
   return rebuildSnapshot(matchId);
 }

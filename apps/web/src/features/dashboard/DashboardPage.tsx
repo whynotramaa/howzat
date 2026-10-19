@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type {
@@ -8,15 +9,17 @@ import type {
 } from '@howzat/shared';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, SectionHeading, StatTile } from '@/components/ui/Card';
-import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
+import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
-import { Reveal } from '@/components/ui/Reveal';
+import { Tabs } from '@/components/ui/Tabs';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { cn } from '@/lib/cn';
 
+type MatchTab = 'live' | 'upcoming' | 'recent';
+
 export function DashboardPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState<MatchTab | null>(null);
 
   const { data, isPending, error } = useQuery({
     queryKey: ['me', 'dashboard'],
@@ -25,297 +28,220 @@ export function DashboardPage() {
     refetchInterval: 60_000,
   });
 
+  const active: MatchTab = tab ?? (data?.live.length ? 'live' : 'upcoming');
+  const matches = data ? data[active] : [];
+
   return (
-    <div className="flex flex-col gap-12">
-      <SectionHeading
-        eyebrow={`@${user?.username ?? ''}`}
-        title={greeting(user?.name)}
-        description="Your squads, your fixtures, and every ball of yours that is on the record."
-      />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">{greeting(user?.name)}</h1>
+        <Link to="/tournaments?new=1">
+          <Button size="sm">New tournament</Button>
+        </Link>
+      </header>
 
       {error ? <ErrorText error={error} /> : null}
 
       {isPending ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <SkeletonCard rows={3} />
-          <SkeletonCard rows={3} />
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-16" />
+          <Skeleton className="h-72" />
         </div>
       ) : data ? (
         <>
-          {data.live.length > 0 ? (
-            <section className="flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <Pill tone="live">
-                  <span aria-hidden className="live-pulse size-1.5 rounded-full bg-current" />
-                  On now
-                </Pill>
-                <span aria-hidden className="h-px flex-1 bg-line" />
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                {data.live.map((match, index) => (
-                  <Reveal key={match.id} index={index} step={50}>
-                    <MatchCard match={match} accent />
-                  </Reveal>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {data.organizing.length > 0 ? (
-            <section className="flex flex-col gap-5">
-              <SectionHeading
-                eyebrow="You are running"
-                title={data.tournamentsOrganized === 1 ? 'Your tournament' : 'Your tournaments'}
-                action={
-                  <Link to="/tournaments">
-                    <Button variant="secondary">
-                      {data.tournamentsOrganized > data.organizing.length
-                        ? `All ${data.tournamentsOrganized}`
-                        : 'Open tournaments'}
-                    </Button>
-                  </Link>
-                }
-              />
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                {data.organizing.map((tournament, index) => (
-                  <Reveal key={tournament.id} index={index} step={50}>
-                    <OrganizingCard tournament={tournament} />
-                  </Reveal>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="flex flex-col gap-5">
-            <SectionHeading eyebrow="Next up" title="Your fixtures" />
-
-            {data.upcoming.length === 0 ? (
-              <EmptyState
-                title="Nothing in the diary"
-                description={
-                  data.squads.length === 0
-                    ? 'You are not in a squad yet. When an organizer adds your handle to a team, it appears here — and you will get a notification.'
-                    : 'Your squads have no scheduled matches yet. Fixtures show up the moment the organizer generates them.'
-                }
-              />
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {data.upcoming.map((match, index) => (
-                  <Reveal key={match.id} index={index} step={50}>
-                    <MatchCard match={match} />
-                  </Reveal>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-5">
-            <SectionHeading
-              eyebrow="Your teams"
-              title={data.squads.length === 1 ? 'One squad' : `${data.squads.length} squads`}
-              description="Every side you have been named in, across every tournament."
-            />
-
-            {data.squads.length === 0 ? (
-              <EmptyState
-                title="No squad yet"
-                description="Give an organizer your handle and they can add you in one keystroke."
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data.squads.map((squad, index) => (
-                  <Reveal key={squad.playerId} index={index} step={45}>
-                    <SquadCard squad={squad} />
-                  </Reveal>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-5">
-            <SectionHeading eyebrow="Your record" title="Career so far" />
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatTile label="Matches" value={data.career.matches} />
-              <StatTile
-                label="Runs"
-                value={data.career.batting.runs}
-                tone="accent"
-                hint={
-                  data.career.batting.average !== null
-                    ? `average ${data.career.batting.average.toFixed(2)}`
-                    : 'not yet dismissed'
-                }
-              />
-              <StatTile
-                label="Wickets"
-                value={data.career.bowling.wickets}
-                hint={data.career.bowling.bestFigures ?? 'no spell yet'}
-              />
-              <StatTile
-                label="Dismissals taken"
-                value={data.career.fielding.dismissals}
-                hint={`${data.career.fielding.catches} caught`}
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.8125rem] text-muted">
-              <span>
-                Still to score <span className="mono text-primary">{data.matchesToScore}</span>
-              </span>
-              <Link
-                to={`/players/${data.user.username}`}
-                className="ml-auto text-accent transition-opacity hover:opacity-70"
+          <dl className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised sm:grid-cols-4">
+            {[
+              { label: 'Matches', value: data.career.matches },
+              { label: 'Runs', value: data.career.batting.runs },
+              { label: 'Wickets', value: data.career.bowling.wickets },
+              { label: 'To score', value: data.matchesToScore, accent: data.matchesToScore > 0 },
+            ].map((stat, index) => (
+              <div
+                key={stat.label}
+                className={cn(
+                  'flex flex-col gap-0.5 px-4 py-3',
+                  index > 0 && 'sm:border-l sm:border-line',
+                  index % 2 === 1 && 'border-l border-line',
+                  index > 1 && 'max-sm:border-t max-sm:border-line',
+                )}
               >
-                Full record →
-              </Link>
-            </div>
-          </section>
-
-          {data.recent.length > 0 ? (
-            <section className="flex flex-col gap-5">
-              <SectionHeading eyebrow="Behind you" title="Recent results" />
-              <div className="grid gap-4 lg:grid-cols-2">
-                {data.recent.map((match, index) => (
-                  <Reveal key={match.id} index={index} step={45}>
-                    <MatchCard match={match} />
-                  </Reveal>
-                ))}
+                <dt className="eyebrow">{stat.label}</dt>
+                <dd
+                  className={cn(
+                    'tabular text-xl font-semibold tracking-[-0.03em]',
+                    stat.accent && 'text-accent',
+                  )}
+                >
+                  {stat.value}
+                </dd>
               </div>
+            ))}
+          </dl>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <section className="min-w-0 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+              <Tabs
+                className="px-2"
+                value={active}
+                onChange={setTab}
+                items={[
+                  { value: 'live', label: 'Live', meta: data.live.length },
+                  { value: 'upcoming', label: 'Upcoming', meta: data.upcoming.length },
+                  { value: 'recent', label: 'Results', meta: data.recent.length },
+                ]}
+              />
+              {matches.length === 0 ? (
+                <p className="px-4 py-12 text-center text-[0.8125rem] text-muted">
+                  {active === 'live'
+                    ? 'Nothing live'
+                    : active === 'upcoming'
+                      ? data.squads.length === 0
+                        ? 'Not in a squad yet'
+                        : 'No fixtures yet'
+                      : 'No results yet'}
+                </p>
+              ) : (
+                <ul>
+                  {matches.map((match) => (
+                    <MatchRow key={match.id} match={match} />
+                  ))}
+                </ul>
+              )}
             </section>
-          ) : null}
+
+            <aside className="flex min-w-0 flex-col gap-6">
+              <SideList
+                title="Running"
+                to="/tournaments"
+                empty="No tournaments"
+                items={data.organizing.map((tournament) => (
+                  <TournamentRow key={tournament.id} tournament={tournament} />
+                ))}
+              />
+              <SideList
+                title="Squads"
+                to={`/players/${data.user.username}`}
+                empty="No squads"
+                items={data.squads.map((squad) => (
+                  <SquadRow key={squad.playerId} squad={squad} />
+                ))}
+              />
+            </aside>
+          </div>
         </>
       ) : null}
     </div>
   );
 }
 
-function MatchCard({ match, accent = false }: { match: DashboardMatchDto; accent?: boolean }) {
-  const isLive = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
-  const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
-
-  const destination = isLive || finished ? `/live/${match.publicSlug}` : null;
-
-  const body = (
-    <div
-      className={cn(
-        'flex h-full flex-col justify-between gap-6 rounded-[var(--radius-lg)] border bg-raised p-6',
-        'transition-all duration-[var(--dur)] ease-[var(--ease)]',
-        accent ? 'border-[var(--live)]/45' : 'border-line',
-        destination ? 'hover:border-[var(--accent-line)]' : null,
-      )}
-    >
-      <div>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="min-w-0 text-[0.8125rem] text-muted">{match.tournament.name}</p>
-          <StatusPill status={match.status} />
-        </div>
-
-        <div className="mt-5 flex items-center gap-3">
-          {match.myTeam ? (
-            <TeamMark
-              shortName={match.myTeam.shortName}
-              color={match.myTeam.primaryColor}
-              size="sm"
-            />
-          ) : null}
-          <p className="serif text-xl text-primary">
-            {match.myTeam?.name ?? match.opponent?.name ?? 'To be confirmed'}
-            {match.opponent && match.myTeam ? (
-              <>
-                <span className="mx-2 text-muted">v</span>
-                {match.opponent.name}
-              </>
-            ) : null}
-          </p>
-        </div>
-
-        {match.resultText ? (
-          <p className="mt-3 text-[0.9375rem] text-secondary">{match.resultText}</p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-        <p className="mono text-[0.75rem] text-muted">
-          {formatWhen(match.scheduledAt)}
-          <span className="mx-2 text-line-strong">·</span>
-          {match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} overs`}
-          {match.venue ? (
-            <>
-              <span className="mx-2 text-line-strong">·</span>
-              {match.venue}
-            </>
-          ) : null}
-        </p>
-
-        <div className="flex items-center gap-2">
-          {match.isScorer ? <Pill tone="accent">You are scoring</Pill> : null}
-          {isLive ? <span className="text-[0.8125rem] text-accent">Watch →</span> : null}
-        </div>
-      </div>
-    </div>
-  );
-
-  if (!destination) return body;
-
+function SideList({
+  title,
+  to,
+  empty,
+  items,
+}: {
+  title: string;
+  to: string;
+  empty: string;
+  items: ReactNode[];
+}) {
   return (
-    <Link to={destination} className="block h-full">
-      {body}
-    </Link>
+    <section>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-[0.8125rem] font-semibold">{title}</h2>
+        <Link to={to} className="text-xs text-muted hover:text-primary">
+          View all
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-3 py-5 text-center text-xs text-muted">
+          {empty}
+        </p>
+      ) : (
+        <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+          {items}
+        </ul>
+      )}
+    </section>
   );
 }
 
-function OrganizingCard({ tournament }: { tournament: TournamentDto }) {
-  const registered = tournament.registeredTeams ?? 0;
-  const eligible = tournament.eligibleTeams ?? 0;
-  const ready = registered === tournament.teamsCount && eligible === registered;
-  const shortBy = registered - eligible;
+function MatchRow({ match }: { match: DashboardMatchDto }) {
+  const isLive = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
+  const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
+  const destination = isLive || finished ? `/live/${match.publicSlug}` : null;
+
+  const body = (
+    <div className="ledger-row flex items-center gap-3 px-4 py-3">
+      {match.myTeam ? (
+        <TeamMark shortName={match.myTeam.shortName} color={match.myTeam.primaryColor} size="sm" />
+      ) : (
+        <span className="size-6 shrink-0 rounded-[var(--radius-sm)] bg-sunken" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[0.8125rem] font-medium">
+          {match.myTeam?.name ?? match.opponent?.name ?? 'TBC'}
+          {match.opponent && match.myTeam ? (
+            <span className="text-muted"> v {match.opponent.name}</span>
+          ) : null}
+        </p>
+        <p className="truncate text-xs text-muted">
+          {match.resultText ??
+            [
+              match.tournament.name,
+              formatWhen(match.scheduledAt),
+              match.sport === 'FOOTBALL' ? 'Football' : `${match.oversPerInnings} ov`,
+            ].join(' · ')}
+        </p>
+      </div>
+      {match.isScorer ? <Pill tone="accent">Scorer</Pill> : null}
+      <StatusPill status={match.status} />
+    </div>
+  );
 
   return (
-    <Link
-      to={`/tournaments/${tournament.id}`}
-      className={cn(
-        'group flex h-full flex-col justify-between gap-7 rounded-[var(--radius-lg)] border border-line bg-raised p-6 sm:p-7',
-        'transition-colors duration-[var(--dur)] ease-[var(--ease)] hover:border-[var(--accent-line)]',
+    <li className="border-b border-line last:border-0">
+      {destination ? (
+        <Link to={destination} className="block">
+          {body}
+        </Link>
+      ) : (
+        body
       )}
-    >
-      <div>
-        <div className="flex items-start justify-between gap-5">
-          <h3 className="serif text-[1.5rem] text-primary">{tournament.name}</h3>
-          <span className="mono shrink-0 pt-1.5 text-[0.6875rem] text-muted">
-            {FORMAT_LABELS[tournament.format]}
-          </span>
-        </div>
+    </li>
+  );
+}
 
-        <p className="mono mt-2.5 text-[0.8125rem] text-muted">
-          {tournament.sport === 'FOOTBALL'
-            ? `${tournament.periods} × ${tournament.periodMinutes} min`
-            : `${tournament.oversPerInnings} overs`}
-          <span className="mx-2 text-line-strong">·</span>
-          {tournament.teamsCount} teams
-        </p>
-      </div>
+function TournamentRow({ tournament }: { tournament: TournamentDto }) {
+  const registered = tournament.registeredTeams ?? 0;
+  return (
+    <li className="border-b border-line last:border-0">
+      <Link
+        to={`/tournaments/${tournament.id}`}
+        className="ledger-row flex items-center justify-between gap-3 px-3 py-2.5"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-[0.8125rem] font-medium">{tournament.name}</span>
+          <span className="block text-xs text-muted">{FORMAT_LABELS[tournament.format]}</span>
+        </span>
+        <span className="tabular shrink-0 text-xs text-secondary">
+          {registered}/{tournament.teamsCount}
+        </span>
+      </Link>
+    </li>
+  );
+}
 
-      <div className="flex items-center justify-between gap-6 border-t border-line pt-5">
-        <p className="tabular text-sm text-primary">
-          <span className="font-semibold">{registered}</span>
-          <span className="text-muted">/{tournament.teamsCount}</span>
-          <span className="ml-2 text-[0.8125rem] text-muted">registered</span>
-        </p>
-
-        <p className="text-right text-[0.8125rem] text-secondary">
-          {ready ? (
-            <span className="text-success">Ready for fixtures</span>
-          ) : registered < tournament.teamsCount ? (
-            `${tournament.teamsCount - registered} more to register`
-          ) : (
-            `${shortBy} short of a full squad`
-          )}
-        </p>
-      </div>
-    </Link>
+function SquadRow({ squad }: { squad: SquadMembershipDto }) {
+  return (
+    <li className="flex items-center gap-2.5 border-b border-line px-3 py-2.5 last:border-0">
+      <TeamMark shortName={squad.team.shortName} color={squad.team.primaryColor} size="sm" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[0.8125rem] font-medium">{squad.team.name}</span>
+        <span className="block truncate text-xs text-muted">{squad.tournament.name}</span>
+      </span>
+      <span className="shrink-0 text-xs text-muted">{ROLE_LABELS[squad.role]}</span>
+    </li>
   );
 }
 
@@ -324,25 +250,6 @@ const FORMAT_LABELS = {
   KNOCKOUT: 'Knockout',
   LEAGUE_PLAYOFFS: 'League + playoffs',
 } as const;
-
-function SquadCard({ squad }: { squad: SquadMembershipDto }) {
-  return (
-    <div className="flex h-full flex-col gap-5 rounded-[var(--radius-lg)] border border-line bg-raised p-6">
-      <div className="flex items-start gap-3">
-        <TeamMark shortName={squad.team.shortName} color={squad.team.primaryColor} size="md" />
-        <div className="min-w-0">
-          <p className="serif text-lg text-primary">{squad.team.name}</p>
-          <p className="mt-1 truncate text-[0.8125rem] text-muted">{squad.tournament.name}</p>
-        </div>
-      </div>
-
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
-        <Pill>{ROLE_LABELS[squad.role]}</Pill>
-        <p className="mono text-[0.75rem] text-muted">{squad.squadSize} named</p>
-      </div>
-    </div>
-  );
-}
 
 const ROLE_LABELS = {
   BATSMAN: 'Batter',
@@ -353,16 +260,14 @@ const ROLE_LABELS = {
 
 function greeting(name?: string): string {
   const first = name?.trim().split(/\s+/)[0];
-  if (!first) return 'Your cricket';
-
+  if (!first) return 'Overview';
   const hour = new Date().getHours();
   const part = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   return `${part}, ${first}`;
 }
 
 function formatWhen(iso: string | null): string {
-  if (!iso) return 'Date to be confirmed';
-
+  if (!iso) return 'Date TBC';
   return new Date(iso).toLocaleString(undefined, {
     weekday: 'short',
     day: 'numeric',

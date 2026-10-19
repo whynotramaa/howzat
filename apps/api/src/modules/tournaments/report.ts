@@ -1,6 +1,7 @@
 import {
   formatOvers,
   materializeFootballEvents,
+  materializeEventRows,
   type Sport,
   type TournamentMatchDto,
 } from '@howzat/shared';
@@ -74,6 +75,7 @@ async function cricketScores(matchIds: string[]): Promise<Map<string, MatchScore
     select: {
       id: true,
       inningsId: true,
+      seq: true,
       eventType: true,
       supersedesEventId: true,
       runsOffBat: true,
@@ -93,23 +95,11 @@ async function cricketScores(matchIds: string[]): Promise<Map<string, MatchScore
   for (const entry of innings) {
     const log = byInnings.get(entry.id) ?? [];
 
-    const replaced = new Map<string, (typeof log)[number]>();
-    const removed = new Set<string>();
-
-    for (const event of log) {
-      if (!event.supersedesEventId) continue;
-      if (event.eventType === 'CORRECTION') replaced.set(event.supersedesEventId, event);
-      if (event.eventType === 'UNDO') removed.add(event.supersedesEventId);
-    }
-
     let runs = 0;
     let wickets = 0;
     let legalBalls = 0;
 
-    for (const event of log) {
-      if (event.eventType !== 'BALL' || removed.has(event.id)) continue;
-
-      const effective = replaced.get(event.id) ?? event;
+    for (const effective of materializeEventRows(log)) {
       runs += effective.runsOffBat + effective.extraRuns;
       if (effective.isLegalDelivery) legalBalls += 1;
       if (effective.isWicket) wickets += 1;

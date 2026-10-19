@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PLAYERS_PER_TEAM, type MatchWithInningsDto, type TossDecision } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ChoiceChip, Input } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { Pill, StatusPill, TeamMark } from '@/components/ui/Pill';
@@ -58,16 +57,16 @@ export function MatchPage() {
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       <MatchHeader match={data} />
 
       {data.status === 'LIVE' ? (
         <Banner
-          title="This match is live"
-          body={`Innings ${data.currentInnings ?? 1} in progress.`}
+          title="Live"
+          body={`Innings ${data.currentInnings ?? 1}`}
           action={
             <Link to={`/matches/${matchId}/score`}>
-              <Button>Open the scoring console</Button>
+              <Button size="sm">Open scorer</Button>
             </Link>
           }
         />
@@ -76,9 +75,9 @@ export function MatchPage() {
       {data.status === 'INNINGS_BREAK' ? (
         <Banner
           title="Innings break"
-          body="The chase is set up and ready — start it when the sides are back out."
+          body="Chase ready"
           action={
-            <Button isLoading={resume.isPending} onClick={() => void handleResume()}>
+            <Button size="sm" isLoading={resume.isPending} onClick={() => void handleResume()}>
               Start innings {pendingInnings?.number ?? 2}
             </Button>
           }
@@ -88,7 +87,7 @@ export function MatchPage() {
       {resume.error ? <ErrorText error={resume.error} /> : null}
 
       {setupOpen ? (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
           <TossCard match={data} />
 
           {squads.isPending ? (
@@ -102,32 +101,30 @@ export function MatchPage() {
               disabled={!tossDone}
             />
           ) : (
-            <Card>
-              <CardBody className="text-secondary">
-                This bracket slot has no sides yet — its feeder matches must finish first.
-              </CardBody>
-            </Card>
+            <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-6 text-center text-[0.8125rem] text-muted">
+              Waiting on earlier rounds
+            </p>
           )}
 
           <StepCard
-            number="03"
-            title="Start the match"
+            number={3}
+            title="Start"
             state={!tossDone || !xiReady ? 'blocked' : 'ready'}
             description={
               !tossDone
-                ? 'Record the toss first.'
+                ? 'Toss first'
                 : !xiReady
-                  ? `Both XIs must be named — ${xiCount} of ${PLAYERS_PER_TEAM * 2} players selected.`
-                  : 'Everything is set. This opens the first innings and takes the match live.'
+                  ? `${xiCount} of ${PLAYERS_PER_TEAM * 2} selected`
+                  : 'Ready'
             }
           >
             <Button
-              size="lg"
+              className="self-start"
               disabled={!tossDone || !xiReady}
               isLoading={start.isPending}
               onClick={() => void handleStart()}
             >
-              Start the match
+              Start match
             </Button>
 
             {start.error ? <ErrorText error={start.error} /> : null}
@@ -147,45 +144,59 @@ function countSelected(side: SquadSide | null | undefined): number {
 function MatchHeader({ match }: { match: MatchWithInningsDto }) {
   const toss =
     match.tossWinnerId && match.tossDecision
-      ? `${nameOfTeam(match, match.tossWinnerId)} won the toss and chose to ${
+      ? `${nameOfTeam(match, match.tossWinnerId)} chose to ${
           match.tossDecision === 'BAT' ? 'bat' : 'bowl'
         }`
       : null;
 
   return (
-    <div className="flex flex-col gap-8">
-      <BackLink to={`/tournaments/${match.tournamentId}/fixtures`}>All fixtures</BackLink>
+    <div className="flex flex-col gap-4">
+      <BackLink to={`/tournaments/${match.tournamentId}/fixtures`}>Fixtures</BackLink>
 
-      <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
+          <h1 className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xl font-semibold tracking-[-0.02em]">
+            {match.team1 ? (
+              <TeamMark
+                shortName={match.team1.shortName}
+                color={match.team1.primaryColor}
+                size="sm"
+              />
+            ) : null}
+            {match.team1?.name ?? 'TBD'}
+            <span className="font-normal text-muted">v</span>
+            {match.team2 ? (
+              <TeamMark
+                shortName={match.team2.shortName}
+                color={match.team2.primaryColor}
+                size="sm"
+              />
+            ) : null}
+            {match.team2?.name ?? 'TBD'}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <StatusPill status={match.status} />
             <Pill>
               {match.stage === 'LEAGUE' ? `Round ${match.round}` : match.stage.replace(/_/g, ' ')}
             </Pill>
-            <span className="mono text-[0.6875rem] text-muted">{match.oversPerInnings} overs</span>
+            <span className="tabular text-xs text-muted">{match.oversPerInnings} ov</span>
+            {toss ? <span className="text-xs text-muted">· {toss}</span> : null}
           </div>
-
-          <h1 className="serif mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[2.25rem] text-primary sm:text-[2.75rem]">
-            {match.team1?.name ?? 'TBD'}
-            <span className="text-2xl text-muted italic">v</span>
-            {match.team2?.name ?? 'TBD'}
-          </h1>
-
-          {toss ? <p className="mt-3 text-secondary">{toss}</p> : null}
           {match.status === 'COMPLETED' || match.status === 'ABANDONED' ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="text-[1.0625rem] text-success">
-                {match.resultText ?? 'Match ended without a result'}
-              </p>
+            <p className="mt-2 text-[0.8125rem] font-medium">{match.resultText ?? 'No result'}</p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {match.status === 'COMPLETED' || match.status === 'ABANDONED' ? (
+            <>
               <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="secondary">
-                  View scorecard
+                  Scorecard
                 </Button>
               </a>
               <PdfButton
-                label="Share PDF"
-                arrow
+                label="PDF"
                 build={() =>
                   import('@/lib/pdf').then((pdf) =>
                     match.sport === 'FOOTBALL'
@@ -194,24 +205,20 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
                   )
                 }
               />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="secondary">
-              Live card ↗
-            </Button>
-          </a>
+            </>
+          ) : (
+            <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
+              <Button size="sm" variant="secondary">
+                Public page
+              </Button>
+            </a>
+          )}
           <ShareLink
             slug={match.publicSlug}
             matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
           />
         </div>
-      </div>
-
-      <div className="rule" />
+      </header>
     </div>
   );
 }
@@ -224,11 +231,12 @@ function nameOfTeam(match: MatchWithInningsDto, teamId: string): string {
 
 function Banner({ title, body, action }: { title: string; body: string; action: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-5 rounded-[var(--radius-lg)] border border-[var(--accent-line)] bg-accent-soft px-6 py-5 sm:px-8">
-      <div>
-        <p className="serif text-xl text-primary">{title}</p>
-        <p className="mt-1 text-[0.9375rem] text-secondary">{body}</p>
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent-line)] bg-accent-soft px-4 py-2.5">
+      <p className="flex items-center gap-2 text-[0.8125rem]">
+        <span className="live-dot" />
+        <span className="font-semibold">{title}</span>
+        <span className="text-secondary">{body}</span>
+      </p>
       {action}
     </div>
   );
@@ -241,33 +249,52 @@ function StepCard({
   state,
   children,
 }: {
-  number: string;
+  number: number;
   title: string;
   description: string;
   state: 'ready' | 'blocked' | 'done';
   children: ReactNode;
 }) {
   return (
-    <Card className={cn(state === 'blocked' && 'opacity-60')}>
-      <CardHeader className="flex items-start gap-5">
+    <section
+      className={cn(
+        'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
+        state === 'blocked' && 'opacity-60',
+      )}
+    >
+      <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
         <span
           aria-hidden
           className={cn(
-            'mono mt-0.5 shrink-0 text-[0.8125rem]',
-            state === 'done' ? 'text-success' : state === 'ready' ? 'text-accent' : 'text-muted',
+            'tabular grid size-5 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold',
+            state === 'done'
+              ? 'bg-success text-white'
+              : state === 'ready'
+                ? 'bg-accent-fill text-on-accent'
+                : 'bg-sunken text-muted',
           )}
         >
-          {state === 'done' ? '✓' : number}
+          {state === 'done' ? (
+            <svg
+              viewBox="0 0 12 12"
+              className="size-3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m2.5 6.2 2.3 2.3 4.7-5" />
+            </svg>
+          ) : (
+            number
+          )}
         </span>
-
-        <div className="min-w-0">
-          <h2 className="serif text-xl text-primary">{title}</h2>
-          <p className="mt-1.5 text-[0.9375rem] text-secondary">{description}</p>
-        </div>
-      </CardHeader>
-
-      <CardBody className="flex flex-col gap-6">{children}</CardBody>
-    </Card>
+        <h2 className="text-[0.8125rem] font-semibold">{title}</h2>
+        <p className="truncate text-xs text-muted">{description}</p>
+      </header>
+      <div className="flex flex-col gap-4 p-4">{children}</div>
+    </section>
   );
 }
 
@@ -287,15 +314,15 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
 
   return (
     <StepCard
-      number="01"
-      title="The toss"
+      number={1}
+      title="Toss"
       state={done ? 'done' : 'ready'}
-      description="Who won it, and what did they choose?"
+      description={done ? 'Recorded' : 'Winner and choice'}
     >
-      <div className="grid gap-7 sm:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <p className="eyebrow">Toss winner</p>
-          <div className="flex flex-wrap gap-2.5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <p className="eyebrow">Won by</p>
+          <div className="flex flex-wrap gap-1.5">
             {teams.map((team) => (
               <ChoiceChip
                 key={team.id}
@@ -303,22 +330,22 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
                 onClick={() => setWinnerId(team.id)}
               >
                 <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
-                <span className="ml-2.5">{team.name}</span>
+                <span className="ml-2">{team.name}</span>
               </ChoiceChip>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <p className="eyebrow">Elected to</p>
-          <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-col gap-1.5">
+          <p className="eyebrow">Chose to</p>
+          <div className="flex flex-wrap gap-1.5">
             {(['BAT', 'BOWL'] as const).map((option) => (
               <ChoiceChip
                 key={option}
                 selected={decision === option}
                 onClick={() => setDecision(option)}
               >
-                {option === 'BAT' ? 'Bat first' : 'Bowl first'}
+                {option === 'BAT' ? 'Bat' : 'Bowl'}
               </ChoiceChip>
             ))}
           </div>
@@ -327,15 +354,16 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
 
       {recordToss.error ? <ErrorText error={recordToss.error} /> : null}
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
+          size="sm"
           disabled={!winnerId}
           isLoading={recordToss.isPending}
           onClick={() => recordToss.mutate({ tossWinnerId: winnerId, decision })}
         >
-          {match.tossWinnerId ? 'Update the toss' : 'Record the toss'}
+          {match.tossWinnerId ? 'Update' : 'Save toss'}
         </Button>
-        {recordToss.isSuccess ? <span className="text-sm text-success">Recorded</span> : null}
+        {recordToss.isSuccess ? <span className="text-xs text-success">Saved</span> : null}
       </div>
     </StepCard>
   );
@@ -428,35 +456,29 @@ function PlayingXiCard({
   return (
     <form onSubmit={handleSubmit}>
       <StepCard
-        number="02"
+        number={2}
         title="Playing XI"
         state={disabled ? 'blocked' : complete ? 'done' : 'ready'}
-        description={
-          disabled
-            ? 'Record the toss first.'
-            : 'Select eleven players per side in batting order.'
-        }
+        description={disabled ? 'Toss first' : 'Tap in batting order'}
       >
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           {sides.map((side) => {
             const selection = selections[side.id] ?? { order: [], captainId: null, keeperId: null };
             const full = selection.order.length === PLAYERS_PER_TEAM;
 
             return (
-              <div key={side.id} className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-3 border-b border-line pb-3">
-                  <div className="flex items-center gap-3">
+              <div key={side.id} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
                     <TeamMark shortName={side.shortName} color={side.primaryColor} size="sm" />
-                    <p className="font-medium text-primary">{side.name}</p>
+                    <p className="text-[0.8125rem] font-semibold">{side.name}</p>
                   </div>
-                  <span
-                    className={cn('mono text-[0.8125rem]', full ? 'text-success' : 'text-muted')}
-                  >
+                  <span className={cn('tabular text-xs', full ? 'text-success' : 'text-muted')}>
                     {selection.order.length}/{PLAYERS_PER_TEAM}
                   </span>
                 </div>
 
-                <ul className="flex flex-col gap-1.5">
+                <ul className="overflow-hidden rounded-[var(--radius-md)] border border-line">
                   {side.players.map((player) => {
                     const position = selection.order.indexOf(player.id);
                     const picked = position >= 0;
@@ -465,38 +487,36 @@ function PlayingXiCard({
                       <li
                         key={player.id}
                         className={cn(
-                          'flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2',
+                          'flex items-center gap-1.5 border-b border-line px-2.5 py-1.5 last:border-0',
                           'transition-colors duration-[var(--dur-fast)]',
-                          picked
-                            ? 'border-[var(--accent-line)] bg-accent-soft'
-                            : 'border-line hover:border-line-strong',
+                          picked ? 'bg-accent-soft' : 'hover:bg-hover',
                         )}
                       >
                         <button
                           type="button"
                           disabled={disabled}
                           onClick={() => toggle(side.id, player.id)}
-                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                           aria-pressed={picked}
                         >
                           <span
                             aria-hidden
                             className={cn(
-                              'mono grid size-6 shrink-0 place-items-center rounded-full text-[0.6875rem]',
+                              'tabular grid size-5 shrink-0 place-items-center rounded-full text-[0.6875rem] font-semibold',
                               picked
-                                ? 'bg-[var(--accent-strong)] text-white'
-                                : 'border border-line text-muted',
+                                ? 'bg-accent-fill text-on-accent'
+                                : 'border border-line-strong',
                             )}
                           >
                             {picked ? position + 1 : ''}
                           </span>
 
-                          <span className="min-w-0 flex-1 truncate text-sm text-primary">
+                          <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
                             {player.name}
                           </span>
 
-                          <span className="shrink-0 text-[0.6875rem] tracking-[0.06em] text-muted uppercase">
-                            {player.role.replace('_', ' ')}
+                          <span className="shrink-0 text-xs text-muted capitalize">
+                            {player.role.replace('_', ' ').toLowerCase()}
                           </span>
                         </button>
 
@@ -523,15 +543,20 @@ function PlayingXiCard({
 
         {setXi.error ? <ErrorText error={setXi.error} /> : null}
 
-        <div className="flex flex-wrap items-center gap-4">
-          <Button type="submit" disabled={disabled || !complete} isLoading={setXi.isPending}>
-            Save both XIs
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={disabled || !complete}
+            isLoading={setXi.isPending}
+          >
+            Save XIs
           </Button>
 
           {setXi.isSuccess ? (
-            <span className="text-sm text-success">Saved</span>
+            <span className="text-xs text-success">Saved</span>
           ) : !complete ? (
-            <span className="text-sm text-muted">Eleven players and one captain per side.</span>
+            <span className="text-xs text-muted">11 and a captain each</span>
           ) : null}
         </div>
       </StepCard>
@@ -570,7 +595,7 @@ function RoleToggle({
       aria-pressed={active}
       aria-label={label === 'C' ? 'Captain' : 'Wicketkeeper'}
       className={cn(
-        'mono h-7 min-w-8 shrink-0 rounded-[var(--radius-xs)] px-1.5 text-[0.6875rem] transition-colors',
+        'h-6 min-w-7 shrink-0 rounded-[var(--radius-sm)] px-1.5 text-[0.6875rem] font-medium transition-colors',
         active
           ? 'bg-inverse text-on-inverse'
           : 'border border-line text-muted hover:text-secondary',
@@ -609,33 +634,29 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <p className="eyebrow">Permissions</p>
-          <h2 className="serif mt-2.5 text-xl text-primary">Scorers</h2>
-          <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-secondary">
-            Assign users with an account to score this match.
-          </p>
-        </CardHeader>
+      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+        <header className="border-b border-line px-4 py-2.5">
+          <h2 className="text-[0.8125rem] font-semibold">Scorers</h2>
+        </header>
 
-        <CardBody className="flex flex-col gap-7">
+        <div className="flex flex-col gap-4 p-4">
           {match.scorers.length > 0 ? (
-            <ul className="flex flex-col gap-2.5">
+            <ul className="overflow-hidden rounded-[var(--radius-md)] border border-line">
               {match.scorers.map((scorer) => (
                 <li
                   key={scorer.id}
-                  className="flex items-center gap-4 rounded-[var(--radius-sm)] border border-line px-4 py-3"
+                  className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-0"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-primary">{scorer.name}</p>
-                    <p className="mono truncate text-[0.6875rem] text-muted">@{scorer.username}</p>
+                    <p className="truncate text-[0.8125rem] font-medium">{scorer.name}</p>
+                    <p className="truncate text-xs text-muted">@{scorer.username}</p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => remove.mutate(scorer.id)}
                     aria-label={`Remove ${scorer.name}`}
-                    className="grid size-8 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
+                    className="grid size-7 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-sunken hover:text-alert"
                   >
                     <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
                       <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
@@ -645,15 +666,13 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
               ))}
             </ul>
           ) : (
-            <p className="text-[0.9375rem] text-muted">
-              Nobody is assigned yet. As the organizer you can always score it yourself.
-            </p>
+            <p className="text-xs text-muted">None assigned. You can score it yourself.</p>
           )}
 
-          <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[15rem] flex-1">
+          <form onSubmit={handleAssign} className="flex flex-wrap items-end gap-2">
+            <div className="min-w-[12rem] flex-1">
               <Input
-                label="Assign by handle"
+                label="Username"
                 placeholder="whynotramaa"
                 value={username}
                 error={fieldError}
@@ -662,6 +681,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
             </div>
             <Button
               type="submit"
+              variant="secondary"
               disabled={username.trim().length < 3}
               isLoading={assign.isPending}
             >
@@ -672,27 +692,26 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
           {remove.error ? <ErrorText error={remove.error} /> : null}
 
           {canAbandon ? (
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
-              <p className="max-w-xl text-[0.9375rem] text-secondary">
-                Abandoning ends the match without a result.
-              </p>
+            <div className="flex justify-end border-t border-line pt-3">
               <Button variant="danger" size="sm" onClick={() => setConfirmAbandon(true)}>
-                Abandon the match
+                Abandon
               </Button>
             </div>
           ) : null}
 
           {abandon.error ? <ErrorText error={abandon.error} /> : null}
-        </CardBody>
-      </Card>
+        </div>
+      </section>
 
       <Sheet
         open={confirmAbandon}
         onClose={() => setConfirmAbandon(false)}
-        title="Abandon this match?"
-        description="It cannot be scored afterwards, and the points table will record it as no result."
+        title="Abandon match?"
         footer={
           <>
+            <Button variant="secondary" onClick={() => setConfirmAbandon(false)}>
+              Cancel
+            </Button>
             <Button
               variant="danger"
               isLoading={abandon.isPending}
@@ -701,18 +720,12 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
                 setConfirmAbandon(false);
               }}
             >
-              Abandon the match
-            </Button>
-            <Button variant="quiet" onClick={() => setConfirmAbandon(false)}>
-              Go back
+              Abandon
             </Button>
           </>
         }
       >
-        <p className="text-secondary">
-          Balls already scored stay in the log — nothing is deleted. The match simply ends without a
-          winner.
-        </p>
+        <p className="text-[0.8125rem] text-secondary">Records no result. Scored balls are kept.</p>
       </Sheet>
     </>
   );

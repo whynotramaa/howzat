@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
   useCallback,
@@ -37,6 +38,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshTimer = useRef<number | null>(null);
@@ -56,11 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adoptSession = useCallback(
     (session: AuthSession) => {
+      queryClient.clear();
       setAccessToken(session.accessToken);
       setUser(session.user);
       scheduleRefresh(session.expiresIn);
     },
-    [scheduleRefresh],
+    [scheduleRefresh, queryClient],
   );
 
   useEffect(() => {
@@ -139,10 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post('/auth/logout');
     } finally {
       if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
+      await queryClient.cancelQueries();
+      queryClient.clear();
       setAccessToken(null);
       setUser(null);
     }
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

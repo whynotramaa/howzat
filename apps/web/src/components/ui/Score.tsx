@@ -26,7 +26,7 @@ export function BallChip({
   return (
     <span
       data-kind={ballKind(display, isWicket)}
-      className={cn('ball', size === 'sm' ? 'size-7 text-[0.6875rem]' : 'size-9 text-[0.8125rem]')}
+      className={cn('ball', size === 'sm' ? 'size-6 text-[0.625rem]' : 'size-8 text-xs')}
     >
       {display === '0' ? '•' : display}
     </span>
@@ -68,7 +68,9 @@ export function LeaderRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className={cn('min-w-0 truncate text-sm', emphasis ? 'text-primary' : 'text-secondary')}>
+      <span
+        className={cn('min-w-0 truncate text-sm', emphasis ? 'text-primary' : 'text-secondary')}
+      >
         {label}
       </span>
       <span
@@ -105,14 +107,14 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex min-h-11 items-center justify-between gap-4 border-b border-line px-4 py-2.5">
+      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-line px-3.5 py-1.5">
         <p className="eyebrow flex items-center gap-2">
           {icon ? <span className="text-muted">{icon}</span> : null}
           {title}
         </p>
         {meta !== undefined ? <div className="flex items-center gap-2">{meta}</div> : null}
       </div>
-      <div className={cn('p-4', bodyClassName)}>{children}</div>
+      <div className={cn('p-3.5', bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -158,35 +160,35 @@ export function Scoreboard({
   children?: ReactNode;
 }) {
   return (
-    <section className="board overflow-hidden rounded-[var(--radius-xl)]">
-      <div className="flex items-center justify-between gap-4 px-4 pt-4 sm:px-6">
+    <section className="plate ticks rounded-[var(--radius-lg)]">
+      <div className="flex items-center justify-between gap-4 px-4 pt-4 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
           <div className="min-w-0">
-            <p className="truncate text-[0.9375rem] font-semibold text-primary">{team.name}</p>
+            <p className="truncate text-sm font-semibold text-primary">{team.name}</p>
             <p className="text-xs text-muted">{eyebrow}</p>
           </div>
         </div>
         {status}
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 px-4 pt-4 pb-5 sm:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-4 pt-3 pb-4 sm:px-5">
         <div className="flex items-baseline gap-3">
           <p
             className={cn(
               'score-figure flex items-baseline text-primary',
-              size === 'lg' ? 'text-[3.5rem] sm:text-[4.25rem]' : 'text-[3rem] sm:text-[3.5rem]',
+              size === 'lg' ? 'text-[3rem] sm:text-[3.75rem]' : 'text-[2.5rem] sm:text-[3rem]',
             )}
           >
             <RollingNumber value={runs} />
-            <span aria-hidden className="mx-[0.04em] font-[300] text-muted italic">
+            <span aria-hidden className="mx-[0.06em] font-[300] text-line-strong">
               /
             </span>
             <span className="text-muted">
               <RollingNumber value={wickets} />
             </span>
           </p>
-          <p className="mono text-lg font-medium text-secondary">
+          <p className="mono text-base font-medium text-secondary">
             <span key={overs} className="figure-in inline-block">
               ({overs}
             </span>
@@ -230,11 +232,12 @@ export interface CreaseBowler {
   econ: number | null;
 }
 
-const GRID = 'grid grid-cols-[minmax(0,1fr)_repeat(5,2.75rem)] items-center gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,3.5rem)]';
+const GRID =
+  'grid grid-cols-[minmax(0,1fr)_repeat(5,2.75rem)] items-center gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,3.5rem)]';
 
 function HeadRow({ first, cols, action }: { first: string; cols: string[]; action?: ReactNode }) {
   return (
-    <div className={cn(GRID, 'eyebrow bg-sunken px-4 py-2.5')}>
+    <div className={cn(GRID, 'eyebrow bg-sunken px-4 py-1.5')}>
       <span className="flex items-center gap-3">
         {first}
         {action}
@@ -268,7 +271,10 @@ export function CreaseCard({
         <p className="px-4 py-4 text-sm text-muted">{emptyLabel}</p>
       ) : (
         batters.map((batter) => (
-          <div key={batter.id} className={cn(GRID, 'border-b border-line px-4 py-3 text-sm')}>
+          <div
+            key={batter.id}
+            className={cn(GRID, 'border-b border-line px-4 py-2 text-[0.8125rem]')}
+          >
             <span
               className={cn(
                 'flex min-w-0 items-center gap-2',
@@ -278,12 +284,12 @@ export function CreaseCard({
               <span className="truncate">{batter.name}</span>
               {batter.onStrike ? (
                 <>
-                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-accent" />
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-accent-fill" />
                   <span className="sr-only">on strike</span>
                 </>
               ) : null}
             </span>
-            <span className="score-figure text-right text-lg text-primary">{batter.runs}</span>
+            <span className="score-figure text-right text-base text-primary">{batter.runs}</span>
             <span className="mono text-right text-secondary">{batter.balls}</span>
             <span className="mono text-right text-secondary">{batter.fours}</span>
             <span className="mono text-right text-secondary">{batter.sixes}</span>
@@ -295,12 +301,14 @@ export function CreaseCard({
       )}
 
       <HeadRow first="Bowler" cols={['O', 'M', 'R', 'W', 'ECO']} action={bowlerAction} />
-      <div className={cn(GRID, 'px-4 py-3 text-sm')}>
+      <div className={cn(GRID, 'px-4 py-2 text-[0.8125rem]')}>
         <span className="truncate font-semibold text-primary">{bowler?.name ?? 'Not named'}</span>
         <span className="mono text-right text-secondary">{bowler?.overs ?? '0.0'}</span>
         <span className="mono text-right text-secondary">{bowler?.maidens ?? 0}</span>
         <span className="mono text-right text-secondary">{bowler?.runs ?? 0}</span>
-        <span className="score-figure text-right text-lg text-primary">{bowler?.wickets ?? 0}</span>
+        <span className="score-figure text-right text-base text-primary">
+          {bowler?.wickets ?? 0}
+        </span>
         <span className="mono text-right text-secondary">
           {bowler?.econ != null ? bowler.econ.toFixed(2) : '0.00'}
         </span>
@@ -322,14 +330,12 @@ export function StatLine({
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex flex-col gap-1 border-line px-4 py-3 not-last:border-r max-sm:border-b"
+            className="flex flex-col gap-0.5 border-line px-3.5 py-2.5 not-last:border-r max-sm:border-b"
           >
-            <dt className="eyebrow">
-              {item.label}
-            </dt>
+            <dt className="eyebrow">{item.label}</dt>
             <dd
               className={cn(
-                'mono text-[0.9375rem] font-medium',
+                'mono text-sm font-medium',
                 item.tone === 'accent'
                   ? 'text-accent'
                   : item.tone === 'live'
@@ -364,7 +370,7 @@ export function RunsPerOver({
 
   return (
     <div className={className}>
-      <div className="flex h-32 items-end gap-1 border-b border-line">
+      <div className="flex h-28 items-end gap-[3px] border-b border-line">
         {overs.map((over, index) => (
           <div
             key={over.number}
@@ -375,7 +381,7 @@ export function RunsPerOver({
               {over.wickets > 0 ? `, ${over.wickets}w` : ''}
             </span>
             {over.wickets > 0 ? (
-              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-live" />
+              <span aria-hidden className="size-1 shrink-0 rounded-full bg-primary" />
             ) : null}
             <span
               aria-hidden
@@ -386,8 +392,8 @@ export function RunsPerOver({
                 } as CSSProperties
               }
               className={cn(
-                'rpo-bar w-full max-w-6 rounded-t-[3px]',
-                over.wickets > 0 ? 'bg-live' : 'bg-accent',
+                'rpo-bar w-full max-w-5 rounded-t-[2px]',
+                over.wickets > 0 ? 'bg-accent-fill' : 'bg-line-strong',
               )}
             />
           </div>

@@ -57,7 +57,6 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   const clockSetting =
     clock ?? (data ? { periods: data.periods, periodMinutes: data.periodMinutes } : null);
 
-  // Null is a choice of its own — unlimited — so an untouched picker is its own state.
   const substitutionLimit = subLimit ? subLimit.value : (data?.substitutionLimit ?? null);
 
   const homeSelection = home ?? (data ? seed(data.home, squadSize) : null);
@@ -107,13 +106,12 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col gap-9">
+    <div className="flex flex-col gap-6">
       <SectionHeading
         eyebrow={`Round ${match.round} · ${data.periods} × ${data.periodMinutes} minutes · ${
           substitutionLimit === null ? 'rolling subs' : `${substitutionLimit} subs a side`
         }`}
         title={`${data.home.name} v ${data.away.name}`}
-        description="Pick a shape for each side, fill it from the squad, and kick off. The clock starts the moment you do."
         action={
           <>
             <StatusPill status={match.status} />
@@ -136,7 +134,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         <Card>
           <CardBody className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-secondary">
-              This match is already under way — the team sheets are locked.
+              This match is already under way, the team sheets are locked.
             </p>
             <Link to={`/matches/${match.id}/score`}>
               <Button>Open the console</Button>
@@ -220,7 +218,9 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         <Card>
           <CardHeader>
             <p className="eyebrow mb-1.5">This match</p>
-            <p className="serif text-xl text-primary">How long are we playing?</p>
+            <p className="font-semibold tracking-[-0.02em] text-base text-primary">
+              How long are we playing?
+            </p>
             <p className="mt-1.5 max-w-2xl text-[0.8125rem] text-secondary">
               Set for this fixture alone.
             </p>
@@ -309,7 +309,7 @@ function TeamSheetEditor({
       <CardHeader className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="eyebrow mb-1.5">Team sheet</p>
-          <p className="serif text-xl text-primary">{squad.name}</p>
+          <p className="font-semibold tracking-[-0.02em] text-base text-primary">{squad.name}</p>
         </div>
 
         <select
@@ -372,7 +372,7 @@ function TeamSheetEditor({
           </div>
         </div>
 
-        <div className="rule" />
+        <div className="border-t border-line" />
 
         <div className="flex flex-col gap-1.5">
           <p className="eyebrow">

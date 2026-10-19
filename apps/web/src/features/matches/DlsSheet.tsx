@@ -21,14 +21,6 @@ import {
   useUpdateDlsSettings,
 } from './queries';
 
-/**
- * The scorer's DLS worksheet.
- *
- * It asks for exactly what an ICC scorer writes down at a stoppage — overs
- * left, wickets down, overs left when they came back — and shows the resource
- * arithmetic it did with them, because a revised target nobody can check is a
- * revised target nobody will trust.
- */
 export function DlsSheet({
   open,
   onClose,
@@ -141,7 +133,7 @@ function SwitchRow({
         <p className="eyebrow">Method</p>
         <p className="mt-1.5 text-sm text-secondary">
           {applied
-            ? 'DLS is on — allotments and the target follow the stoppages below.'
+            ? 'DLS is on, allotments and the target follow the stoppages below.'
             : 'This match is being scored without DLS.'}
         </p>
       </div>
@@ -159,8 +151,8 @@ function SwitchRow({
 }
 
 const G50_PRESETS = [
-  { value: 245, label: '245 — 50-over' },
-  { value: 200, label: '200 — T20' },
+  { value: 245, label: '245 · 50-over' },
+  { value: 200, label: '200 · T20' },
 ];
 
 function G50Row({
@@ -174,7 +166,7 @@ function G50Row({
 }) {
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-7">
-      <p className="eyebrow">G50 — the average 50-over score at this level</p>
+      <p className="eyebrow">G50</p>
       <p className="text-[0.8125rem] leading-relaxed text-muted">
         Average 50-over score reference for first-innings interruptions.
       </p>
@@ -194,7 +186,7 @@ function G50Row({
 
         {G50_PRESETS.every((preset) => preset.value !== g50) ? (
           <ChoiceChip selected className="h-10 px-3 text-[0.8125rem]">
-            {g50} — this competition
+            {g50} · this competition
           </ChoiceChip>
         ) : null}
       </div>
@@ -202,7 +194,6 @@ function G50Row({
   );
 }
 
-/** The resource arithmetic, laid out the way the DLS worksheet lays it out. */
 function Worksheet({ data }: { data: DlsStateDto }) {
   const { firstInnings, secondInnings, calculation } = data;
 
@@ -222,8 +213,8 @@ function Worksheet({ data }: { data: DlsStateDto }) {
           <p className="mono text-[0.8125rem] text-secondary">
             {calculation.method === 'RATIO' ? (
               <>
-                {calculation.team1Score} × {calculation.team2Resource}% ÷ {calculation.team1Resource}
-                % = {calculation.rawPar}
+                {calculation.team1Score} × {calculation.team2Resource}% ÷{' '}
+                {calculation.team1Resource}% = {calculation.rawPar}
               </>
             ) : (
               <>
@@ -235,7 +226,7 @@ function Worksheet({ data }: { data: DlsStateDto }) {
           </p>
 
           <p className="mt-2.5 text-[0.9375rem] text-primary">
-            Par <span className="mono">{calculation.parScore}</span> — target{' '}
+            Par <span className="mono">{calculation.parScore}</span> · target{' '}
             <span className="mono text-accent">{calculation.target}</span> off{' '}
             <span className="mono">{formatOvers(secondInnings.revisedBalls)}</span> overs
           </p>
@@ -280,7 +271,7 @@ function StoppageList({
   if (steps.length === 0) {
     return (
       <p className="border-t border-line pt-7 text-sm text-muted">
-        No stoppages recorded — both sides still have their full allotment.
+        No stoppages recorded, both sides still have their full allotment.
       </p>
     );
   }
@@ -350,9 +341,6 @@ function AddStoppage({
   const liveInnings: 1 | 2 = inningsNumber === 2 ? 2 : 1;
   const [innings, setInnings] = useState<1 | 2>(liveInnings);
 
-  // Where the innings actually stands, so the common case is one number to
-  // type. Only the live innings has a "right now" to offer — a stoppage in the
-  // other one has to be spelled out.
   const suggested = useMemo(() => {
     if (!state || !context || innings !== liveInnings) return null;
 
@@ -370,8 +358,7 @@ function AddStoppage({
   const [reason, setReason] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const suspensionBalls =
-    left.trim() === '' ? (suggested?.balls ?? null) : parseOversToBalls(left);
+  const suspensionBalls = left.trim() === '' ? (suggested?.balls ?? null) : parseOversToBalls(left);
   const resumptionBalls = parseOversToBalls(back);
   const wicketsDown = wickets.trim() === '' ? (suggested?.wickets ?? 0) : Number(wickets);
 
@@ -379,7 +366,7 @@ function AddStoppage({
 
   async function submit() {
     if (suspensionBalls === null) {
-      setLocalError('Enter the overs left when play stopped, as overs and balls — 12.3.');
+      setLocalError('Enter the overs left when play stopped, for example 12.3.');
       return;
     }
 
@@ -528,7 +515,7 @@ function ConcludeRow({
       <p className="text-[0.8125rem] leading-relaxed text-muted">
         {reached
           ? `The chase has faced its ${data.minimumOversForResult} overs, so DLS can decide the match on the par score above.`
-          : `DLS cannot decide this match until the chase has faced ${data.minimumOversForResult} overs — ${formatOvers(Math.max(0, minimumBalls - state.legalBalls))} short. Ending it now records a no result.`}
+          : `DLS cannot decide this match until the chase has faced ${data.minimumOversForResult} overs, ${formatOvers(Math.max(0, minimumBalls - state.legalBalls))} short. Ending it now records a no result.`}
       </p>
 
       {error ? <ErrorText error={error} /> : null}

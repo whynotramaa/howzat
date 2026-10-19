@@ -44,7 +44,6 @@ export interface ScorecardInnings {
   runs: number;
   wickets: number;
   overs: string;
-  /** The allotment this innings ran to — below the scheduled figure under DLS. */
   quotaOvers?: string;
   targetRuns?: number | null;
   extras: { wides: number; noBalls: number; byes: number; legByes: number; total: number };

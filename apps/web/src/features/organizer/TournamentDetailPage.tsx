@@ -3,11 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { TeamDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, SectionHeading, StatTile } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { ErrorText, SkeletonCard, SquadProgress } from '@/components/ui/Feedback';
+import { ErrorText, Skeleton, SkeletonCard } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
-import { Reveal } from '@/components/ui/Reveal';
 import { Sheet } from '@/components/ui/Sheet';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { PdfButton } from '@/components/ui/PdfButton';
@@ -16,7 +15,13 @@ import { cn } from '@/lib/cn';
 import { StandingsTable } from './StandingsTable';
 import { TournamentStatsPanel } from './TournamentStatsPanel';
 import { QualificationPanel } from './QualificationPanel';
-import { SportEyebrow } from '@/components/ui/SportMark';
+import { SportMark } from '@/components/ui/SportMark';
+
+const FORMAT_LABELS = {
+  LEAGUE: 'League',
+  KNOCKOUT: 'Knockout',
+  LEAGUE_PLAYOFFS: 'League + playoffs',
+} as const;
 import {
   useCreateTeam,
   useDeleteTeam,
@@ -55,8 +60,6 @@ export function TournamentDetailPage() {
       ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
     ).length ?? 0;
 
-  // Two sides meeting once is a one-off match, so it skips the fixture list and
-  // goes straight to the game.
   const isSingleMatch = tournament.data.teamsCount === 2 && !tournament.data.doubleRoundRobin;
   const soleMatch = isSingleMatch ? fixtures.data?.items[0] : undefined;
 
@@ -66,200 +69,195 @@ export function TournamentDetailPage() {
     if (match) void navigate(`/matches/${match.id}`);
   }
 
+  const nextStep = readyForFixtures
+    ? isSingleMatch
+      ? 'Ready to start'
+      : 'Ready for fixtures'
+    : !full
+      ? `${tournament.data.teamsCount - registered} to register`
+      : `${registered - eligible} squad${registered - eligible === 1 ? '' : 's'} short`;
+
   return (
-    <div className="flex flex-col gap-12">
-      <div className="flex flex-col gap-8">
-        <BackLink to="/tournaments">All tournaments</BackLink>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
+        <BackLink to="/tournaments">Tournaments</BackLink>
 
-        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <SportEyebrow
-                sport={tournament.data.sport}
-                detail={tournament.data.format.replace(/_/g, ' + ').toLowerCase()}
-              />
-              <span aria-hidden className="h-3 w-px bg-line" />
-              <p className="eyebrow">{tournament.data.status.replace(/_/g, ' ')}</p>
-            </div>
-
-            <h1 className="serif mt-4 text-[2.5rem] text-primary sm:text-[3rem]">
-              {tournament.data.name}
-            </h1>
-
-            <p className="mono mt-3 text-[0.8125rem] text-muted">
-              {tournament.data.sport === 'FOOTBALL'
-                ? `${tournament.data.periods} × ${tournament.data.periodMinutes} minutes`
-                : `${tournament.data.oversPerInnings} overs per innings`}
-              <span className="mx-2 text-line-strong">·</span>
-              {tournament.data.teamsCount} sides
-              <span className="mx-2 text-line-strong">·</span>
-              {tournament.data.playersPerTeam} a side
+            <h1 className="text-2xl font-semibold">{tournament.data.name}</h1>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+              <SportMark sport={tournament.data.sport} />
+              <span>{FORMAT_LABELS[tournament.data.format]}</span>
+              <span className="text-line-strong">/</span>
+              <span>
+                {tournament.data.sport === 'FOOTBALL'
+                  ? `${tournament.data.periods} × ${tournament.data.periodMinutes} min`
+                  : `${tournament.data.oversPerInnings} overs`}
+              </span>
+              <span className="text-line-strong">/</span>
+              <span>{tournament.data.playersPerTeam} a side</span>
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             <ShareLink
               slug={tournamentId}
               url={`${window.location.origin}/tournament/${tournamentId}`}
-              label="Share tournament"
+              label="Share"
               matchLabel={tournament.data.name}
               variant="quiet"
             />
-            <Button variant="secondary" onClick={() => setAdding(true)} disabled={full}>
-              {full ? 'All sides registered' : 'Register a side'}
+            <Button size="sm" variant="secondary" onClick={() => setAdding(true)} disabled={full}>
+              Add team
             </Button>
-
             {isSingleMatch ? (
               soleMatch ? (
                 <Link to={`/matches/${soleMatch.id}`}>
-                  <Button>Open the match</Button>
+                  <Button size="sm">Open match</Button>
                 </Link>
               ) : (
                 <Button
+                  size="sm"
                   disabled={!readyForFixtures}
                   isLoading={generate.isPending}
                   onClick={() => void startTheMatch()}
                 >
-                  Start the match
+                  Start match
                 </Button>
               )
             ) : (
               <Link to={`/tournaments/${tournamentId}/fixtures`}>
-                <Button disabled={!readyForFixtures && fixtureCount === 0}>
-                  {fixtureCount > 0 ? `Fixtures (${fixtureCount})` : 'Generate fixtures'}
+                <Button size="sm" disabled={!readyForFixtures && fixtureCount === 0}>
+                  {fixtureCount > 0 ? 'Fixtures' : 'Generate fixtures'}
                 </Button>
               </Link>
             )}
-
             <Button
+              size="sm"
               variant="quiet"
               onClick={() => setDeleting(true)}
-              title={
-                tournament.data.status === 'IN_PROGRESS'
-                  ? 'Matches are under way — a live tournament cannot be deleted'
-                  : undefined
-              }
+              aria-label="Delete tournament"
+              title="Delete tournament"
             >
-              Delete
+              <svg
+                viewBox="0 0 16 16"
+                className="size-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4" />
+              </svg>
             </Button>
           </div>
         </div>
 
-        <div className="rule" />
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatTile
-            label="Sides registered"
-            value={`${registered}/${tournament.data.teamsCount}`}
-          />
-          <StatTile
-            label="With a full squad"
-            value={`${eligible}/${registered}`}
-            tone={readyForFixtures ? 'success' : 'default'}
-          />
-          <StatTile label="Fixtures played" value={`${played}/${fixtureCount}`} />
-        </div>
+        <dl className="grid grid-cols-2 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised sm:grid-cols-4">
+          {[
+            { label: 'Teams', value: `${registered}/${tournament.data.teamsCount}` },
+            { label: 'Full squads', value: `${eligible}/${registered}` },
+            { label: 'Played', value: `${played}/${fixtureCount}` },
+            { label: 'Next', value: nextStep, tone: readyForFixtures },
+          ].map((stat, index) => (
+            <div
+              key={stat.label}
+              className={cn(
+                'flex min-w-0 flex-col gap-0.5 px-4 py-3',
+                index % 2 === 1 && 'border-l border-line',
+                index === 2 && 'sm:border-l sm:border-line',
+                index > 1 && 'max-sm:border-t max-sm:border-line',
+              )}
+            >
+              <dt className="eyebrow">{stat.label}</dt>
+              <dd
+                className={cn(
+                  'tabular truncate font-semibold',
+                  index < 3 ? 'text-lg tracking-[-0.03em]' : 'pt-1 text-[0.8125rem]',
+                  stat.tone && 'text-success',
+                )}
+              >
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
         {generate.error ? <ErrorText error={generate.error} /> : null}
-
-        <p
-          className={cn(
-            'flex items-center gap-3 text-[0.9375rem]',
-            readyForFixtures ? 'text-success' : 'text-secondary',
-          )}
-        >
-          {readyForFixtures
-            ? `Every side has ${tournament.data.playersPerTeam} players. You can ${
-                isSingleMatch ? 'start the match' : 'generate the fixture list'
-              }.`
-            : !full
-              ? `Register ${tournament.data.teamsCount - registered} more side${
-                  tournament.data.teamsCount - registered === 1 ? '' : 's'
-                } before generating fixtures.`
-              : `${registered - eligible} side${
-                  registered - eligible === 1 ? '' : 's'
-                } still need a full squad of ${tournament.data.playersPerTeam} players.`}
-        </p>
       </div>
 
-      <section className="flex flex-col gap-7">
-        <SectionHeading eyebrow="Squads" title="Registered sides" />
-
-        {teams.isPending ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <SkeletonCard rows={1} />
-            <SkeletonCard rows={1} />
-          </div>
-        ) : teams.data && teams.data.items.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {teams.data.items.map((team, index) => (
-              <Reveal key={team.id} index={index} step={40}>
-                <article className="flex items-center gap-5 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-5 transition-colors hover:border-line-strong">
-                  <TeamMark shortName={team.shortName} color={team.primaryColor} />
-
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      to={`/teams/${team.id}`}
-                      className="block truncate font-medium text-primary underline decoration-transparent underline-offset-4 transition-colors hover:decoration-[var(--accent-strong)]"
-                    >
-                      {team.name}
-                    </Link>
-                    <p className="mt-0.5 text-[0.8125rem] text-muted">
-                      {team.isEligible
-                        ? 'Full squad — can be scheduled'
-                        : `${team.squadSize - team.playerCount} more player${
-                            team.squadSize - team.playerCount === 1 ? '' : 's'
-                          } needed`}
-                    </p>
-                  </div>
-
-                  <SquadProgress count={team.playerCount} squadSize={team.squadSize} />
-
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className="flex min-w-0 flex-col gap-2">
+          <h2 className="text-[0.8125rem] font-semibold">Teams</h2>
+          {teams.isPending ? (
+            <Skeleton className="h-40" />
+          ) : teams.data && teams.data.items.length > 0 ? (
+            <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+              {teams.data.items.map((team) => (
+                <li
+                  key={team.id}
+                  className="ledger-row flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-0"
+                >
+                  <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
+                  <Link
+                    to={`/teams/${team.id}`}
+                    className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium hover:underline"
+                  >
+                    {team.name}
+                  </Link>
+                  <span
+                    className={cn(
+                      'tabular text-xs',
+                      team.isEligible ? 'text-secondary' : 'text-warning',
+                    )}
+                  >
+                    {team.playerCount}/{team.squadSize}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setRemoving(team)}
                     aria-label={`Remove ${team.name}`}
-                    className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
+                    className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-muted transition-colors hover:bg-hover hover:text-alert"
                   >
-                    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor">
+                    <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor">
                       <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
                     </svg>
                   </button>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="No sides registered yet"
-            description={`This tournament is set up for ${tournament.data.teamsCount} sides. Register the first one to get started.`}
-            action={<Button onClick={() => setAdding(true)}>Register a side</Button>}
-          />
-        )}
-
-        {deleteTeam.error ? <ErrorText error={deleteTeam.error} /> : null}
-      </section>
-
-      {played > 0 ? (
-        <section className="flex flex-col gap-7">
-          <SectionHeading
-            eyebrow="Standings"
-            title="Points table"
-            description="Recomputed automatically as results land."
-          />
-          <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
-
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-[0.9375rem] text-secondary">
-              Export tournament summary as PDF.
-            </p>
-            <PdfButton
-              variant="secondary"
-              build={() => import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState
+              title="No teams"
+              description={`${tournament.data.teamsCount} slots open`}
+              action={
+                <Button size="sm" onClick={() => setAdding(true)}>
+                  Add team
+                </Button>
+              }
             />
-          </div>
+          )}
+          {deleteTeam.error ? <ErrorText error={deleteTeam.error} /> : null}
         </section>
-      ) : null}
+
+        {played > 0 ? (
+          <section className="flex min-w-0 flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[0.8125rem] font-semibold">Table</h2>
+              <PdfButton
+                size="sm"
+                variant="quiet"
+                build={() =>
+                  import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))
+                }
+              />
+            </div>
+            <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
+          </section>
+        ) : null}
+      </div>
 
       {started > 0 ? <TournamentStatsPanel tournamentId={tournamentId} /> : null}
       {played > 0 && teams.data ? (
@@ -275,9 +273,11 @@ export function TournamentDetailPage() {
         open={deleting}
         onClose={() => setDeleting(false)}
         title={`Delete ${tournament.data.name}?`}
-        description="Permanently delete this tournament and its data."
         footer={
           <>
+            <Button variant="quiet" onClick={() => setDeleting(false)}>
+              Cancel
+            </Button>
             <Button
               variant="danger"
               disabled={tournament.data.status === 'IN_PROGRESS'}
@@ -288,21 +288,15 @@ export function TournamentDetailPage() {
                 void navigate('/tournaments');
               }}
             >
-              Delete it
-            </Button>
-            <Button variant="quiet" onClick={() => setDeleting(false)}>
-              Keep it
+              Delete
             </Button>
           </>
         }
       >
         {tournament.data.status === 'IN_PROGRESS' ? (
-          <p className="text-secondary">
-            Matches are under way. A tournament being played cannot be deleted — abandon or finish
-            the remaining fixtures first.
-          </p>
+          <p className="text-secondary">Matches are under way. Finish or abandon them first.</p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <p className="text-secondary">
               {registered} side{registered === 1 ? '' : 's'} and {fixtureCount} fixture
               {fixtureCount === 1 ? '' : 's'} will be removed.
@@ -316,9 +310,11 @@ export function TournamentDetailPage() {
         open={removing !== null}
         onClose={() => setRemoving(null)}
         title={`Remove ${removing?.name ?? 'this side'}?`}
-        description="This deletes the side and every player registered to it. It cannot be undone."
         footer={
           <>
+            <Button variant="quiet" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
             <Button
               variant="danger"
               isLoading={deleteTeam.isPending}
@@ -327,16 +323,13 @@ export function TournamentDetailPage() {
                 setRemoving(null);
               }}
             >
-              Remove the side
-            </Button>
-            <Button variant="quiet" onClick={() => setRemoving(null)}>
-              Keep it
+              Remove
             </Button>
           </>
         }
       >
         <p className="text-secondary">
-          Fixtures already generated for this tournament will need regenerating afterwards.
+          Deletes the team and its players. Regenerate fixtures after.
         </p>
       </Sheet>
     </div>
@@ -356,7 +349,7 @@ function AddTeamSheet({
 
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#1268bd');
+  const [primaryColor, setPrimaryColor] = useState('#171717');
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -370,22 +363,21 @@ function AddTeamSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Register a side"
-      description="Set side details for scorecards."
+      title="Add team"
       footer={
         <>
-          <Button type="submit" form="add-team" isLoading={createTeam.isPending}>
-            Register the side
-          </Button>
           <Button type="button" variant="quiet" onClick={onClose}>
             Cancel
+          </Button>
+          <Button type="submit" form="add-team" isLoading={createTeam.isPending}>
+            Add
           </Button>
         </>
       }
     >
-      <form id="add-team" onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form id="add-team" onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
-          label="Side name"
+          label="Name"
           autoFocus
           required
           placeholder="Riverside XI"
@@ -408,26 +400,25 @@ function AddTeamSheet({
 
         <div className="grid grid-cols-[1fr_auto] items-end gap-4">
           <Input
-            label="Abbreviation"
+            label="Short name"
             required
             maxLength={5}
             placeholder="RIV"
-            hint="Up to five characters, shown on the scorecard."
             value={shortName}
             onChange={(event) => setShortName(event.target.value.toUpperCase())}
           />
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="team-color" className="eyebrow text-secondary">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="team-color" className="text-xs font-medium text-secondary">
               Colour
             </label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <input
                 id="team-color"
                 type="color"
                 value={primaryColor}
                 onChange={(event) => setPrimaryColor(event.target.value)}
-                className="h-12 w-14 cursor-pointer rounded-[var(--radius-sm)] border border-line bg-raised p-1"
+                className="h-9 w-11 cursor-pointer rounded-[var(--radius-md)] border border-line bg-raised p-1"
               />
               <TeamMark shortName={shortName || '···'} color={primaryColor} />
             </div>

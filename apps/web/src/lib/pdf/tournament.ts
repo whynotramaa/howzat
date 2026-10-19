@@ -173,7 +173,7 @@ function renderResults(doc: ReportDoc, matches: TournamentMatchDto[], isFootball
       stageLabel(match.stage, match.round),
       fixtureLine(match),
       scoreLine(match, isFootball),
-      match.resultText ?? (match.status === 'ABANDONED' ? 'Abandoned — no result' : '—'),
+      match.resultText ?? (match.status === 'ABANDONED' ? 'Abandoned, no result' : '—'),
     ]),
     columnStyles: {
       0: { cellWidth: 62, textColor: MUTED, fontSize: 7.5 },

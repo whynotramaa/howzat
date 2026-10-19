@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   DEFAULT_OVERS_PER_INNINGS,
   DEFAULT_PERIODS,
@@ -14,12 +14,11 @@ import {
   type TournamentFormat,
 } from '@howzat/shared';
 import { PeriodDesigner } from '@/features/football/PeriodDesigner';
-import { SportEyebrow, SportMark } from '@/components/ui/SportMark';
+import { SportMark } from '@/components/ui/SportMark';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, SectionHeading } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/Card';
 import { Checkbox, Input, Select } from '@/components/ui/Input';
-import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
-import { Reveal } from '@/components/ui/Reveal';
+import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 import { QuickMatchSheet } from './QuickMatchSheet';
@@ -31,64 +30,61 @@ const FORMAT_LABELS: Record<TournamentFormat, string> = {
   LEAGUE_PLAYOFFS: 'League + playoffs',
 };
 
-const SPORTS: Array<{ value: Sport; label: string; blurb: string }> = [
-  {
-    value: 'CRICKET',
-    label: 'Cricket',
-    blurb: 'Ball by ball, with a full scorecard and net run rate.',
-  },
-  {
-    value: 'FOOTBALL',
-    label: 'Football',
-    blurb: 'Goals, cards and a live clock, on a pitch with both formations.',
-  },
+const SPORTS: Array<{ value: Sport; label: string }> = [
+  { value: 'CRICKET', label: 'Cricket' },
+  { value: 'FOOTBALL', label: 'Football' },
 ];
 
 export function TournamentsPage() {
   const { data, isPending, error } = useTournaments();
-  const [creating, setCreating] = useState(false);
+  const [params, setParams] = useSearchParams();
   const [quickMatch, setQuickMatch] = useState(false);
+  const creating = params.get('new') === '1';
+  const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
 
   return (
-    <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow="Your competitions"
-        title="Tournaments"
-        description="Manage tournaments or start a quick match."
-        action={
-          <div className="flex flex-wrap gap-2.5">
-            <Button variant="secondary" onClick={() => setQuickMatch(true)}>
-              Start a match
-            </Button>
-            <Button onClick={() => setCreating(true)}>New tournament</Button>
-          </div>
-        }
-      />
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Tournaments</h1>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setQuickMatch(true)}>
+            Quick match
+          </Button>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            New tournament
+          </Button>
+        </div>
+      </header>
 
       {error ? <ErrorText error={error} /> : null}
 
       {isPending ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <SkeletonCard rows={2} />
-          <SkeletonCard rows={2} />
-        </div>
+        <Skeleton className="h-64" />
       ) : data && data.items.length > 0 ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {data.items.map((tournament, index) => (
-            <Reveal key={tournament.id} index={index} step={50}>
-              <TournamentCard tournament={tournament} />
-            </Reveal>
-          ))}
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+          <div className="eyebrow hidden grid-cols-[minmax(0,1fr)_8rem_7rem_9rem] gap-4 border-b border-line bg-sunken px-4 py-2 sm:grid">
+            <span>Name</span>
+            <span>Format</span>
+            <span>Teams</span>
+            <span className="text-right">Status</span>
+          </div>
+          <ul>
+            {data.items.map((tournament) => (
+              <TournamentRow key={tournament.id} tournament={tournament} />
+            ))}
+          </ul>
         </div>
       ) : (
         <EmptyState
-          title="No tournaments on the board yet"
-          description="Create a tournament or start a quick match."
+          title="No tournaments yet"
+          description="Create one, or score a one-off match."
           action={
-            <div className="flex flex-wrap justify-center gap-2.5">
-              <Button onClick={() => setCreating(true)}>New tournament</Button>
-              <Button variant="secondary" onClick={() => setQuickMatch(true)}>
-                Start a match
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button size="sm" onClick={() => setCreating(true)}>
+                New tournament
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setQuickMatch(true)}>
+                Quick match
               </Button>
             </div>
           }
@@ -101,87 +97,43 @@ export function TournamentsPage() {
   );
 }
 
-function TournamentCard({ tournament }: { tournament: TournamentDto }) {
+function TournamentRow({ tournament }: { tournament: TournamentDto }) {
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
   const ready = registered === tournament.teamsCount && eligible === registered;
-  const shortBy = registered - eligible;
+  const ratio = registered / Math.max(1, tournament.teamsCount);
 
   return (
-    <Link
-      to={`/tournaments/${tournament.id}`}
-      className={cn(
-        'group flex h-full flex-col justify-between gap-8 rounded-[var(--radius-lg)] border border-line bg-raised p-7 sm:p-8',
-        'transition-all duration-[var(--dur)] ease-[var(--ease)]',
-        'hover:-translate-y-0.5 hover:border-[var(--accent-line)] hover:shadow-[var(--shadow-md)]',
-      )}
-    >
-      <div>
-        <SportEyebrow sport={tournament.sport} detail={FORMAT_LABELS[tournament.format]} />
-
-        <h3 className="serif mt-3 text-[1.625rem] text-primary">{tournament.name}</h3>
-
-        <p className="mono mt-2.5 text-[0.8125rem] text-muted">
-          {tournament.sport === 'FOOTBALL'
-            ? `${tournament.periods} × ${tournament.periodMinutes} min`
-            : `${tournament.oversPerInnings} overs`}
-          <span className="mx-2 text-line-strong">·</span>
-          {tournament.teamsCount} teams
-          <span className="mx-2 text-line-strong">·</span>
-          {tournament.playersPerTeam} a side
-          {tournament.doubleRoundRobin ? (
-            <>
-              <span className="mx-2 text-line-strong">·</span>home and away
-            </>
-          ) : null}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-6 border-t border-line pt-6">
-        <div className="flex items-center gap-4">
-          <ReadinessMark registered={registered} total={tournament.teamsCount} />
-          <div className="leading-tight">
-            <p className="tabular text-sm font-semibold text-primary">
-              {registered}/{tournament.teamsCount}
-            </p>
-            <p className="eyebrow mt-1">Registered</p>
-          </div>
-        </div>
-
-        <p className="max-w-[13rem] text-right text-[0.8125rem] text-secondary">
-          {ready ? (
-            <span className="text-success">Ready for fixtures</span>
-          ) : registered < tournament.teamsCount ? (
-            `${tournament.teamsCount - registered} more side${
-              tournament.teamsCount - registered === 1 ? '' : 's'
-            } to register`
-          ) : (
-            `${shortBy} side${shortBy === 1 ? '' : 's'} short of a full squad`
-          )}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function ReadinessMark({ registered, total }: { registered: number; total: number }) {
-  const bars = Math.min(5, Math.max(1, Math.ceil((registered / Math.max(1, total)) * 5)));
-  return (
-    <div
-      className="flex items-end gap-1"
-      role="img"
-      aria-label={`${registered} of ${total} teams registered`}
-    >
-      {Array.from({ length: 5 }).map((_, index) => (
-        <span
-          key={index}
-          className={cn(
-            'w-1.5 rounded-full transition-all',
-            index < bars ? 'h-6 bg-[var(--accent-strong)]' : 'h-3 bg-line-strong',
-          )}
-        />
-      ))}
-    </div>
+    <li className="border-b border-line last:border-0">
+      <Link
+        to={`/tournaments/${tournament.id}`}
+        className="ledger-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_9rem]"
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <SportMark sport={tournament.sport} className="text-muted" />
+          <span className="truncate text-[0.8125rem] font-medium">{tournament.name}</span>
+        </span>
+        <span className="hidden text-xs text-secondary sm:block">
+          {FORMAT_LABELS[tournament.format]}
+          <span className="block text-muted">
+            {tournament.sport === 'FOOTBALL'
+              ? `${tournament.periods} × ${tournament.periodMinutes} min`
+              : `${tournament.oversPerInnings} overs`}
+          </span>
+        </span>
+        <span className="hidden items-center gap-2 sm:flex">
+          <span className="h-[3px] w-10 overflow-hidden bg-sunken">
+            <span className="block h-full bg-primary" style={{ width: `${ratio * 100}%` }} />
+          </span>
+          <span className="tabular text-xs text-secondary">
+            {registered}/{tournament.teamsCount}
+          </span>
+        </span>
+        <span className={cn('text-right text-xs', ready ? 'text-success' : 'text-muted')}>
+          {ready ? 'Ready' : registered < tournament.teamsCount ? 'Registering' : 'Squads short'}
+        </span>
+      </Link>
+    </li>
   );
 }
 
@@ -190,7 +142,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
 
   const [name, setName] = useState('');
   const [sport, setSport] = useState<Sport>('CRICKET');
-  const [format, setFormat] = useState<TournamentFormat>('LEAGUE');
+  const [format, setFormat] = useState<Exclude<TournamentFormat, 'KNOCKOUT'>>('LEAGUE');
   const [teamsCount, setTeamsCount] = useState(4);
   const [oversPerInnings, setOversPerInnings] = useState(DEFAULT_OVERS_PER_INNINGS);
   const [doubleRoundRobin, setDoubleRoundRobin] = useState(false);
@@ -224,23 +176,22 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       onClose={onClose}
       size="lg"
       title="New tournament"
-      description="Configure settings for the fixture list."
       footer={
         <>
-          <Button type="submit" form="create-tournament" isLoading={createTournament.isPending}>
-            Create tournament
-          </Button>
           <Button type="button" variant="quiet" onClick={onClose}>
             Cancel
+          </Button>
+          <Button type="submit" form="create-tournament" isLoading={createTournament.isPending}>
+            Create
           </Button>
         </>
       }
     >
-      <form id="create-tournament" onSubmit={handleSubmit} className="grid gap-7 sm:grid-cols-2">
-        <div className="flex flex-col gap-2.5 sm:col-span-2">
-          <span className="eyebrow text-secondary">Sport</span>
+      <form id="create-tournament" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <span className="text-xs font-medium text-secondary">Sport</span>
 
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-1 rounded-[var(--radius-md)] bg-sunken p-1">
             {SPORTS.map((option) => (
               <button
                 key={option.value}
@@ -248,33 +199,15 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
                 onClick={() => setSport(option.value)}
                 aria-pressed={sport === option.value}
                 className={cn(
-                  'flex items-start gap-3.5 rounded-[var(--radius-md)] border px-4 py-3.5 text-left',
+                  'flex h-8 items-center justify-center gap-2 rounded-[var(--radius-sm)] text-[0.8125rem] font-medium',
                   'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
                   sport === option.value
-                    ? 'border-[var(--accent-strong)] bg-accent-soft'
-                    : 'border-line bg-raised hover:border-line-strong hover:bg-hover',
+                    ? 'bg-raised text-primary shadow-[var(--shadow-sm)] ring-1 ring-line'
+                    : 'text-muted hover:text-primary',
                 )}
               >
-                <SportMark
-                  sport={option.value}
-                  className={cn(
-                    'mt-0.5 size-5',
-                    sport === option.value ? 'text-accent' : 'text-muted',
-                  )}
-                />
-                <span className="min-w-0">
-                  <span
-                    className={cn(
-                      'block text-sm font-medium',
-                      sport === option.value ? 'text-accent' : 'text-primary',
-                    )}
-                  >
-                    {option.label}
-                  </span>
-                  <span className="mt-1 block text-[0.75rem] leading-snug text-muted">
-                    {option.blurb}
-                  </span>
-                </span>
+                <SportMark sport={option.value} />
+                {option.label}
               </button>
             ))}
           </div>
@@ -282,7 +215,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
 
         <div className="sm:col-span-2">
           <Input
-            label="Tournament name"
+            label="Name"
             autoFocus
             required
             placeholder={isFootball ? 'Sunday Football League 2026' : 'Sunday League 2026'}
@@ -294,9 +227,11 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
         <Select
           label="Format"
           value={format}
-          onChange={(event) => setFormat(event.target.value as TournamentFormat)}
+          onChange={(event) =>
+            setFormat(event.target.value as Exclude<TournamentFormat, 'KNOCKOUT'>)
+          }
         >
-          {TOURNAMENT_FORMATS.map((option) => (
+          {TOURNAMENT_FORMATS.filter((format) => format !== 'KNOCKOUT').map((option) => (
             <option key={option} value={option}>
               {FORMAT_LABELS[option]}
             </option>
@@ -304,7 +239,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
         </Select>
 
         <Input
-          label="Number of teams"
+          label="Teams"
           type="number"
           min={2}
           max={32}
@@ -319,7 +254,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
             hint={
               formationsFor(playersPerTeam).length > 0
                 ? `Formations: ${formationsFor(playersPerTeam).slice(0, 3).join(', ')}`
-                : 'Every squad must hold exactly this many.'
+                : undefined
             }
             value={playersPerTeam}
             onChange={(event) => setPlayersPerTeam(Number(event.target.value))}
@@ -335,7 +270,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
           </Select>
         ) : (
           <Input
-            label="Overs per innings"
+            label="Overs"
             type="number"
             min={1}
             max={50}
@@ -348,7 +283,6 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
         <div className="flex items-end pb-1">
           <Checkbox
             label="Double round-robin"
-            hint="Every pair meets twice, home and away."
             checked={doubleRoundRobin}
             onChange={(event) => setDoubleRoundRobin(event.target.checked)}
           />
@@ -356,7 +290,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
 
         {isFootball ? (
           <div className="sm:col-span-2">
-            <div className="rule mb-6" />
+            <div className="mb-4 border-t border-line" />
             <PeriodDesigner
               periods={periods}
               periodMinutes={periodMinutes}

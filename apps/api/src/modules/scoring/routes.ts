@@ -1,3 +1,4 @@
+import { loadScorerState } from '../matches/state';
 import { Router } from 'express';
 import { ballSchema, correctionSchema, undoSchema } from '@howzat/shared';
 import { asyncHandler, parseBody, requireParam } from '../../lib/http';
@@ -22,6 +23,7 @@ scoringRouter.post(
 
     res.status(result.duplicate ? 200 : 201).json({
       snapshot: result.snapshot,
+      scorer: await loadScorerState(matchId),
       duplicate: result.duplicate,
       inningsCompleted: result.inningsCompleted,
       matchCompleted: result.matchCompleted,
@@ -41,6 +43,7 @@ scoringRouter.post(
 
     res.json({
       snapshot: result.snapshot,
+      scorer: await loadScorerState(matchId),
       duplicate: result.duplicate,
       inningsCompleted: result.inningsCompleted,
     });
@@ -59,6 +62,7 @@ scoringRouter.post(
 
     res.json({
       snapshot: result.snapshot,
+      scorer: await loadScorerState(matchId),
       duplicate: result.duplicate,
       inningsCompleted: result.inningsCompleted,
     });

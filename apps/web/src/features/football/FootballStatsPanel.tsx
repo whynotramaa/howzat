@@ -10,14 +10,10 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
   if (players.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-7">
-      <SectionHeading
-        eyebrow="Tournament record"
-        title="The leaders board"
-        description="Folded from the goals and cards of completed matches, so an undone incident leaves the table on its own."
-      />
+    <section className="flex flex-col gap-4">
+      <SectionHeading title="Leaders" />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AwardCard
           label="Golden boot · most goals"
           player={goldenBoot}
@@ -28,7 +24,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
           label="Playmaker · most assists"
           player={playmaker}
           value={(player) => player.assists}
-          tone="text-[#9b8cff]"
+          tone="text-primary"
         />
         <AwardCard
           label="Golden glove · clean sheets"
@@ -48,7 +44,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile label="Matches played" value={totals.matchesPlayed} />
         <StatTile label="Goals scored" value={totals.goals} tone="accent" />
         <StatTile label="Saves made" value={totals.saves} tone="success" />
@@ -92,7 +88,7 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
                 key={player.playerId}
                 className="border-b border-line last:border-0 hover:bg-hover/50"
               >
-                <td className="px-5 py-4">
+                <td className="px-3 py-2">
                   <div className="flex items-center gap-3">
                     <FootballAvatar
                       seed={player.playerId}
@@ -101,7 +97,9 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-primary">{player.playerName}</p>
+                      <p className="truncate text-[0.8125rem] font-medium text-primary">
+                        {player.playerName}
+                      </p>
                       <p className="truncate text-[0.6875rem] text-muted">{player.team.name}</p>
                     </div>
                   </div>
@@ -116,10 +114,10 @@ export function FootballStatsPanel({ stats }: { stats: FootballTournamentStatsDt
                 <Td>{player.isGoalkeeper ? player.goalsConceded : '—'}</Td>
                 <Td>{player.isGoalkeeper ? player.cleanSheets : '—'}</Td>
 
-                <td className="px-4 py-4 text-center">
+                <td className="px-3 py-2 text-center">
                   <CardCount tone="yellow" count={player.yellowCards} />
                 </td>
-                <td className="px-4 py-4 text-center">
+                <td className="px-3 py-2 text-center">
                   <CardCount tone="red" count={player.redCards} />
                 </td>
               </tr>
@@ -160,7 +158,9 @@ function AwardCard({
                 size="md"
               />
               <div className="min-w-0">
-                <p className="serif truncate text-2xl text-primary">{player.playerName}</p>
+                <p className="font-semibold tracking-[-0.02em] truncate text-lg text-primary">
+                  {player.playerName}
+                </p>
                 <p className="mt-1 truncate text-sm text-secondary">{player.team.name}</p>
               </div>
             </div>

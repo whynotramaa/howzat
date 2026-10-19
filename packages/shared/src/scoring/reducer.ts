@@ -58,42 +58,36 @@ export function createInitialState(context: InningsContext): MatchState {
   };
 }
 
-export function materializeEvents(events: BallEvent[]): BallEvent[] {
+export function materializeEventRows<
+  T extends {
+    id: string;
+    seq: number;
+    eventType: string;
+    supersedesEventId: string | null;
+    overNumber?: number;
+    ballNumber?: number;
+  },
+>(events: T[]): T[] {
   const ordered = [...events].sort((a, b) => a.seq - b.seq);
-
-  const replacements = new Map<string, BallEvent>();
+  const replacements = new Map<string, T>();
   const removed = new Set<string>();
-
   for (const event of ordered) {
     if (!event.supersedesEventId) continue;
-
-    if (event.eventType === 'CORRECTION') {
-      replacements.set(event.supersedesEventId, event);
-    } else if (event.eventType === 'UNDO') {
-      removed.add(event.supersedesEventId);
-    }
+    if (event.eventType === 'CORRECTION') replacements.set(event.supersedesEventId, event);
+    if (event.eventType === 'UNDO') removed.add(event.supersedesEventId);
   }
+  return ordered
+    .filter((event) => event.eventType === 'BALL' && !removed.has(event.id))
+    .map((event) => {
+      const replacement = replacements.get(event.id);
+      return replacement
+        ? { ...replacement, overNumber: event.overNumber, ballNumber: event.ballNumber }
+        : event;
+    });
+}
 
-  const result: BallEvent[] = [];
-
-  for (const event of ordered) {
-    if (event.eventType !== 'BALL') continue;
-    if (removed.has(event.id)) continue;
-
-    const replacement = replacements.get(event.id);
-
-    if (replacement) {
-      result.push({
-        ...replacement,
-        overNumber: event.overNumber,
-        ballNumber: event.ballNumber,
-      });
-    } else {
-      result.push(event);
-    }
-  }
-
-  return result;
+export function materializeEvents(events: BallEvent[]): BallEvent[] {
+  return materializeEventRows(events);
 }
 
 export function buildState(context: InningsContext, events: BallEvent[]): MatchState {

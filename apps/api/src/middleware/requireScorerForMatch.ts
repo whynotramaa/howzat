@@ -16,8 +16,9 @@ export const requireScorerForMatch: RequestHandler = async (req, _res, next) => 
 
     const cached = await redis.get(cacheKey).catch(() => null);
 
-    if (cached === '1') return next();
-    if (cached === '0') return next(forbidden('You are not assigned to score this match'));
+    if (req.method === 'GET' && cached === '1') return next();
+    if (req.method === 'GET' && cached === '0')
+      return next(forbidden('You are not assigned to score this match'));
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },

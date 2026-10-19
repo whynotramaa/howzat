@@ -1,12 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/*
- * Cricket needs its own vocabulary and emoji will not carry it: a flame in
- * Segoe UI and a flame on iOS are different drawings. These are 20px, stroke
- * 1.4, rounded joins, and they inherit colour like text.
- */
-
 type IconProps = { className?: string };
 
 function svg(path: ReactNode, extra?: ReactNode) {

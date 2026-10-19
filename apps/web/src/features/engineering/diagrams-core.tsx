@@ -5,10 +5,6 @@ import { Box, Btn, Controls, Figure, Hand, Icon, LogPane, useLog, Wire } from '.
 import type { DrawState } from './chrome';
 import { cn } from '@/lib/cn';
 
-/* ================================================================== *
- * 1. The system map
- * ================================================================== */
-
 const MAP_NODES = {
   scorer: {
     title: 'Scorer console',
@@ -50,7 +46,7 @@ export function SystemMap() {
 
   return (
     <Figure
-      label="Figure 1 — the whole system on one sheet"
+      label="Figure 1 · the whole system on one sheet"
       hint="Tap any box to see what it does and what happens the moment it disappears."
       caption="Click any box. Solid arrows are HTTP requests, the dashed arrow is the WebSocket fan-out, and the ring through Redis is how a ball written on one instance reaches a viewer attached to another."
     >
@@ -58,36 +54,122 @@ export function SystemMap() {
         <Icon name="hand" /> scroll the drawing sideways
       </p>
       <div className="eng-scroll">
-        <svg viewBox="0 0 760 400" className="eng-svg min-w-[640px]" role="img" aria-label="System map">
+        <svg
+          viewBox="0 0 760 400"
+          className="eng-svg min-w-[640px]"
+          role="img"
+          aria-label="System map"
+        >
           <g className="sketch">
-            <Wire d="M 186 76 L 292 100" state={selected === 'api' || selected === 'scorer' ? 'active' : 'idle'} />
-            <Wire d="M 292 132 L 186 168" state={selected === 'viewer' ? 'active' : 'idle'} dashed />
+            <Wire
+              d="M 186 76 L 292 100"
+              state={selected === 'api' || selected === 'scorer' ? 'active' : 'idle'}
+            />
+            <Wire
+              d="M 292 132 L 186 168"
+              state={selected === 'viewer' ? 'active' : 'idle'}
+              dashed
+            />
             <Wire d="M 456 96 L 560 70" state={selected === 'pg' ? 'active' : 'idle'} />
             <Wire d="M 456 124 L 560 158" state={selected === 'redis' ? 'active' : 'idle'} />
-            <Wire d="M 560 196 C 470 250 470 250 456 268" state={selected === 'redis' ? 'active' : 'idle'} />
+            <Wire
+              d="M 560 196 C 470 250 470 250 456 268"
+              state={selected === 'redis' ? 'active' : 'idle'}
+            />
             <Wire d="M 292 300 L 186 322" state={selected === 'redis' ? 'active' : 'idle'} dashed />
 
-            <Box x={46} y={48} w={140} h={54} title="Scorer console" sub="SPA + outbox" state={selected === 'scorer' ? 'active' : 'idle'} onClick={() => setSelected('scorer')} />
-            <Box x={46} y={142} w={140} h={54} title="Viewer page" sub="snapshot-first" state={selected === 'viewer' ? 'active' : 'idle'} onClick={() => setSelected('viewer')} />
-            <Box x={46} y={296} w={140} h={54} title="Viewer page" sub="another device" state={selected === 'viewer' ? 'active' : 'idle'} onClick={() => setSelected('viewer')} />
+            <Box
+              x={46}
+              y={48}
+              w={140}
+              h={54}
+              title="Scorer console"
+              sub="SPA + outbox"
+              state={selected === 'scorer' ? 'active' : 'idle'}
+              onClick={() => setSelected('scorer')}
+            />
+            <Box
+              x={46}
+              y={142}
+              w={140}
+              h={54}
+              title="Viewer page"
+              sub="snapshot-first"
+              state={selected === 'viewer' ? 'active' : 'idle'}
+              onClick={() => setSelected('viewer')}
+            />
+            <Box
+              x={46}
+              y={296}
+              w={140}
+              h={54}
+              title="Viewer page"
+              sub="another device"
+              state={selected === 'viewer' ? 'active' : 'idle'}
+              onClick={() => setSelected('viewer')}
+            />
 
-            <Box x={292} y={72} w={164} h={80} title="API instance A" sub="Express + socket.io" state={selected === 'api' ? 'active' : 'idle'} onClick={() => setSelected('api')} />
-            <Box x={292} y={244} w={164} h={80} title="API instance B" sub="same image, no state" state={selected === 'api' ? 'active' : 'idle'} onClick={() => setSelected('api')} />
+            <Box
+              x={292}
+              y={72}
+              w={164}
+              h={80}
+              title="API instance A"
+              sub="Express + socket.io"
+              state={selected === 'api' ? 'active' : 'idle'}
+              onClick={() => setSelected('api')}
+            />
+            <Box
+              x={292}
+              y={244}
+              w={164}
+              h={80}
+              title="API instance B"
+              sub="same image, no state"
+              state={selected === 'api' ? 'active' : 'idle'}
+              onClick={() => setSelected('api')}
+            />
 
-            <Box x={560} y={40} w={154} h={60} title="Postgres" sub="BallEvent — the truth" state={selected === 'pg' ? 'active' : 'idle'} onClick={() => setSelected('pg')} />
-            <Box x={560} y={136} w={154} h={60} title="Redis" sub="cache · lock · bus" state={selected === 'redis' ? 'active' : 'idle'} onClick={() => setSelected('redis')} />
+            <Box
+              x={560}
+              y={40}
+              w={154}
+              h={60}
+              title="Postgres"
+              sub="BallEvent, the truth"
+              state={selected === 'pg' ? 'active' : 'idle'}
+              onClick={() => setSelected('pg')}
+            />
+            <Box
+              x={560}
+              y={136}
+              w={154}
+              h={60}
+              title="Redis"
+              sub="cache · lock · bus"
+              state={selected === 'redis' ? 'active' : 'idle'}
+              onClick={() => setSelected('redis')}
+            />
 
-            <Hand x={196} y={62}>POST /balls</Hand>
-            <Hand x={196} y={196}>ws: read only</Hand>
-            <Hand x={472} y={228}>pub/sub</Hand>
-            <Hand x={478} y={44}>append only</Hand>
+            <Hand x={196} y={62}>
+              POST /balls
+            </Hand>
+            <Hand x={196} y={196}>
+              ws: read only
+            </Hand>
+            <Hand x={472} y={228}>
+              pub/sub
+            </Hand>
+            <Hand x={478} y={44}>
+              append only
+            </Hand>
           </g>
         </svg>
       </div>
 
       <div className="mt-5 grid gap-4 rounded-[var(--radius-md)] border border-line bg-sunken px-5 py-4 sm:grid-cols-[1fr_1fr]">
         <div>
-          <p className="eyebrow mb-2">{node.title} — what it does</p>
+          <p className="eyebrow mb-2">{node.title} · what it does</p>
           <p className="text-[0.875rem] text-secondary">{node.job}</p>
         </div>
         <div>
@@ -98,10 +180,6 @@ export function SystemMap() {
     </Figure>
   );
 }
-
-/* ================================================================== *
- * 2. The ledger: the real reducer, running in this page
- * ================================================================== */
 
 const XI: { id: string; name: string }[] = [
   { id: 'p1', name: 'Rama' },
@@ -167,15 +245,11 @@ function makeEvent(
   };
 }
 
-/**
- * The last delivery still standing, paired with the original BALL row it came
- * from. A correction supersedes the ORIGINAL ball's id, never a previous
- * correction's, because `materializeEvents` only maps replacements onto BALL
- * events.
- */
 function lastDelivery(events: BallEvent[]): { original: BallEvent; effective: BallEvent } | null {
   const undone = new Set(
-    events.filter((e) => e.eventType === 'UNDO' && e.supersedesEventId).map((e) => e.supersedesEventId!),
+    events
+      .filter((e) => e.eventType === 'UNDO' && e.supersedesEventId)
+      .map((e) => e.supersedesEventId!),
   );
   const originals = [...events]
     .sort((a, b) => a.seq - b.seq)
@@ -196,38 +270,35 @@ export function LedgerLab() {
   const state = useMemo(() => buildState(CONTEXT, events), [events]);
   const effective = useMemo(() => materializeEvents(events), [events]);
 
-  const append = useCallback(
-    (preset: LedgerPreset) => {
-      setEvents((prev) => {
-        const current = buildState(CONTEXT, prev);
-        const seq = current.lastEventSeq + 1;
-        const overNumber = Math.floor(current.legalBalls / 6);
-        const ballNumber = (current.legalBalls % 6) + 1;
-        const base = {
-          seq,
-          overNumber,
-          ballNumber,
-          strikerId: current.strikerId ?? STRIKER,
-          nonStrikerId: current.nonStrikerId ?? NON_STRIKER,
-          bowlerId: current.bowlerId ?? OPENING_BOWLER,
-        };
-        const patch: Partial<BallEvent> =
-          preset === 'runs'
-            ? { runsOffBat: 1 }
-            : preset === 'six'
-              ? { runsOffBat: 6 }
-              : preset === 'wide'
-                ? { extraType: 'WIDE', extraRuns: 1 }
-                : {
-                    isWicket: true,
-                    wicketType: 'BOWLED',
-                    dismissedPlayerId: base.strikerId,
-                  };
-        return [...prev, makeEvent(base, patch)];
-      });
-    },
-    [],
-  );
+  const append = useCallback((preset: LedgerPreset) => {
+    setEvents((prev) => {
+      const current = buildState(CONTEXT, prev);
+      const seq = current.lastEventSeq + 1;
+      const overNumber = Math.floor(current.legalBalls / 6);
+      const ballNumber = (current.legalBalls % 6) + 1;
+      const base = {
+        seq,
+        overNumber,
+        ballNumber,
+        strikerId: current.strikerId ?? STRIKER,
+        nonStrikerId: current.nonStrikerId ?? NON_STRIKER,
+        bowlerId: current.bowlerId ?? OPENING_BOWLER,
+      };
+      const patch: Partial<BallEvent> =
+        preset === 'runs'
+          ? { runsOffBat: 1 }
+          : preset === 'six'
+            ? { runsOffBat: 6 }
+            : preset === 'wide'
+              ? { extraType: 'WIDE', extraRuns: 1 }
+              : {
+                  isWicket: true,
+                  wicketType: 'BOWLED',
+                  dismissedPlayerId: base.strikerId,
+                };
+      return [...prev, makeEvent(base, patch)];
+    });
+  }, []);
 
   const correctLast = useCallback(() => {
     setEvents((prev) => {
@@ -239,8 +310,6 @@ export function LedgerLab() {
         makeEvent(
           {
             seq,
-            // The correction keeps the original delivery's position in the over.
-            // That is a fact about the past and a correction may not move it.
             overNumber: target.original.overNumber,
             ballNumber: target.original.ballNumber,
             strikerId: target.effective.strikerId,
@@ -287,7 +356,7 @@ export function LedgerLab() {
 
   return (
     <Figure
-      label="Figure 2 — the log, the fold, and the score"
+      label="Figure 2 · the log, the fold, and the score"
       hint="Score a few balls, then append a CORRECTION and switch between Raw log and After materialize."
       controls={
         <>
@@ -324,7 +393,11 @@ export function LedgerLab() {
     >
       <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
         <div className="min-w-0">
-          <p className="eyebrow mb-2.5">{showEffective ? 'Effective deliveries — what the fold sees' : 'Raw log — what Postgres stores'}</p>
+          <p className="eyebrow mb-2.5">
+            {showEffective
+              ? 'Effective deliveries, what the fold sees'
+              : 'Raw log, what Postgres stores'}
+          </p>
           <div className="max-h-72 overflow-auto rounded-[var(--radius-sm)] border border-line bg-sunken">
             {rows.length === 0 ? (
               <p className="px-3 py-6 text-center text-[0.8125rem] text-muted">
@@ -423,10 +496,6 @@ export function LedgerLab() {
   );
 }
 
-/* ================================================================== *
- * 3. The write path
- * ================================================================== */
-
 type Lane = 'client' | 'api' | 'redis' | 'pg' | 'bus';
 
 const LANE_ICON: Record<Lane, 'phone' | 'server' | 'bolt' | 'database' | 'eye'> = {
@@ -467,7 +536,7 @@ function buildTrace(flags: WriteFlags): Step[] {
       lane: 'client',
       title: 'validateBall',
       sub: 'local',
-      log: 'client runs the same validateBall the server will run — a bad tap never costs a round trip',
+      log: 'client runs the same validateBall the server will run, a bad tap never costs a round trip',
     },
     {
       lane: 'client',
@@ -492,7 +561,7 @@ function buildTrace(flags: WriteFlags): Step[] {
       lane: 'api',
       title: 'requireScorerForMatch',
       sub: '60s authz cache',
-      log: 'authz:match:<id>:user:<id> hit in Redis — a definite 1 or 0, negatives cached too',
+      log: 'authz:match:<id>:user:<id> hit in Redis, a definite 1 or 0, negatives cached too',
     },
   ];
 
@@ -534,7 +603,7 @@ function buildTrace(flags: WriteFlags): Step[] {
       lane: 'api',
       title: '409 Conflict',
       sub: 'retryable',
-      log: 'still held after the last attempt. Return 409 — honest, retryable, and the client keeps the ball in its outbox.',
+      log: 'still held after the last attempt. Return 409 · honest, retryable, and the client keeps the ball in its outbox.',
       tone: 'bad',
       outcome: 'failed',
     });
@@ -554,7 +623,7 @@ function buildTrace(flags: WriteFlags): Step[] {
     title: 'findUnique',
     sub: 'clientEventId',
     log: flags.duplicate
-      ? 'clientEventId already present — this is a retry of a ball that already landed'
+      ? 'clientEventId already present, this is a retry of a ball that already landed'
       : 'clientEventId not seen before',
     tone: flags.duplicate ? 'note' : undefined,
   });
@@ -581,7 +650,7 @@ function buildTrace(flags: WriteFlags): Step[] {
     lane: 'pg',
     title: 'findMany',
     sub: 'inningsId, seq',
-    log: 'read the innings log — the index (inningsId, seq) serves the hottest query in the system',
+    log: 'read the innings log, the index (inningsId, seq) serves the hottest query in the system',
   });
   steps.push({
     lane: 'api',
@@ -684,9 +753,6 @@ export function WritePathLab() {
     clear();
   }, [clear]);
 
-  // The log line is pushed here rather than inside a setState updater. React
-  // double-invokes updaters in StrictMode, and a side effect in one prints
-  // every line twice in development.
   const advance = useCallback(() => {
     const next = cursor + 1;
     const step = trace[next];
@@ -698,7 +764,6 @@ export function WritePathLab() {
     setCursor(next);
   }, [cursor, trace, push]);
 
-  /** Clicking a step replays the log up to it, so the pane always matches. */
   const jumpTo = useCallback(
     (index: number) => {
       setPlaying(false);
@@ -723,14 +788,10 @@ export function WritePathLab() {
 
   const toggle = (key: keyof WriteFlags) =>
     setFlags((prev) => {
-      // The four scenarios are alternatives, not a matrix. Only one at a time.
       const cleared = { redisDown: false, duplicate: false, invalid: false, contended: false };
       return { ...cleared, [key]: !prev[key] };
     });
 
-  // Drawn like a commit graph. The five lanes are thin tracks down the left
-  // gutter, time is the y axis, and the step card gets the whole width of the
-  // column. A twenty-step trace grows downwards, never off the side of the box.
   const TRACK_GAP = 21;
   const GUTTER = 108;
   const WIDTH = 660;
@@ -756,12 +817,16 @@ export function WritePathLab() {
 
   return (
     <Figure
-      label="Figure 3 — one tap, end to end"
+      label="Figure 3 · one tap, end to end"
       hint="Press Run the tap, then switch on a scenario and run it again. Any step in the diagram is clickable."
       controls={
         <>
           <Controls label="Playback">
-            <Btn onClick={() => setPlaying((p) => !p)} tone="primary" disabled={finished && !playing}>
+            <Btn
+              onClick={() => setPlaying((p) => !p)}
+              tone="primary"
+              disabled={finished && !playing}
+            >
               <Icon name={playing ? 'clock' : 'bolt'} />
               {playing ? 'Pause' : cursor < 0 ? 'Run the tap' : 'Resume'}
             </Btn>
@@ -790,8 +855,6 @@ export function WritePathLab() {
       log={<LogPane lines={lines} />}
       caption="Five lanes across, one request down. Every step above the Postgres insert can fail the ball. Nothing below it can, which is why the snapshot write, the publish, and the rate limiter are all allowed to throw."
     >
-      {/* Phone: the same trace as a tappable ladder. A 1,900px swimlane does
-          not become readable by shrinking, so narrow screens get a list. */}
       <ol className="flex flex-col gap-1.5 lg:hidden">
         {trace.map((step, i) => {
           const state = stateFor(i, step);
@@ -817,7 +880,9 @@ export function WritePathLab() {
                     {step.title}
                   </span>
                   {step.sub ? (
-                    <span className="mono block truncate text-[0.625rem] text-muted">{step.sub}</span>
+                    <span className="mono block truncate text-[0.625rem] text-muted">
+                      {step.sub}
+                    </span>
                   ) : null}
                 </span>
               </button>
@@ -826,7 +891,6 @@ export function WritePathLab() {
         })}
       </ol>
 
-      {/* Desktop: the same trace as a track graph. */}
       <div className="hidden lg:block">
         <svg
           viewBox={`0 0 ${WIDTH} ${height}`}
@@ -845,8 +909,6 @@ export function WritePathLab() {
                 strokeWidth={1}
                 strokeDasharray="2 6"
               />
-              {/* Lane names run up the gutter. Written once, at the top, so
-                  every step card keeps its full width for the step itself. */}
               <text
                 x={trackX(li)}
                 y={HEAD_H - 22}
@@ -950,10 +1012,6 @@ export function WritePathLab() {
   );
 }
 
-/* ================================================================== *
- * 3b. Where the ball physically lives, moment by moment
- * ================================================================== */
-
 interface OutboxRow {
   id: string;
   runs: number;
@@ -991,7 +1049,10 @@ interface Phase {
   apply: (world: World) => World;
 }
 
-function flowPhases(runs: number, scenario: 'happy' | 'offline' | 'redisDown' | 'lostReply'): Phase[] {
+function flowPhases(
+  runs: number,
+  scenario: 'happy' | 'offline' | 'redisDown' | 'lostReply',
+): Phase[] {
   const id = 'c-7b2e';
 
   const phases: Phase[] = [
@@ -1143,8 +1204,6 @@ export function DataFlowLab() {
     setPlaying(false);
   }, []);
 
-  // Rebuilding from START_WORLD on every move keeps forwards and backwards
-  // identical, so a phase never has to know how to undo itself.
   const goTo = useCallback(
     (target: number) => {
       const clamped = Math.max(-1, Math.min(target, phases.length - 1));
@@ -1167,7 +1226,8 @@ export function DataFlowLab() {
 
   const current = step >= 0 ? phases[step] : null;
   const optimistic = worldRuns(world.pg) + world.outbox.reduce((sum, row) => sum + row.runs, 0);
-  const redisStale = world.redis !== null && world.redis.seq < (world.pg[world.pg.length - 1]?.seq ?? 0);
+  const redisStale =
+    world.redis !== null && world.redis.seq < (world.pg[world.pg.length - 1]?.seq ?? 0);
 
   const stores = [
     {
@@ -1221,12 +1281,16 @@ export function DataFlowLab() {
 
   return (
     <Figure
-      label="Figure 4 — where the ball is at every moment"
+      label="Figure 4 · where the ball is at every moment"
       hint="Step through and watch lastEventSeq move: the phone has no seq at all, Postgres assigns it, Redis carries it, and the viewer checks it."
       controls={
         <>
           <Controls label="Playback">
-            <Btn onClick={() => setPlaying((p) => !p)} tone="primary" disabled={step === phases.length - 1 && !playing}>
+            <Btn
+              onClick={() => setPlaying((p) => !p)}
+              tone="primary"
+              disabled={step === phases.length - 1 && !playing}
+            >
               <Icon name={playing ? 'clock' : 'bolt'} />
               {playing ? 'Pause' : step < 0 ? `Tap ${runs}` : 'Resume'}
             </Btn>
@@ -1282,7 +1346,11 @@ export function DataFlowLab() {
             const live = current?.where === store.key;
             const down = scenario === 'redisDown' && store.key === 'redis' && step >= 0;
             return (
-              <div key={store.key} className="eng-store" data-live={down ? 'down' : live ? 'true' : undefined}>
+              <div
+                key={store.key}
+                className="eng-store"
+                data-live={down ? 'down' : live ? 'true' : undefined}
+              >
                 <p className="eng-store-head">
                   <Icon name={store.icon} />
                   {store.name}
@@ -1335,19 +1403,47 @@ export function DataFlowLab() {
   );
 }
 
-/* ================================================================== *
- * 4. Truth versus derived
- * ================================================================== */
-
 const TABLES = [
-  { name: 'BallEvent', kind: 'truth', note: 'Append-only. Never updated, never deleted. Everything else is a fold of this.' },
-  { name: 'Tournament, Team, Player, MatchPlayer', kind: 'truth', note: 'Setup data. Authoritative, but not event-sourced — a squad is state, not a stream.' },
-  { name: 'Match, Innings', kind: 'truth', note: 'Status, toss, result, and oversQuota copied at creation so an organizer edit cannot move a finished innings.' },
-  { name: 'User, RefreshToken, Notification', kind: 'truth', note: 'Identity and the record of what was sent.' },
-  { name: 'PointsTable', kind: 'derived', note: 'Recomputed for the whole tournament on every match completion. Never incremented.' },
-  { name: 'PlayerMatchStats', kind: 'derived', note: 'Rewritten per match. A career profile is the sum across every Player slot linked to an account.' },
-  { name: 'Redis snapshot', kind: 'derived', note: 'One innings, shaped for display, behind a TTL. A cold cache is a latency problem, never a correctness one.' },
-  { name: 'Standings and stats caches', kind: 'derived', note: 'Read-through with a TTL. Deleting them costs one rebuild.' },
+  {
+    name: 'BallEvent',
+    kind: 'truth',
+    note: 'Append-only. Never updated, never deleted. Everything else is a fold of this.',
+  },
+  {
+    name: 'Tournament, Team, Player, MatchPlayer',
+    kind: 'truth',
+    note: 'Setup data. Authoritative, but not event-sourced, a squad is state, not a stream.',
+  },
+  {
+    name: 'Match, Innings',
+    kind: 'truth',
+    note: 'Status, toss, result, and oversQuota copied at creation so an organizer edit cannot move a finished innings.',
+  },
+  {
+    name: 'User, RefreshToken, Notification',
+    kind: 'truth',
+    note: 'Identity and the record of what was sent.',
+  },
+  {
+    name: 'PointsTable',
+    kind: 'derived',
+    note: 'Recomputed for the whole tournament on every match completion. Never incremented.',
+  },
+  {
+    name: 'PlayerMatchStats',
+    kind: 'derived',
+    note: 'Rewritten per match. A career profile is the sum across every Player slot linked to an account.',
+  },
+  {
+    name: 'Redis snapshot',
+    kind: 'derived',
+    note: 'One innings, shaped for display, behind a TTL. A cold cache is a latency problem, never a correctness one.',
+  },
+  {
+    name: 'Standings and stats caches',
+    kind: 'derived',
+    note: 'Read-through with a TTL. Deleting them costs one rebuild.',
+  },
 ] as const;
 
 export function TruthTable() {
@@ -1365,7 +1461,7 @@ export function TruthTable() {
 
   return (
     <Figure
-      label="Figure 5 — the TRUNCATE test"
+      label="Figure 5 · the TRUNCATE test"
       hint="Try to drop a row. The four marked truth refuse; the projections vanish and tell you what rebuilds them."
       controls={
         <Controls label="Drop a table">
@@ -1399,7 +1495,7 @@ export function TruthTable() {
                 <span className="min-w-0">
                   <span className="mono block text-[0.8125rem] text-primary">
                     {row.name}
-                    {dropped ? ' — dropped, rebuilds on next read' : ''}
+                    {dropped ? ' · dropped, rebuilds on next read' : ''}
                   </span>
                   <span className="mt-0.5 block text-[0.8125rem] text-secondary">{row.note}</span>
                 </span>

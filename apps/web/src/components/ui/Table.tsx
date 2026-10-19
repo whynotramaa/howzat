@@ -12,8 +12,8 @@ const ALIGNMENT: Record<Align, string> = {
 type Density = 'default' | 'compact';
 
 const PADDING: Record<Density, { th: string; td: string }> = {
-  default: { th: 'px-4 py-3.5', td: 'px-4 py-4' },
-  compact: { th: 'px-3 py-3.5', td: 'px-3 py-3.5' },
+  default: { th: 'px-3 py-2', td: 'px-3 py-2.5' },
+  compact: { th: 'px-2.5 py-2', td: 'px-2.5 py-2' },
 };
 
 const DensityContext = createContext<Density>('default');
@@ -29,7 +29,7 @@ export function Table({
 }) {
   return (
     <DensityContext.Provider value={density}>
-      <table className={cn('w-full border-collapse text-sm', className)}>{children}</table>
+      <table className={cn('w-full border-collapse text-[0.8125rem]', className)}>{children}</table>
     </DensityContext.Provider>
   );
 }

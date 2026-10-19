@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T00:00:00Z",
+  "title": "Design System: Howzat",
+  "extensions": {
+    "colorMeta": {
+      "accent-fill": { "role": "primary", "displayName": "Cloudflare Orange", "canonical": "#f6821f", "tonalRamp": ["#3a1a04", "#6b3a14", "#a8500f", "#e5600b", "#f6821f", "#ffad66", "#fbc49a", "#fff1e6"] },
+      "accent": { "role": "primary", "displayName": "Burnt Orange Text", "canonical": "#c2410c", "tonalRamp": ["#2a1709", "#5a2306", "#8a3209", "#c2410c", "#e5600b", "#ff9a45", "#fbc49a", "#fff1e6"] },
+      "dark-accent": { "role": "primary", "displayName": "Apricot", "canonical": "#ff9a45" },
+      "accent-strong": { "role": "primary", "displayName": "Ember", "canonical": "#e5600b" },
+      "live": { "role": "primary", "displayName": "Ember", "canonical": "#e5600b" },
+      "accent-soft": { "role": "primary", "displayName": "Peach Wash", "canonical": "#fff1e6" },
+      "accent-line": { "role": "primary", "displayName": "Peach Line", "canonical": "#fbc49a" },
+      "on-accent": { "role": "neutral", "displayName": "On-accent Ink", "canonical": "#1a0d02" },
+      "surface": { "role": "neutral", "displayName": "Canvas Gray", "canonical": "#f5f5f5", "tonalRamp": ["#0b0b0b", "#171717", "#333333", "#525252", "#8f8f8f", "#cfcfcf", "#ededed", "#f5f5f5"] },
+      "surface-raised": { "role": "neutral", "displayName": "Paper White", "canonical": "#ffffff" },
+      "surface-sunken": { "role": "neutral", "displayName": "Well Gray", "canonical": "#ededed" },
+      "surface-hover": { "role": "neutral", "displayName": "Hover Gray", "canonical": "#ececec" },
+      "surface-inverse": { "role": "neutral", "displayName": "Inverse Ink", "canonical": "#171717" },
+      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "#e3e3e3" },
+      "line-strong": { "role": "neutral", "displayName": "Firm Line", "canonical": "#cfcfcf" },
+      "text-primary": { "role": "neutral", "displayName": "Ink", "canonical": "#171717" },
+      "text-secondary": { "role": "neutral", "displayName": "Graphite", "canonical": "#525252" },
+      "text-muted": { "role": "neutral", "displayName": "Ash", "canonical": "#6b6b6b" },
+      "alert": { "role": "status", "displayName": "Alert Red", "canonical": "#c81e1e" },
+      "alert-soft": { "role": "status", "displayName": "Alert Wash", "canonical": "#fdeceb" },
+      "success": { "role": "status", "displayName": "Pitch Green", "canonical": "#15803d" },
+      "success-soft": { "role": "status", "displayName": "Pitch Wash", "canonical": "#eaf6ee" },
+      "warning": { "role": "status", "displayName": "Amber", "canonical": "#8a5a00" },
+      "warning-soft": { "role": "status", "displayName": "Amber Wash", "canonical": "#fdf3dc" },
+      "board": { "role": "neutral", "displayName": "Board", "canonical": "#171717" },
+      "board-raised": { "role": "neutral", "displayName": "Board Raised", "canonical": "#212121" },
+      "board-line": { "role": "neutral", "displayName": "Board Line", "canonical": "#333333" },
+      "board-ink": { "role": "neutral", "displayName": "Board Ink", "canonical": "#fafafa" },
+      "board-muted": { "role": "neutral", "displayName": "Board Muted", "canonical": "#a3a3a3" },
+      "dark-surface": { "role": "neutral", "displayName": "Dark Canvas", "canonical": "#0b0b0b" },
+      "dark-surface-raised": { "role": "neutral", "displayName": "Dark Paper", "canonical": "#141414" },
+      "dark-line": { "role": "neutral", "displayName": "Dark Hairline", "canonical": "#262626" },
+      "dark-text-primary": { "role": "neutral", "displayName": "Dark Ink", "canonical": "#ededed" },
+      "dark-text-muted": { "role": "neutral", "displayName": "Dark Ash", "canonical": "#8f8f8f" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Home hero only." },
+      "score": { "displayName": "Score", "purpose": "Scores and clock digits; size varies by context from 1rem to 4.5rem." },
+      "headline": { "displayName": "Headline", "purpose": "Page h1 on app screens." },
+      "title": { "displayName": "Title", "purpose": "Section h2 inside cards and panels." },
+      "body": { "displayName": "Body", "purpose": "Default document text." },
+      "control": { "displayName": "Control", "purpose": "Buttons, fields, rows, tabs, nav." },
+      "label": { "displayName": "Label", "purpose": "Uppercase small data labels on dt, column heads, board stats." }
+    },
+    "shadows": [
+      { "name": "shadow-xs", "value": "0 1px 2px rgb(0 0 0 / 0.04)", "purpose": "Secondary button. None in dark." },
+      { "name": "shadow-sm", "value": "0 1px 3px rgb(0 0 0 / 0.06)", "purpose": "Scoring pad. None in dark." },
+      { "name": "shadow-md", "value": "0 6px 18px -8px rgb(0 0 0 / 0.14)", "purpose": "Floating layers such as toasts. Dark: 0 8px 24px -10px rgb(0 0 0 / 0.6)." },
+      { "name": "shadow-lg", "value": "0 18px 40px -16px rgb(0 0 0 / 0.22)", "purpose": "Sheets and dialogs. Dark: 0 20px 48px -16px rgb(0 0 0 / 0.7)." },
+      { "name": "button-primary-inset", "value": "inset 0 -1px 0 rgb(0 0 0 / 0.12)", "purpose": "Bottom edge on the primary button." },
+      { "name": "input-focus-halo", "value": "0 0 0 3px var(--accent-soft)", "purpose": "Field focus." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for all transitions and entrances." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.65, 0, 0.35, 1)", "purpose": "Looping pulses." },
+      { "name": "dur-fast", "value": "120ms", "purpose": "Hover, press, row highlight." },
+      { "name": "dur", "value": "200ms", "purpose": "Sheets, chips, tab underline." },
+      { "name": "dur-slow", "value": "360ms", "purpose": "Reveal and ball landing." },
+      { "name": "dur-gauge", "value": "650ms", "purpose": "Chase track fill and marker." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one orange action per view.",
+      "html": "<button class=\"ds-btn-primary\">Start match</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 0; border-radius: var(--radius-md, 6px); background: var(--accent-fill, #f6821f); color: var(--on-accent, #1a0d02); font: 500 0.8125rem/1 Geist, ui-sans-serif, system-ui, sans-serif; box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.12); transition: background-color 120ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--accent-fill, #f6821f) 90%, #000); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--focus, #f6821f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default for every non-primary action.",
+      "html": "<button class=\"ds-btn-secondary\">Edit team</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 1px solid var(--line, #e3e3e3); border-radius: var(--radius-md, 6px); background: var(--surface-raised, #fff); color: var(--text-primary, #171717); font: 500 0.8125rem/1 Geist, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; } .ds-btn-secondary:hover { border-color: var(--line-strong, #cfcfcf); background: var(--surface-hover, #ececec); } .ds-btn-secondary:active { transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--focus, #f6821f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Low-weight actions in toolbars and headers.",
+      "html": "<button class=\"ds-btn-quiet\">Cancel</button>",
+      "css": ".ds-btn-quiet { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border: 0; border-radius: var(--radius-md, 6px); background: transparent; color: var(--text-secondary, #525252); font: 500 0.8125rem/1 Geist, ui-sans-serif, system-ui, sans-serif; transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; } .ds-btn-quiet:hover { background: var(--surface-hover, #ececec); color: var(--text-primary, #171717); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--focus, #f6821f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Label above, 36px field, orange border and peach halo on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Team name</span><input class=\"ds-input\" placeholder=\"Riverside XI\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; font-weight: 500; color: var(--text-secondary, #525252); } .ds-input { height: 36px; padding: 0 12px; border: 1px solid var(--line, #e3e3e3); border-radius: var(--radius-md, 6px); background: var(--surface-raised, #fff); color: var(--text-primary, #171717); font: inherit; font-size: 0.8125rem; outline: none; caret-color: var(--accent-fill, #f6821f); transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--text-muted, #6b6b6b); } .ds-input:hover { border-color: var(--line-strong, #cfcfcf); } .ds-input:focus { border-color: var(--accent-fill, #f6821f); box-shadow: 0 0 0 3px var(--accent-soft, #fff1e6); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "pill-live",
+      "description": "Small worded status; live adds the pinging dot.",
+      "html": "<span class=\"ds-pill\"><span class=\"ds-live-dot\"></span>Live</span> <span class=\"ds-pill ds-pill-neutral\">Scheduled</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 6px; border: 1px solid var(--accent-line, #fbc49a); border-radius: var(--radius-sm, 4px); background: var(--accent-soft, #fff1e6); color: var(--accent, #c2410c); font: 500 0.6875rem/1 Geist, ui-sans-serif, system-ui, sans-serif; } .ds-pill-neutral { border-color: var(--line, #e3e3e3); background: var(--surface-raised, #fff); color: var(--text-secondary, #525252); } .ds-live-dot { position: relative; width: 6px; height: 6px; border-radius: 999px; background: var(--live, #e5600b); } .ds-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: ds-ping 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite; } @keyframes ds-ping { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3); opacity: 0; } }"
+    },
+    {
+      "name": "Ledger",
+      "kind": "card",
+      "refersTo": "ledger-row",
+      "description": "Rows inside one bordered raised container, hairline between rows.",
+      "html": "<ul class=\"ds-ledger\"><li class=\"ds-ledger-row\"><span>Riverside XI v Hill CC</span><span class=\"ds-tabular\">142/6</span></li><li class=\"ds-ledger-row\"><span>Northend v Parkside</span><span class=\"ds-tabular\">98/3</span></li><li class=\"ds-ledger-row\"><span>Old Boys v Dockyard</span><span class=\"ds-tabular\">Sat 10:30</span></li></ul>",
+      "css": ".ds-ledger { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line, #e3e3e3); border-radius: var(--radius-lg, 8px); background: var(--surface-raised, #fff); overflow: hidden; font: 400 0.8125rem/1.4 Geist, ui-sans-serif, system-ui, sans-serif; color: var(--text-primary, #171717); } .ds-ledger-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line, #e3e3e3); transition: background-color 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-ledger-row:last-child { border-bottom: 0; } .ds-ledger-row:hover { background: var(--surface-hover, #ececec); } .ds-tabular { font-variant-numeric: tabular-nums; font-weight: 500; }"
+    },
+    {
+      "name": "Stat Strip",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "A dl split into cells by left border dividers.",
+      "html": "<dl class=\"ds-stats\"><div><dt>Matches</dt><dd>24</dd></div><div><dt>Runs</dt><dd>812</dd></div><div><dt>Wickets</dt><dd>31</dd></div></dl>",
+      "css": ".ds-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; border: 1px solid var(--line, #e3e3e3); border-radius: var(--radius-lg, 8px); background: var(--surface-raised, #fff); overflow: hidden; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; } .ds-stats > div + div { border-left: 1px solid var(--line, #e3e3e3); } .ds-stats dt { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted, #6b6b6b); } .ds-stats dd { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--text-primary, #171717); }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "32px rows; active row gets hover gray and an orange edge bar.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M3 10.5 12 3l9 7.5V21H3z\"/></svg>Dashboard</a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M3 9h18\"/></svg>Fixtures</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 1px; width: 204px; padding: 8px; background: var(--surface-raised, #fff); border-right: 1px solid var(--line, #e3e3e3); font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-nav-item { position: relative; display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; border-radius: var(--radius-md, 6px); color: var(--text-secondary, #525252); font-size: 0.8125rem; text-decoration: none; transition: background-color 120ms cubic-bezier(0.16, 1, 0.3, 1), color 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav-item:hover { background: var(--surface-hover, #ececec); color: var(--text-primary, #171717); } .ds-nav-active { background: var(--surface-hover, #ececec); color: var(--text-primary, #171717); font-weight: 500; } .ds-nav-active::before { content: ''; position: absolute; top: 8px; bottom: 8px; left: -8px; width: 2px; border-radius: 999px; background: var(--accent-fill, #f6821f); } .ds-nav-item:focus-visible { outline: 2px solid var(--focus, #f6821f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ball Chips",
+      "kind": "custom",
+      "refersTo": "scoreboard",
+      "description": "This-over chips on the dark board: dot, run, four, six, wicket, extra.",
+      "html": "<div class=\"ds-board\"><span class=\"ds-ball ds-dot\">0</span><span class=\"ds-ball\">1</span><span class=\"ds-ball ds-four\">4</span><span class=\"ds-ball ds-six\">6</span><span class=\"ds-ball ds-wicket\">W</span><span class=\"ds-ball ds-extra\">wd</span></div>",
+      "css": ".ds-board { display: flex; gap: 6px; padding: 16px; border-radius: var(--radius-lg, 8px); background: #171717; font-family: Geist, ui-sans-serif, system-ui, sans-serif; } .ds-ball { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; border: 1px solid rgb(255 255 255 / 0.18); background: #212121; color: #fafafa; font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-dot { color: #a3a3a3; border-color: #333333; } .ds-four { border-color: #ff9a45; background: rgb(246 130 31 / 0.14); color: #ff9a45; } .ds-six { border-color: #f6821f; background: #f6821f; color: #1a0d02; } .ds-wicket { border-color: #fafafa; background: #fafafa; color: #212121; } .ds-extra { border-color: rgb(242 182 74 / 0.55); background: rgb(242 182 74 / 0.16); color: #f2b64a; font-size: 0.65rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operations Console",
+    "overview": "Howzat reads like an infrastructure dashboard that happens to keep score. Neutral grays carry no tint, panels are bordered rather than lifted, and one orange accent marks the action, the live state, and the boundary. Density is high and calm: small type, short controls, and rows that pack many matches into one screen without crowding.\n\nLight is the default theme. Dark sits behind a toggle that sets `data-theme=\"dark\"` on the root and persists the choice. Both themes share one layout and one set of token names, so a component never branches on theme. The scoreboard is the exception that proves the rule: it stays a dark board in both themes, because a score display reads as an instrument rather than a page.\n\nCopy is minimal and sentence case. Headings name the thing; they do not sell it. The old green-tinted dark matchday look is retired.",
+    "keyCharacteristics": [
+      "Neutral grays with zero hue, light first, dark on request.",
+      "A single orange accent with separate text and fill values.",
+      "Geist for everything, tabular numerals for every figure.",
+      "Compact controls (32 to 40px) and 13px working text.",
+      "Flat bordered panels, with shadow reserved for the primary button inset and floating layers.",
+      "A drafting-table motif (faint grid, corner ticks) used sparingly on hero and sign-in plates."
+    ],
+    "rules": [
+      { "name": "The No Tint Rule", "body": "Grays are true neutrals. A gray with a green, blue, or warm cast does not belong in this system.", "section": "colors" },
+      { "name": "The Two Oranges Rule", "body": "Fill orange is for surfaces and strokes; text orange is for type. Never set body text in the fill value on a light surface.", "section": "colors" },
+      { "name": "The One Voice Rule", "body": "Orange is the only accent. Team identity colors appear only inside team marks.", "section": "colors" },
+      { "name": "The Small Label Rule", "body": "The uppercase label marks a datum (a `dt`, a column head, a board stat). It never sits above a heading as a kicker and never introduces a section.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every number that can change (runs, overs, standings, counts) uses tabular figures.", "section": "typography" },
+      { "name": "The Border First Rule", "body": "Separate with a hairline before reaching for a shadow. A resting card has no shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use true neutral grays and the single orange accent.",
+      "Do put text orange on type and fill orange on surfaces, with on-accent ink over fill.",
+      "Do keep page h1 at the headline size and section h2 at the title size.",
+      "Do group lists as ledger rows inside one bordered raised container.",
+      "Do show stats as a `dl` strip with left border dividers.",
+      "Do set every changing number in tabular figures.",
+      "Do write minimal, sentence case copy.",
+      "Do design in light first and let dark follow through the same tokens."
+    ],
+    "donts": [
+      "Don't tint the grays green, blue, or warm.",
+      "Don't use the uppercase label as a kicker or eyebrow above a heading.",
+      "Don't add shadows to resting cards.",
+      "Don't set white text on the orange fill.",
+      "Don't introduce a second accent hue outside status colors and team marks.",
+      "Don't signal status with color alone."
+    ]
+  }
+}

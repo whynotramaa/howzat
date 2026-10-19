@@ -23,10 +23,12 @@ export class ApiError extends Error {
 }
 
 let accessToken: string | null = null;
+let sessionGeneration = 0;
 let refreshInFlight: Promise<string | null> | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (token === null) sessionGeneration += 1;
 }
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
@@ -39,6 +41,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const response = await fetch(`${BASE_URL}${path}`, {
     ...rest,
+    signal: rest.signal ?? AbortSignal.timeout(15_000),
     credentials: 'include',
     headers: {
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
@@ -71,10 +74,12 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 }
 
 export function refreshAccessToken(): Promise<string | null> {
-  refreshInFlight ??= (async () => {
+  const generation = sessionGeneration;
+  const refresh = async () => {
     try {
       const response = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
+        signal: AbortSignal.timeout(15_000),
         credentials: 'include',
       });
 
@@ -84,6 +89,7 @@ export function refreshAccessToken(): Promise<string | null> {
       }
 
       const session = (await response.json()) as AuthSession;
+      if (generation !== sessionGeneration) return null;
       accessToken = session.accessToken;
       return session.accessToken;
     } catch {
@@ -92,8 +98,12 @@ export function refreshAccessToken(): Promise<string | null> {
     } finally {
       refreshInFlight = null;
     }
+  };
+  refreshInFlight ??= (async () => {
+    if (typeof navigator !== 'undefined' && navigator.locks)
+      return await navigator.locks.request('howzat-session-refresh', refresh);
+    return refresh();
   })();
-
   return refreshInFlight;
 }
 

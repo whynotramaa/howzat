@@ -1,35 +1,30 @@
 import { cn } from '@/lib/cn';
 
+type Size = 'sm' | 'md' | 'lg';
+
 export function Wordmark({
   size = 'md',
   tone = 'default',
   showName = true,
   className,
 }: {
-  size?: 'sm' | 'md' | 'lg';
+  size?: Size;
   tone?: 'default' | 'inverse';
   showName?: boolean;
   className?: string;
 }) {
-  const name = {
-    sm: 'text-[0.8125rem] tracking-[0.2em]',
-    md: 'text-sm tracking-[0.2em]',
-    lg: 'text-base tracking-[0.22em]',
-  }[size];
-
-  const inverse = tone === 'inverse';
-
   return (
-    <span className={cn('inline-flex items-center', className)}>
+    <span className={cn('inline-flex items-center gap-2', className)}>
+      <WordmarkMark size={size} tone={tone} />
       {showName ? (
         <span
           className={cn(
-            'font-medium uppercase',
-            name,
-            inverse ? 'text-on-inverse' : 'text-primary',
+            'font-semibold tracking-[-0.04em]',
+            size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-[0.9375rem]' : 'text-lg',
+            tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
           )}
         >
-          Howzat
+          howzat
         </span>
       ) : null}
     </span>
@@ -40,26 +35,35 @@ export function WordmarkMark({
   size = 'md',
   tone = 'default',
 }: {
-  size?: 'sm' | 'md' | 'lg';
+  size?: Size;
   tone?: 'default' | 'inverse';
 }) {
-  const sizes = {
-    sm: 'size-7 text-[0.9375rem]',
-    md: 'size-8 text-base',
-    lg: 'size-11 text-xl',
-  } as const;
   return (
-    <span
-      aria-hidden
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
       className={cn(
-        'serif grid shrink-0 place-items-center rounded-[var(--radius-sm)] border pt-px',
-        sizes[size],
-        tone === 'inverse'
-          ? 'border-[var(--accent)]/50 text-on-inverse'
-          : 'border-[var(--accent-line)] text-primary',
+        'shrink-0',
+        size === 'lg' ? 'size-10' : size === 'sm' ? 'size-[22px]' : 'size-7',
+        tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
       )}
     >
-      H
-    </span>
+      <rect width="24" height="24" rx="5" fill="currentColor" />
+      <g fill={tone === 'inverse' ? 'var(--surface-inverse)' : 'var(--surface-raised)'}>
+        <rect x="6.5" y="9" width="2" height="10" rx="0.5" />
+        <rect x="11" y="9" width="2" height="10" rx="0.5" />
+        <rect x="15.5" y="9" width="2" height="10" rx="0.5" />
+      </g>
+      <rect x="6" y="6.6" width="5.6" height="1.6" rx="0.8" fill="#f6821f" />
+      <rect
+        x="12.6"
+        y="4.4"
+        width="5.6"
+        height="1.6"
+        rx="0.8"
+        fill="#f6821f"
+        transform="rotate(-24 15.4 5.2)"
+      />
+    </svg>
   );
 }
