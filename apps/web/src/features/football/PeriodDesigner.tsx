@@ -53,7 +53,7 @@ export function PeriodDesigner({
                   'flex flex-col items-start gap-1 rounded-[var(--radius-sm)] border px-3.5 py-3 text-left',
                   'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
                   active
-                    ? 'border-[var(--accent-strong)] bg-accent-soft'
+                    ? 'border-[var(--text-primary)] bg-accent-soft'
                     : 'border-line bg-raised hover:border-line-strong hover:bg-hover',
                 )}
               >
@@ -110,7 +110,7 @@ function PeriodBar({ periods, periodMinutes }: { periods: number; periodMinutes:
           <div
             key={index}
             className={cn(
-              'relative flex-1 rounded-[var(--radius-xs)] bg-[var(--accent-strong)]',
+              'relative flex-1 rounded-[var(--radius-xs)] bg-[var(--text-primary)]',
               'transition-all duration-[var(--dur)] ease-[var(--ease)]',
             )}
             style={{ opacity: 1 - index * 0.14 }}

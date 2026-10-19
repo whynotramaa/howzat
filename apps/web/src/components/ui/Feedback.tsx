@@ -5,14 +5,14 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn('animate-pulse rounded-[var(--radius-md)] bg-sunken', className)}
+      className={cn('animate-pulse rounded-[var(--radius-lg)] bg-sunken', className)}
     />
   );
 }
 
 export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-4">
+    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-5 shadow-[var(--shadow-sm)]">
       <div className="h-4 w-2/5 animate-pulse rounded bg-sunken" />
       <div className="mt-4 flex flex-col gap-2.5">
         {Array.from({ length: rows }).map((_, index) => (
@@ -46,8 +46,8 @@ export function ErrorText({ error }: { error: unknown }) {
     <div
       role="alert"
       className={cn(
-        'rounded-[var(--radius-md)] border border-[var(--alert)]/40 bg-alert-soft px-3 py-2.5',
-        'text-[0.8125rem] text-primary',
+        'rounded-[var(--radius-md)] border border-[var(--alert)]/40 bg-alert-soft px-4 py-3.5',
+        'text-sm text-primary',
       )}
     >
       <p className="font-medium">{message}</p>

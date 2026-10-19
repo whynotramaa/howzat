@@ -29,7 +29,7 @@ export function StandingsTable({
     <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
       <Table className="min-w-[30rem]">
         <thead>
-          <tr className="border-b border-line bg-sunken">
+          <tr className="border-b border-line-strong">
             <Th className="w-8">#</Th>
             <Th align="left">Team</Th>
             <Th>P</Th>

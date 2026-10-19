@@ -106,7 +106,7 @@ export function FootballScoringPage() {
   return (
     <div className={cn('flex flex-col gap-4', assisted && 'assist-mode')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-[-0.02em]">Scoring</h1>
+        <h1 className="serif text-[2.5rem] leading-none sm:text-[3rem]">Scoring</h1>
         <button
           type="button"
           aria-pressed={assisted}
@@ -154,7 +154,7 @@ export function FootballScoringPage() {
             error={clockCommand.error}
           />
 
-          <div className="border-t border-line bg-sunken px-5 py-6 sm:px-8 sm:py-7">
+          <div className="border-t border-line px-5 py-6 sm:px-8 sm:py-7">
             {watch.clock ? (
               <>
                 <GoalKey
@@ -201,7 +201,7 @@ export function FootballScoringPage() {
                         viewBox="0 0 16 16"
                         className="size-[1.375rem]"
                         fill="none"
-                        stroke="var(--accent-strong)"
+                        stroke="var(--text-primary)"
                         aria-hidden
                       >
                         <path
@@ -395,7 +395,7 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
 function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
   return (
     <PushButton
-      tone="var(--accent-strong)"
+      tone="var(--cta)"
       depth={10}
       radius="var(--radius-xl)"
       disabled={disabled}
@@ -477,7 +477,7 @@ function ClockBar({
                 'transport size-[3.75rem] sm:size-[4.25rem]',
                 isRunning
                   ? 'border border-line bg-raised text-primary hover:bg-hover'
-                  : 'bg-[var(--accent-strong)] text-white',
+                  : 'btn-primary',
               )}
               disabled={isPending}
               aria-label={COMMAND_LABELS[primary]}
@@ -920,7 +920,7 @@ function GoalSheet({
                   setScorerId(null);
                   setAssistId(null);
                 }}
-                className="size-4 accent-[var(--accent-strong)]"
+                className="size-4 accent-[var(--text-primary)]"
               />
               <span className="text-sm text-primary">
                 Own goal
@@ -1043,7 +1043,7 @@ function CardSheet({
                   'flex items-center justify-center gap-2.5 rounded-[var(--radius-sm)] border py-3.5',
                   'text-sm font-medium transition-all duration-[var(--dur-fast)]',
                   kind === option
-                    ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
+                    ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                     : 'border-line bg-raised text-primary hover:bg-hover',
                 )}
               >
@@ -1100,7 +1100,7 @@ function TeamChoice({
               'flex items-center gap-3 rounded-[var(--radius-sm)] border px-3.5 py-3',
               'transition-all duration-[var(--dur-fast)]',
               value === team.id
-                ? 'border-[var(--accent-strong)] bg-accent-soft'
+                ? 'border-[var(--text-primary)] bg-accent-soft'
                 : 'border-line bg-raised hover:bg-hover',
             )}
           >
@@ -1146,7 +1146,7 @@ function PlayerChoice({
               'flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5',
               'text-[0.8125rem] transition-all duration-[var(--dur-fast)]',
               value === player.id
-                ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
+                ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                 : 'border-line bg-raised text-primary hover:bg-hover',
             )}
           >

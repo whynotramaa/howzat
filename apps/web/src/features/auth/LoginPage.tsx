@@ -169,8 +169,12 @@ export function LoginPage() {
   return (
     <AuthLayout>
       {step === 'login' ? (
-        <form onSubmit={handleLogin} className="flex flex-col gap-5">
-          <FormHeading title="Sign in" lead="Username or email." />
+        <form onSubmit={handleLogin} className="flex flex-col gap-8">
+          <FormHeading
+            eyebrow="Welcome back"
+            title="Sign in"
+            lead="Use the username or email you signed up with."
+          />
 
           <div className="flex flex-col gap-4">
             <Input
@@ -207,7 +211,7 @@ export function LoginPage() {
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" fullWidth isLoading={pending}>
+          <Button type="submit" size="lg" fullWidth isLoading={pending}>
             Sign in
           </Button>
 
@@ -218,8 +222,12 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'register' ? (
-        <form onSubmit={handleRegister} className="flex flex-col gap-5">
-          <FormHeading title="Create account" lead="Organizers add you to squads by username." />
+        <form onSubmit={handleRegister} className="flex flex-col gap-8">
+          <FormHeading
+            eyebrow="Join the club"
+            title="Create your account"
+            lead="Your username is how organizers add you to a squad."
+          />
 
           <div className="flex flex-col gap-4">
             <Input
@@ -269,7 +277,7 @@ export function LoginPage() {
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" fullWidth isLoading={pending}>
+          <Button type="submit" size="lg" fullWidth isLoading={pending}>
             Create account
           </Button>
 
@@ -280,8 +288,12 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'forgot' ? (
-        <form onSubmit={handleForgot} className="flex flex-col gap-5">
-          <FormHeading title="Reset password" lead="We will email you a code." />
+        <form onSubmit={handleForgot} className="flex flex-col gap-8">
+          <FormHeading
+            eyebrow="Account recovery"
+            title="Reset your password"
+            lead="Tell us the email on your account and we will send a code."
+          />
 
           <Input
             label="Email"
@@ -297,7 +309,7 @@ export function LoginPage() {
 
           {error ? <ErrorBanner message={error} /> : null}
 
-          <Button type="submit" fullWidth isLoading={pending}>
+          <Button type="submit" size="lg" fullWidth isLoading={pending}>
             Send reset code
           </Button>
 
@@ -308,9 +320,10 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'reset' ? (
-        <form onSubmit={handleReset} className="flex flex-col gap-5">
+        <form onSubmit={handleReset} className="flex flex-col gap-8">
           <FormHeading
-            title="New password"
+            eyebrow="Account recovery"
+            title="Choose a new password"
             lead={
               <>
                 Code sent to <span className="text-primary">{email}</span>
@@ -320,7 +333,7 @@ export function LoginPage() {
 
           {devCode ? <DevCodeBanner code={devCode} /> : null}
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-8">
             <CodeInput inputRef={codeInputRef} value={code} onChange={setCode} />
 
             <Input
@@ -367,8 +380,9 @@ export function LoginPage() {
           </div>
         </form>
       ) : (
-        <form onSubmit={handleVerify} className="flex flex-col gap-5">
+        <form onSubmit={handleVerify} className="flex flex-col gap-8">
           <FormHeading
+            eyebrow="One step left"
             title="Confirm your email"
             lead={
               <>
@@ -418,27 +432,55 @@ export function LoginPage() {
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid-canvas flex min-h-dvh flex-col">
-      <header className="flex h-14 items-center justify-between px-5 sm:px-8">
-        <Link to="/" aria-label="Howzat home">
-          <Wordmark size="sm" />
-        </Link>
-        <ThemeToggle />
-      </header>
-      <main className="flex flex-1 items-center justify-center px-5 pb-16">
-        <div className="plate ticks w-full max-w-[22rem] rounded-[var(--radius-lg)] p-6">
-          {children}
+    <div className="grid min-h-dvh bg-surface lg:grid-cols-[1.05fr_1fr]">
+      <aside className="sticky top-0 hidden h-dvh flex-col self-start p-4 lg:flex">
+        <figure className="relative flex-1 overflow-hidden rounded-[var(--radius-lg)]">
+          <img
+            src="/login-trophy-backdrop.png"
+            alt="Players lifting the trophy on the night of the final"
+            className="absolute inset-0 size-full object-cover object-[50%_20%]"
+          />
+        </figure>
+        <figcaption className="flex items-baseline justify-between gap-6 px-1 pt-4 text-xs text-muted">
+          <span>The final, scored ball by ball.</span>
+          <span className="tabular">Every ball, on the record</span>
+        </figcaption>
+      </aside>
+
+      <main className="flex flex-col px-6 py-7 sm:px-12 lg:px-20">
+        <header className="flex items-center justify-between">
+          <Link to="/" aria-label="Howzat home">
+            <Wordmark size="sm" />
+          </Link>
+          <ThemeToggle />
+        </header>
+
+        <div className="flex flex-1 items-center py-14">
+          <div className="w-full max-w-[26rem]">{children}</div>
         </div>
+
+        <p className="text-xs text-muted">
+          Spectators never need an account. Share the live link instead.
+        </p>
       </main>
     </div>
   );
 }
 
-function FormHeading({ title, lead }: { title: string; lead: ReactNode }) {
+function FormHeading({
+  eyebrow,
+  title,
+  lead,
+}: {
+  eyebrow: string;
+  title: string;
+  lead: ReactNode;
+}) {
   return (
     <div>
-      <h1 className="text-lg font-semibold tracking-[-0.02em]">{title}</h1>
-      <p className="mt-1 text-[0.8125rem] text-muted">{lead}</p>
+      <p className="eyebrow">{eyebrow}</p>
+      <h1 className="serif mt-5 text-[3.75rem] text-primary">{title}</h1>
+      <p className="mt-4 text-[0.9375rem] leading-relaxed text-secondary">{lead}</p>
     </div>
   );
 }
@@ -453,9 +495,13 @@ function FormFooter({
   onClick: () => void;
 }) {
   return (
-    <p className="border-t border-line pt-4 text-center text-[0.8125rem] text-muted">
+    <p className="border-t border-line pt-6 text-sm text-secondary">
       {question}{' '}
-      <button type="button" onClick={onClick} className="font-medium text-accent hover:underline">
+      <button
+        type="button"
+        onClick={onClick}
+        className="font-medium text-primary underline decoration-[var(--line-strong)] underline-offset-4 transition-colors hover:decoration-current"
+      >
         {action}
       </button>
     </p>
@@ -483,14 +529,14 @@ function CodeInput({
       placeholder="000000"
       value={value}
       onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-      className="tabular h-12 text-center text-xl tracking-[0.4em] placeholder:text-[var(--line-strong)]"
+      className="serif tabular h-16 text-center text-[2.25rem] tracking-[0.4em] placeholder:text-[var(--line-strong)]"
     />
   );
 }
 
 function DevCodeBanner({ code }: { code: string }) {
   return (
-    <p className="rounded-[var(--radius-md)] bg-warning-soft px-3 py-2 text-xs text-warning">
+    <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-4 py-3 text-sm text-secondary">
       Dev code <span className="tabular font-semibold tracking-[0.2em]">{code}</span>
     </p>
   );
@@ -500,7 +546,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <p
       role="alert"
-      className="rounded-[var(--radius-md)] bg-alert-soft px-3 py-2 text-[0.8125rem] text-alert"
+      className="rounded-[var(--radius-md)] border border-[var(--alert)]/40 px-4 py-3 text-sm font-medium text-alert"
     >
       {message}
     </p>
@@ -512,7 +558,7 @@ export function FullPageSpinner() {
     <div className="grid min-h-dvh place-items-center">
       <div role="status" aria-label="Loading" className="flex flex-col items-center gap-4">
         <WordmarkMark size="lg" />
-        <span className="h-px w-12 animate-pulse bg-accent-fill" />
+        <span className="h-px w-14 animate-pulse bg-[var(--text-primary)]" />
       </div>
     </div>
   );

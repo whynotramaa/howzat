@@ -51,7 +51,7 @@ export function PublicTournamentPage() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <h1 className="text-xl font-semibold tracking-[-0.02em]">
+                  <h1 className="serif text-[2.5rem] leading-[1.05]">
                     {data.tournament.name}
                   </h1>
                   <p className="text-xs text-muted capitalize">
@@ -145,7 +145,7 @@ function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball
       <div className="overflow-x-auto">
         <table className="w-full min-w-[34rem] text-[0.8125rem]">
           <thead>
-            <tr className="border-b border-line bg-sunken">
+            <tr className="border-b border-line-strong">
               <th className="eyebrow px-4 py-2 text-left">Team</th>
               <th className="eyebrow px-3 py-2 text-center">P</th>
               <th className="eyebrow px-3 py-2 text-center">W</th>

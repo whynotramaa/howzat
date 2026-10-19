@@ -21,7 +21,10 @@ export function Tabs<T extends string>({
   return (
     <div
       role="tablist"
-      className={cn('flex gap-0.5 overflow-x-auto border-b border-line', className)}
+      className={cn(
+        'flex w-full max-w-full gap-7 overflow-x-auto border-b border-line',
+        className,
+      )}
     >
       {items.map((item) => {
         const active = item.value === value;
@@ -34,23 +37,24 @@ export function Tabs<T extends string>({
             aria-selected={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              'relative -mb-px inline-flex h-9 items-center gap-1.5 px-3',
-              'text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
-              active ? 'text-primary' : 'text-muted hover:text-secondary',
+              'relative -mb-px inline-flex h-12 items-center gap-2 border-b-[1.5px]',
+              'text-[0.875rem] font-medium whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
+              active
+                ? 'border-current text-primary'
+                : 'border-transparent text-muted hover:text-primary',
             )}
           >
             {item.label}
             {item.meta !== undefined ? (
-              <span className="tabular text-[0.6875rem] text-muted">{item.meta}</span>
+              <span
+                className={cn(
+                  'tabular text-[0.75rem]',
+                  active ? 'text-secondary' : 'text-muted',
+                )}
+              >
+                {item.meta}
+              </span>
             ) : null}
-
-            <span
-              aria-hidden
-              className={cn(
-                'absolute inset-x-2 bottom-0 h-px transition-opacity duration-[var(--dur)]',
-                active ? 'bg-accent-fill opacity-100' : 'opacity-0',
-              )}
-            />
           </button>
         );
       })}

@@ -50,21 +50,21 @@ export function Toaster() {
       {items.map((item) => (
         <div
           key={item.id}
-          className="sheet-in flex items-center gap-2.5 rounded-[var(--radius-md)] border border-line bg-raised py-2 pr-1.5 pl-3 shadow-[var(--shadow-md)]"
+          className="sheet-in flex items-center gap-2.5 rounded-[var(--radius-md)] border border-line bg-raised py-3 pr-2 pl-4 shadow-[var(--shadow-lg)]"
           role={item.tone === 'error' ? 'alert' : 'status'}
         >
           <span
-            className="size-1.5 shrink-0 rounded-full"
+            className="size-2 shrink-0 rounded-full"
             style={{
               background:
                 item.tone === 'error'
                   ? 'var(--alert)'
                   : item.tone === 'success'
                     ? 'var(--success)'
-                    : 'var(--accent-fill)',
+                    : 'var(--text-primary)',
             }}
           />
-          <p className="min-w-0 flex-1 text-[0.8125rem] text-primary">{item.message}</p>
+          <p className="min-w-0 flex-1 text-sm font-medium text-primary">{item.message}</p>
           <button
             type="button"
             onClick={() => dismiss(item.id)}

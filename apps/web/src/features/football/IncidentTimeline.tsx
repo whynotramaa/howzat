@@ -129,7 +129,7 @@ function Mark({ kind }: { kind: FootballEventKind }) {
       aria-hidden
       className={cn(
         'grid size-4 shrink-0 place-items-center rounded-full',
-        kind === 'OWN_GOAL' ? 'bg-line-strong' : 'bg-[var(--accent-strong)]',
+        kind === 'OWN_GOAL' ? 'bg-line-strong' : 'bg-[var(--text-primary)]',
       )}
     >
       <span className="size-1.5 rounded-full bg-white/85" />

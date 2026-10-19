@@ -84,7 +84,7 @@ export function TournamentDetailPage() {
 
         <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold">{tournament.data.name}</h1>
+            <h1 className="serif text-[2.75rem] leading-[1.05]">{tournament.data.name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
               <SportMark sport={tournament.data.sport} />
               <span>{FORMAT_LABELS[tournament.data.format]}</span>

@@ -107,14 +107,14 @@ export function Panel({
         className,
       )}
     >
-      <div className="flex min-h-9 items-center justify-between gap-4 border-b border-line px-3.5 py-1.5">
+      <div className="flex min-h-12 items-center justify-between gap-4 border-b border-line px-5 py-2">
         <p className="eyebrow flex items-center gap-2">
           {icon ? <span className="text-muted">{icon}</span> : null}
           {title}
         </p>
         {meta !== undefined ? <div className="flex items-center gap-2">{meta}</div> : null}
       </div>
-      <div className={cn('p-3.5', bodyClassName)}>{children}</div>
+      <div className={cn('p-5', bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -160,35 +160,35 @@ export function Scoreboard({
   children?: ReactNode;
 }) {
   return (
-    <section className="plate ticks rounded-[var(--radius-lg)]">
-      <div className="flex items-center justify-between gap-4 px-4 pt-4 sm:px-5">
+    <section className="plate">
+      <div className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-7 sm:pt-6">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-primary">{team.name}</p>
+            <p className="truncate text-sm font-medium text-primary">{team.name}</p>
             <p className="text-xs text-muted">{eyebrow}</p>
           </div>
         </div>
         {status}
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-4 pt-3 pb-4 sm:px-5">
-        <div className="flex items-baseline gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-5 pt-5 pb-6 sm:px-7">
+        <div className="flex items-baseline gap-4">
           <p
             className={cn(
               'score-figure flex items-baseline text-primary',
-              size === 'lg' ? 'text-[3rem] sm:text-[3.75rem]' : 'text-[2.5rem] sm:text-[3rem]',
+              size === 'lg' ? 'text-[4.5rem] sm:text-[6.5rem]' : 'text-[3.25rem] sm:text-[4.25rem]',
             )}
           >
             <RollingNumber value={runs} />
-            <span aria-hidden className="mx-[0.06em] font-[300] text-line-strong">
+            <span aria-hidden className="mx-[0.04em] text-line-strong">
               /
             </span>
             <span className="text-muted">
               <RollingNumber value={wickets} />
             </span>
           </p>
-          <p className="mono text-base font-medium text-secondary">
+          <p className="mono text-lg text-secondary">
             <span key={overs} className="figure-in inline-block">
               ({overs}
             </span>
@@ -197,7 +197,7 @@ export function Scoreboard({
         </div>
 
         {stats && stats.length > 0 ? (
-          <dl className="flex gap-6">
+          <dl className="flex gap-8">
             {stats.map((stat) => (
               <div key={stat.label} className="board-stat">
                 <dt>{stat.label}</dt>
@@ -237,7 +237,7 @@ const GRID =
 
 function HeadRow({ first, cols, action }: { first: string; cols: string[]; action?: ReactNode }) {
   return (
-    <div className={cn(GRID, 'eyebrow bg-sunken px-4 py-1.5')}>
+    <div className={cn(GRID, 'eyebrow border-b border-line px-5 py-3')}>
       <span className="flex items-center gap-3">
         {first}
         {action}
@@ -273,23 +273,23 @@ export function CreaseCard({
         batters.map((batter) => (
           <div
             key={batter.id}
-            className={cn(GRID, 'border-b border-line px-4 py-2 text-[0.8125rem]')}
+            className={cn(GRID, 'border-b border-line px-5 py-3 text-sm')}
           >
             <span
               className={cn(
                 'flex min-w-0 items-center gap-2',
-                batter.onStrike ? 'font-semibold text-primary' : 'text-secondary',
+                batter.onStrike ? 'font-medium text-primary' : 'text-secondary',
               )}
             >
               <span className="truncate">{batter.name}</span>
               {batter.onStrike ? (
                 <>
-                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-accent-fill" />
+                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--text-primary)]" />
                   <span className="sr-only">on strike</span>
                 </>
               ) : null}
             </span>
-            <span className="score-figure text-right text-base text-primary">{batter.runs}</span>
+            <span className="score-figure text-right text-[1.375rem] text-primary">{batter.runs}</span>
             <span className="mono text-right text-secondary">{batter.balls}</span>
             <span className="mono text-right text-secondary">{batter.fours}</span>
             <span className="mono text-right text-secondary">{batter.sixes}</span>
@@ -301,12 +301,12 @@ export function CreaseCard({
       )}
 
       <HeadRow first="Bowler" cols={['O', 'M', 'R', 'W', 'ECO']} action={bowlerAction} />
-      <div className={cn(GRID, 'px-4 py-2 text-[0.8125rem]')}>
-        <span className="truncate font-semibold text-primary">{bowler?.name ?? 'Not named'}</span>
+      <div className={cn(GRID, 'px-5 py-3 text-sm')}>
+        <span className="truncate font-medium text-primary">{bowler?.name ?? 'Not named'}</span>
         <span className="mono text-right text-secondary">{bowler?.overs ?? '0.0'}</span>
         <span className="mono text-right text-secondary">{bowler?.maidens ?? 0}</span>
         <span className="mono text-right text-secondary">{bowler?.runs ?? 0}</span>
-        <span className="score-figure text-right text-base text-primary">
+        <span className="score-figure text-right text-[1.375rem] text-primary">
           {bowler?.wickets ?? 0}
         </span>
         <span className="mono text-right text-secondary">
@@ -330,14 +330,14 @@ export function StatLine({
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex flex-col gap-0.5 border-line px-3.5 py-2.5 not-last:border-r max-sm:border-b"
+            className="flex flex-col gap-1.5 border-line px-5 py-4 not-last:border-r max-sm:border-b"
           >
             <dt className="eyebrow">{item.label}</dt>
             <dd
               className={cn(
                 'mono text-sm font-medium',
                 item.tone === 'accent'
-                  ? 'text-accent'
+                  ? 'text-primary'
                   : item.tone === 'live'
                     ? 'text-live'
                     : 'text-primary',
@@ -348,7 +348,7 @@ export function StatLine({
           </div>
         ))}
       </dl>
-      {note ? <p className="border-t border-line px-4 py-2 text-xs text-muted">{note}</p> : null}
+      {note ? <p className="border-t border-line px-5 py-3 text-xs text-muted">{note}</p> : null}
     </section>
   );
 }
@@ -381,7 +381,7 @@ export function RunsPerOver({
               {over.wickets > 0 ? `, ${over.wickets}w` : ''}
             </span>
             {over.wickets > 0 ? (
-              <span aria-hidden className="size-1 shrink-0 rounded-full bg-primary" />
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--ink-red)]" />
             ) : null}
             <span
               aria-hidden
@@ -393,7 +393,7 @@ export function RunsPerOver({
               }
               className={cn(
                 'rpo-bar w-full max-w-5 rounded-t-[2px]',
-                over.wickets > 0 ? 'bg-accent-fill' : 'bg-line-strong',
+                over.wickets > 0 ? 'bg-[var(--ink-red)]' : 'bg-[var(--text-primary)] opacity-80',
               )}
             />
           </div>

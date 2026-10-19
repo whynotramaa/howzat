@@ -13,22 +13,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: cn(
-    'bg-accent-fill text-on-accent shadow-[inset_0_-1px_0_rgb(0_0_0/0.12)]',
-    'hover:bg-[color-mix(in_oklab,var(--accent-fill)_90%,#000)]',
-  ),
-  secondary: cn(
-    'border border-line bg-raised text-primary shadow-[var(--shadow-xs)]',
-    'hover:border-line-strong hover:bg-hover',
-  ),
-  quiet: 'text-secondary hover:bg-hover hover:text-primary',
-  danger: 'border border-line bg-raised text-alert hover:border-[var(--alert)] hover:bg-alert-soft',
+  primary: 'btn-primary font-medium',
+  secondary: 'btn-secondary font-medium',
+  quiet: 'font-medium text-secondary hover:text-primary hover:bg-hover',
+  danger: 'font-medium border border-line text-alert hover:border-[var(--alert)]',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-2.5 text-[0.8125rem] gap-1.5',
-  md: 'h-9 px-3.5 text-[0.8125rem] gap-2',
-  lg: 'h-10 px-4 text-sm gap-2',
+  sm: 'h-10 px-5 text-[0.8125rem] gap-2',
+  md: 'h-12 px-7 text-[0.9375rem] gap-2.5',
+  lg: 'h-14 px-9 text-base gap-3',
 };
 
 export function Button({
@@ -49,9 +43,8 @@ export function Button({
       disabled={disabled || isLoading}
       className={cn(
         'group relative inline-flex shrink-0 select-none items-center justify-center',
-        'rounded-[var(--radius-md)] font-medium whitespace-nowrap',
-        'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
-        'active:scale-[0.98]',
+        'rounded-[var(--radius-md)] tracking-[-0.005em] whitespace-nowrap',
+        'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
         'disabled:pointer-events-none disabled:opacity-40',
         variants[variant],
         sizes[size],
@@ -62,7 +55,7 @@ export function Button({
       {isLoading ? (
         <span
           aria-hidden
-          className="size-3.5 animate-spin rounded-full border border-current border-t-transparent opacity-70"
+          className="size-4 animate-spin rounded-full border border-current border-t-transparent opacity-70"
         />
       ) : null}
       {children}
@@ -80,8 +73,8 @@ export function TextAction({
       type="button"
       {...props}
       className={cn(
-        'text-[0.8125rem] text-secondary underline decoration-[var(--line-strong)] decoration-1 underline-offset-4',
-        'transition-colors hover:text-primary hover:decoration-[var(--accent-fill)]',
+        'text-[0.8125rem] font-medium text-primary underline decoration-[var(--line-strong)] decoration-1 underline-offset-4',
+        'transition-colors hover:decoration-current',
         'disabled:pointer-events-none disabled:opacity-40 disabled:no-underline',
         className,
       )}

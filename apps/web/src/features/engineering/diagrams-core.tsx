@@ -1359,7 +1359,7 @@ export function DataFlowLab() {
                 <p className="text-[0.6875rem] text-muted">{store.sub}</p>
                 <div className="eng-store-rows">
                   {store.rows.length === 0 ? (
-                    <p className="text-[0.6875rem] text-muted italic">{store.empty}</p>
+                    <p className="text-[0.6875rem] text-muted">{store.empty}</p>
                   ) : (
                     store.rows.map((row) => (
                       <span key={row.left} className="eng-store-row">

@@ -38,7 +38,7 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
         <Table className="min-w-[44rem]">
           <thead>
-            <tr className="border-b border-line bg-sunken">
+            <tr className="border-b border-line-strong">
               <Th align="left">Player</Th>
               <Th>Mat</Th>
               <Th>Runs</Th>

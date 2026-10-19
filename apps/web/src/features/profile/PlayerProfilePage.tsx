@@ -44,7 +44,7 @@ export function PlayerProfilePage() {
             {data.user.name.slice(0, 1).toUpperCase()}
           </span>
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-[-0.02em]">{data.user.name}</h1>
+            <h1 className="serif truncate text-[2.5rem] leading-[1.05]">{data.user.name}</h1>
             <p className="text-xs text-muted">@{data.user.username}</p>
           </div>
         </div>
@@ -168,7 +168,7 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
       <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-line bg-raised">
         <table className="w-full min-w-[34rem] text-[0.8125rem]">
           <thead>
-            <tr className="border-b border-line bg-sunken">
+            <tr className="border-b border-line-strong">
               <th scope="col" className="eyebrow px-4 py-2 text-left font-medium">
                 Match
               </th>

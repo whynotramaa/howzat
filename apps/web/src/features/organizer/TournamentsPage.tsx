@@ -43,14 +43,14 @@ export function TournamentsPage() {
   const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Tournaments</h1>
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setQuickMatch(true)}>
+        <h1 className="serif text-[2.75rem] leading-[1.05]">Tournaments</h1>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => setQuickMatch(true)}>
             Quick match
           </Button>
-          <Button size="sm" onClick={() => setCreating(true)}>
+          <Button onClick={() => setCreating(true)}>
             New tournament
           </Button>
         </div>

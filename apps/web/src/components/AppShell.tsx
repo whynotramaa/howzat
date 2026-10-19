@@ -23,12 +23,12 @@ function useOnline() {
 function NavIcon({ d }: { d: string }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width="18"
+      height="18"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -76,67 +76,55 @@ export function AppShell() {
         Skip to content
       </a>
       <aside className="app-sidebar hidden md:flex">
-        <Link
-          to="/dashboard"
-          aria-label="Howzat home"
-          className="flex h-12 items-center border-b border-line px-4"
-        >
+        <Link to="/dashboard" aria-label="Howzat home" className="flex h-20 items-center px-7">
           <Wordmark size="sm" />
         </Link>
-        <nav aria-label="Main" className="flex flex-col gap-px p-2">
+        <nav aria-label="Main" className="mt-8 flex flex-col gap-1 px-7">
           {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  'relative flex h-8 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[0.8125rem]',
-                  'transition-colors duration-[var(--dur-fast)]',
-                  isActive
-                    ? 'bg-hover font-medium text-primary before:absolute before:inset-y-2 before:-left-2 before:w-0.5 before:rounded-full before:bg-accent-fill'
-                    : 'text-secondary hover:bg-hover hover:text-primary',
+                  'serif flex h-11 items-center text-[1.625rem] transition-colors duration-[var(--dur-fast)]',
+                  isActive ? 'text-primary' : 'text-muted hover:text-primary',
                 )
               }
             >
-              <NavIcon d={item.icon} />
-              {item.label}
+              {({ isActive }) => <span className={cn(isActive && 'squiggle')}>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto border-t border-line p-2">
-          <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-inverse text-xs font-semibold text-on-inverse">
-              {user?.name.slice(0, 1)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[0.8125rem] font-medium">{user?.name}</p>
-              <p className="truncate text-[0.6875rem] text-muted">@{user?.username}</p>
-            </div>
-          </div>
+        <div className="mt-auto border-t border-line px-7 py-6">
+          <p className="truncate text-sm font-medium text-primary">{user?.name}</p>
+          <p className="truncate text-xs text-muted">@{user?.username}</p>
           <button
             type="button"
             onClick={() => void logout()}
-            className="flex h-8 w-full items-center rounded-[var(--radius-md)] px-2.5 text-left text-[0.8125rem] text-muted transition-colors hover:bg-hover hover:text-primary"
+            className="mt-4 text-[0.8125rem] font-medium text-secondary underline decoration-[var(--line-strong)] underline-offset-4 transition-colors hover:text-primary hover:decoration-current"
           >
             Sign out
           </button>
         </div>
       </aside>
-      <div className="min-w-0 md:ml-[220px]">
-        <header className="app-topbar flex h-12 items-center justify-between gap-3 border-b border-line px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-2.5 text-[0.8125rem]">
+      <div className="min-w-0 md:ml-[248px]">
+        <header className="app-topbar flex h-16 items-center justify-between gap-3 border-b border-line px-4 sm:px-10">
+          <div className="flex min-w-0 items-center gap-3 text-sm">
             <Link to="/dashboard" className="md:hidden" aria-label="Howzat home">
               <Wordmark showName={false} size="sm" />
             </Link>
-            <span className="hidden text-muted sm:inline">{user?.username}</span>
+            <span className="hidden text-muted sm:inline">@{user?.username}</span>
             <span aria-hidden className="hidden text-line-strong sm:inline">
               /
             </span>
             <span className="font-medium">{section}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span
-              className="mr-2 hidden items-center gap-1.5 text-xs text-muted sm:flex"
+              className={cn(
+                'mr-3 hidden items-center gap-2 text-xs font-medium sm:flex',
+                online ? 'text-muted' : 'text-warning',
+              )}
               title={online ? 'Connected' : 'Offline'}
             >
               <span className={cn('size-1.5 rounded-full', online ? 'bg-success' : 'bg-warning')} />
@@ -149,8 +137,8 @@ export function AppShell() {
         <main
           id="main-content"
           className={cn(
-            'mx-auto w-full max-w-[1280px] pb-24 md:pb-10',
-            scoring ? 'px-2 pt-4 sm:px-5' : 'px-4 py-6 sm:px-6 lg:px-8 lg:py-8',
+            'mx-auto w-full max-w-[1320px] pb-28 md:pb-12',
+            scoring ? 'px-2 pt-4 sm:px-5' : 'px-5 py-10 sm:px-10 lg:px-14 lg:py-14',
           )}
         >
           <Outlet />
@@ -158,7 +146,7 @@ export function AppShell() {
       </div>
       <nav
         aria-label="Main mobile"
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-raised pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {items.map((item) => (
           <NavLink
@@ -166,19 +154,23 @@ export function AppShell() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem]',
-                isActive ? 'font-medium text-primary' : 'text-muted',
+                'flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium',
+                isActive ? 'text-primary' : 'text-muted',
               )
             }
           >
-            <NavIcon d={item.icon} />
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <NavIcon d={item.icon} />
+                <span className={cn(isActive && 'squiggle')}>{item.label}</span>
+              </>
+            )}
           </NavLink>
         ))}
         <button
           type="button"
           onClick={() => void logout()}
-          className="flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] text-muted"
+          className="flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted"
         >
           <NavIcon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
           Sign out

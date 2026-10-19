@@ -83,7 +83,7 @@ export function MatchTimer({
             className="clock-fill"
             style={{
               width: `${Math.min(100, reading.progress * 100)}%`,
-              background: inStoppage ? 'var(--warning)' : 'var(--accent-strong)',
+              background: inStoppage ? 'var(--warning)' : 'var(--text-primary)',
               transition: reading.isRunning
                 ? 'width 1s linear, background 300ms linear'
                 : 'width 480ms var(--ease), background 300ms linear',
@@ -101,7 +101,7 @@ export function MatchTimer({
             aria-hidden
             className={cn(
               'live-pulse size-1.5 shrink-0 rounded-full',
-              inStoppage ? 'bg-[var(--warning)]' : 'bg-[var(--accent-strong)]',
+              inStoppage ? 'bg-[var(--warning)]' : 'bg-[var(--text-primary)]',
             )}
           />
         ) : null}
@@ -146,7 +146,7 @@ function PeriodPips({
             className={cn(
               'h-[3px] rounded-full transition-all duration-[var(--dur)] ease-[var(--ease)]',
               period === current && status !== 'FINISHED'
-                ? 'w-5 bg-[var(--accent-strong)]'
+                ? 'w-5 bg-[var(--text-primary)]'
                 : done
                   ? 'w-2.5 bg-line-strong'
                   : 'w-2.5 bg-line',
@@ -178,7 +178,7 @@ export function InlineClock({
       )}
     >
       {reading.isRunning ? (
-        <span aria-hidden className="live-pulse size-1.5 rounded-full bg-[var(--accent-strong)]" />
+        <span aria-hidden className="live-pulse size-1.5 rounded-full bg-[var(--text-primary)]" />
       ) : null}
       {reading.display}
     </span>

@@ -122,7 +122,7 @@ export function LiveMatchPage() {
           <NotStarted />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
-            <h1 className="text-xl font-semibold tracking-[-0.02em]">
+            <h1 className="serif text-[2.5rem] leading-none sm:text-[3.5rem]">
               {snapshot.batting.name} <span className="font-normal text-muted">v</span>{' '}
               {snapshot.bowling.name}
             </h1>
@@ -169,7 +169,7 @@ const EMPTY_BALLS: BallSummary[] = [];
 
 function NotStarted() {
   return (
-    <section className="grid-canvas flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-16 text-center">
+    <section className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-16 text-center">
       <StumpsIcon className="size-6 text-muted" />
       <p className="text-[0.8125rem] font-semibold">Not started</p>
       <p className="text-xs text-muted">Updates live from the first ball.</p>
@@ -484,7 +484,7 @@ function ScorecardView({ slug }: { slug: string }) {
             <div className="overflow-x-auto">
               <Table density="compact" className="min-w-[32rem]">
                 <thead>
-                  <tr className="border-b border-line bg-sunken">
+                  <tr className="border-b border-line-strong">
                     <Th align="left" className="pl-4 sm:pl-5">
                       Batter
                     </Th>
@@ -539,7 +539,7 @@ function ScorecardView({ slug }: { slug: string }) {
                 {innings.extras.legByes})
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4 bg-sunken px-4 py-2 text-[0.8125rem] sm:px-5">
+            <div className="flex items-center justify-between gap-4 border-y border-line px-4 py-2 text-[0.8125rem] sm:px-5">
               <span className="font-semibold text-primary">Total</span>
               <span className="tabular text-secondary">
                 <span className="font-bold text-primary">
@@ -552,7 +552,7 @@ function ScorecardView({ slug }: { slug: string }) {
             <div className="overflow-x-auto border-t border-line">
               <Table density="compact" className="min-w-[30rem]">
                 <thead>
-                  <tr className="border-b border-line bg-sunken">
+                  <tr className="border-b border-line-strong">
                     <Th align="left" className="pl-4 sm:pl-5">
                       Bowler
                     </Th>
@@ -591,7 +591,7 @@ function ScorecardView({ slug }: { slug: string }) {
 
             {innings.fallOfWickets.length > 0 ? (
               <div className="border-t border-line">
-                <p className="eyebrow bg-sunken px-4 py-2 sm:px-5">Fall of wickets</p>
+                <p className="eyebrow border-b border-line px-4 py-2 sm:px-5">Fall of wickets</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-4 py-3 text-[0.8125rem] sm:px-5">
                   {innings.fallOfWickets.map((wicket) => (
                     <span key={wicket.wicket} className="tabular text-secondary">
@@ -640,7 +640,7 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className={cn('text-[0.8125rem] font-semibold', ball.isWicket && 'text-accent')}>
+                <p className={cn('text-[0.8125rem] font-semibold', ball.isWicket && 'text-[var(--wicket)]')}>
                   {eventLabel(ball)}
                 </p>
                 <p

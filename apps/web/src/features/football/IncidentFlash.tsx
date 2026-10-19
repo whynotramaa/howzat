@@ -11,7 +11,7 @@ export interface FlashPayload {
 }
 
 const TONE: Record<FootballEventKind, string> = {
-  GOAL: 'var(--accent-strong)',
+  GOAL: 'var(--ink-blue)',
   OWN_GOAL: 'var(--text-muted)',
   YELLOW_CARD: '#e0b23c',
   RED_CARD: 'var(--alert)',
@@ -100,7 +100,7 @@ function Glyph({ kind, tone }: { kind: FootballEventKind; tone: string }) {
     return (
       <span
         aria-hidden
-        className="incident-glyph h-12 w-8 shrink-0 rounded-[3px] shadow-[0_6px_14px_-6px_rgb(0_0_0/0.5)] ring-1 ring-black/25"
+        className="incident-glyph h-12 w-8 shrink-0 rounded-[3px] ring-1 ring-black/25"
         style={{ background: kind === 'RED_CARD' ? '#c8332a' : '#e0b23c' }}
       />
     );

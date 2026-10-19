@@ -45,7 +45,7 @@ export function TeamDetailPage() {
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="md" />
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-[-0.02em]">{squad.name}</h1>
+            <h1 className="serif truncate text-[2.5rem] leading-[1.05]">{squad.name}</h1>
             <p className="tabular text-xs text-muted">
               {squad.sport === 'FOOTBALL'
                 ? `${squad.players.length} registered · ${squad.squadSize} start`
@@ -64,7 +64,7 @@ export function TeamDetailPage() {
         <section className="min-w-0">
           <h2 className="mb-2 text-[0.8125rem] font-semibold">Squad</h2>
           {squad.players.length === 0 ? (
-            <p className="grid-canvas rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-12 text-center text-[0.8125rem] text-muted">
+            <p className="rounded-[var(--radius-lg)] border border-dashed border-line-strong px-4 py-12 text-center text-[0.8125rem] text-muted">
               No players yet
             </p>
           ) : (

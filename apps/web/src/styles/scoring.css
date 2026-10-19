@@ -19,27 +19,8 @@
 }
 
 .board {
-  --surface-raised: var(--board-raised);
-  --surface-sunken: var(--board-raised);
-  --surface-hover: var(--board-raised);
-  --line: var(--board-line);
-  --line-strong: rgb(255 255 255 / 0.18);
-  --text-primary: var(--board-ink);
-  --text-secondary: var(--board-ink-soft);
-  --text-muted: var(--board-muted);
-  --accent: #ff9a45;
-  --accent-fill: var(--board-accent);
-  --accent-strong: #ffad66;
-  --accent-soft: rgb(246 130 31 / 0.14);
-  --accent-line: rgb(246 130 31 / 0.4);
-  --on-accent: #1a0d02;
-  --live: #ff8a3d;
-  --live-soft: rgb(246 130 31 / 0.14);
-  --warning: #f2b64a;
-  --warning-soft: rgb(242 182 74 / 0.16);
-
-  background: var(--board);
-  color: var(--board-ink);
+  background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .board-stat {
@@ -54,12 +35,13 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--board-muted);
+  color: var(--text-muted);
 }
 
 .board-stat dd {
-  font-size: 1rem;
-  font-weight: 500;
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -71,7 +53,7 @@
   border: 1px solid var(--line-strong);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -83,27 +65,29 @@
 }
 
 .ball[data-kind='four'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-color: var(--text-primary);
+  border-width: 1.5px;
+  color: var(--text-primary);
 }
 
 .ball[data-kind='six'] {
-  border-color: var(--accent-fill);
-  background: var(--accent-fill);
-  color: var(--on-accent);
+  border-color: var(--text-primary);
+  background: var(--text-primary);
+  color: var(--surface);
 }
 
 .ball[data-kind='wicket'] {
-  border-color: var(--text-primary);
-  background: var(--text-primary);
-  color: var(--surface-raised);
+  border-color: var(--wicket);
+  background: transparent;
+  color: var(--wicket);
+  border-width: 1.5px;
 }
 
 .ball[data-kind='extra'] {
-  border-color: color-mix(in oklab, var(--warning) 55%, transparent);
-  background: var(--warning-soft);
-  color: var(--warning);
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--text-secondary);
   font-size: 0.8em;
 }
 
@@ -128,9 +112,8 @@
 
 .pad {
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-sm);
 }
 
 .pad-key {
@@ -171,30 +154,42 @@
   cursor: not-allowed;
 }
 
-.pad-key[data-tone='four'] {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--accent);
+.pad-key[data-tone='four'],
+.pad-key[data-tone='six'] {
+  border-color: var(--text-primary);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1.5em;
+  font-weight: 400;
 }
 
 .pad-key[data-tone='six'] {
-  border-color: var(--accent-fill);
-  background: var(--accent-fill);
-  color: var(--on-accent);
+  background: var(--text-primary);
+  color: var(--surface);
+}
+
+.pad-key[data-tone='four']:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--text-primary);
 }
 
 .pad-key[data-tone='six']:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--accent-fill) 90%, #000);
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
 .pad-key[data-tone='wicket'] {
-  border-color: var(--text-primary);
-  background: var(--text-primary);
-  color: var(--surface-raised);
+  border-color: var(--wicket);
+  background: transparent;
+  color: var(--wicket);
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .pad-key[data-tone='wicket']:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--text-primary) 86%, var(--surface-raised));
+  background: var(--live-soft);
+  border-color: var(--wicket);
 }
 
 .pad-key[data-tone='quiet'] {
@@ -316,8 +311,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: color-mix(in oklab, var(--surface) 82%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
   opacity: 0;
   animation: moment-wash 2s var(--ease) both;
 }
@@ -484,9 +478,10 @@
   border-radius: var(--radius-md);
   background: var(--moment-ink);
   color: var(--moment-on, #fff);
-  font-size: clamp(2.5rem, 10vw, 4.5rem);
-  font-weight: 650;
-  letter-spacing: -0.05em;
+  font-family: var(--font-serif);
+  font-size: clamp(3rem, 12vw, 6rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 

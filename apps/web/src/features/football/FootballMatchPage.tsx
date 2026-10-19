@@ -175,7 +175,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
                     'flex items-center gap-2.5 rounded-[var(--radius-sm)] border px-3.5 py-2.5',
                     'transition-all duration-[var(--dur-fast)]',
                     activeSide === side
-                      ? 'border-[var(--accent-strong)] bg-accent-soft'
+                      ? 'border-[var(--text-primary)] bg-accent-soft'
                       : 'border-line bg-raised hover:bg-hover',
                   )}
                 >
@@ -318,7 +318,7 @@ function TeamSheetEditor({
           onChange={(event) => onChange({ ...selection, formation: event.target.value })}
           className={cn(
             'mono h-10 rounded-[var(--radius-sm)] border border-line bg-raised px-3 text-sm text-primary',
-            'hover:border-line-strong focus:border-[var(--accent-strong)]',
+            'hover:border-line-strong focus:border-[var(--text-primary)]',
             'disabled:opacity-40',
           )}
         >
@@ -349,7 +349,7 @@ function TeamSheetEditor({
                     'flex min-w-[5.5rem] flex-col items-start gap-0.5 rounded-[var(--radius-sm)] border px-2.5 py-2',
                     'text-left transition-all duration-[var(--dur-fast)] disabled:opacity-50',
                     spot.slot === slot
-                      ? 'border-[var(--accent-strong)] bg-accent-soft'
+                      ? 'border-[var(--text-primary)] bg-accent-soft'
                       : player
                         ? 'border-line bg-raised hover:bg-hover'
                         : 'border-dashed border-line-strong bg-raised/40 hover:bg-hover',
@@ -434,7 +434,7 @@ function TeamSheetEditor({
                         'mono grid size-7 shrink-0 place-items-center rounded-full border text-[0.625rem]',
                         'transition-colors disabled:opacity-40',
                         isCaptain
-                          ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
+                          ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                           : 'border-line text-muted hover:border-line-strong',
                       )}
                       title="Captain"
@@ -458,7 +458,7 @@ function TeamSheetEditor({
                         'shrink-0 rounded-full border px-2.5 py-1 text-[0.625rem] tracking-[0.06em] uppercase',
                         'transition-colors disabled:pointer-events-none disabled:opacity-35',
                         isSub
-                          ? 'border-[var(--accent-strong)] bg-accent-soft text-accent'
+                          ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                           : 'border-line text-muted hover:border-line-strong',
                       )}
                       title={isSub ? 'On the bench' : 'Add to the bench'}

@@ -41,7 +41,7 @@ export function FixturesPage() {
 
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-[-0.02em]">Fixtures</h1>
+          <h1 className="serif text-[2.75rem] leading-[1.05]">Fixtures</h1>
           <p className="tabular text-xs text-muted">
             {hasFixtures
               ? `${matches.length} matches · ${tournament.data.doubleRoundRobin ? 'home and away' : 'single round robin'}`

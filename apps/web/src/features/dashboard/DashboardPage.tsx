@@ -32,11 +32,11 @@ export function DashboardPage() {
   const matches = data ? data[active] : [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">{greeting(user?.name)}</h1>
+        <h1 className="serif text-[2.75rem] leading-[1.05]">{greeting(user?.name)}</h1>
         <Link to="/tournaments?new=1">
-          <Button size="sm">New tournament</Button>
+          <Button>New tournament</Button>
         </Link>
       </header>
 

@@ -121,7 +121,7 @@ function Shirt({
           'mono relative grid size-7 place-items-center rounded-full text-[0.5625rem] font-semibold sm:size-9 sm:text-[0.6875rem]',
           'text-white ring-1 ring-black/20 ring-inset',
           player.cameOnAt ? 'shirt-swap' : null,
-          selected && 'ring-2 ring-[var(--accent-strong)] ring-offset-1',
+          selected && 'ring-2 ring-[var(--text-primary)] ring-offset-1',
           player.isSentOff && 'opacity-40 grayscale',
         )}
         style={{ background: color }}
@@ -169,7 +169,7 @@ function Badge({ tone, children }: { tone: 'accent'; children: number }) {
       className={cn(
         'mono absolute -top-1 -right-1 grid size-3.5 place-items-center rounded-full',
         'text-[0.5rem] leading-none font-semibold text-white ring-1 ring-white/40',
-        tone === 'accent' && 'bg-[var(--accent-strong)]',
+        tone === 'accent' && 'bg-[var(--ink-blue)]',
       )}
     >
       {children}

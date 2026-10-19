@@ -19,12 +19,12 @@ export function Wordmark({
       {showName ? (
         <span
           className={cn(
-            'font-semibold tracking-[-0.04em]',
-            size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-[0.9375rem]' : 'text-lg',
-            tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
+            'serif leading-none tracking-[-0.01em]',
+            size === 'lg' ? 'text-[2.25rem]' : size === 'sm' ? 'text-[1.625rem]' : 'text-[1.875rem]',
+            tone === 'inverse' ? 'text-white' : 'text-primary',
           )}
         >
-          howzat
+          Howzat
         </span>
       ) : null}
     </span>
@@ -40,30 +40,22 @@ export function WordmarkMark({
 }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
       className={cn(
         'shrink-0',
-        size === 'lg' ? 'size-10' : size === 'sm' ? 'size-[22px]' : 'size-7',
-        tone === 'inverse' ? 'text-on-inverse' : 'text-primary',
+        tone === 'inverse' ? 'text-white' : 'text-primary',
+        size === 'lg' ? 'size-10' : size === 'sm' ? 'size-7' : 'size-8',
       )}
     >
-      <rect width="24" height="24" rx="5" fill="currentColor" />
-      <g fill={tone === 'inverse' ? 'var(--surface-inverse)' : 'var(--surface-raised)'}>
-        <rect x="6.5" y="9" width="2" height="10" rx="0.5" />
-        <rect x="11" y="9" width="2" height="10" rx="0.5" />
-        <rect x="15.5" y="9" width="2" height="10" rx="0.5" />
-      </g>
-      <rect x="6" y="6.6" width="5.6" height="1.6" rx="0.8" fill="#f6821f" />
-      <rect
-        x="12.6"
-        y="4.4"
-        width="5.6"
-        height="1.6"
-        rx="0.8"
-        fill="#f6821f"
-        transform="rotate(-24 15.4 5.2)"
-      />
+      <path d="M9.2 12.4c.2 4 .1 8.2-.2 13.1M16 12.2c.1 4.3 0 8.6-.1 13.3M22.7 12.5c.1 4 .2 8.2.1 13" />
+      <path d="M7.8 9.6c2.6-.3 5.2-.2 7.6.1" />
+      <path d="M18.4 6.9c2.3-1.2 4.6-1.8 6.9-2.1" />
+      <path d="M5 27.3c7.4-.5 14.7-.4 22 .1" strokeWidth="1.4" />
     </svg>
   );
 }

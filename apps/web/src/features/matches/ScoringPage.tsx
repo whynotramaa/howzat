@@ -107,16 +107,16 @@ export function ScoringPage() {
   return (
     <Shell>
       <div className={assisted ? 'assist-mode' : ''}>
-        <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-line pb-6">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               to={`/matches/${matchId}`}
               aria-label="Back to match"
-              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] border border-line bg-raised text-secondary transition-colors hover:bg-hover hover:text-primary"
+              className="grid size-10 shrink-0 place-items-center rounded-full border border-line-strong text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
             >
               ←
             </Link>
-            <h1 className="min-w-0 truncate text-base font-semibold tracking-[-0.02em]">
+            <h1 className="serif min-w-0 truncate text-[2rem] leading-none sm:text-[2.75rem]">
               {match.team1?.name ?? 'TBD'} <span className="font-normal text-muted">v</span>{' '}
               {match.team2?.name ?? 'TBD'}
             </h1>
@@ -134,15 +134,15 @@ export function ScoringPage() {
                   return !value;
                 })
               }
-              className="h-8 rounded-[var(--radius-md)] border border-line px-2.5 text-xs text-secondary hover:bg-hover"
+              className="h-10 rounded-full border border-line-strong px-4 text-sm text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
             >
               Assist{' '}
-              <span className={assisted ? 'text-accent' : 'text-muted'}>
+              <span className={assisted ? 'font-medium text-primary' : 'text-muted'}>
                 {assisted ? 'on' : 'off'}
               </span>
             </button>
             {dlsApplied ? (
-              <span className="rounded-[var(--radius-sm)] bg-warning-soft px-2 py-1 text-[0.6875rem] font-semibold text-warning uppercase">
+              <span className="rounded-full border border-warning px-3 py-1 text-[0.6875rem] font-semibold tracking-[0.08em] text-warning uppercase">
                 DLS applied
               </span>
             ) : null}
@@ -171,7 +171,7 @@ export function ScoringPage() {
         {queue.error ? (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] border border-alert/30 bg-alert-soft px-3 py-2 text-[0.8125rem] text-alert"
+            className="rounded-[var(--radius-md)] border border-alert px-4 py-3 text-sm text-alert"
           >
             {queue.error}
           </p>
@@ -289,7 +289,7 @@ function Closed({
   return (
     <section
       aria-label={eyebrow}
-      className="grid-canvas flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-line px-6 py-14 text-center"
+      className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 py-20 text-center"
     >
       {icon}
       <p className="text-base font-semibold tracking-[-0.02em]">{headline}</p>
@@ -990,7 +990,7 @@ function PickerRow({
   onPick: (playerId: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-[var(--accent-line)] bg-accent-soft p-2.5">
+    <div className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-line-strong p-3">
       <p className="text-xs font-semibold text-accent">{label}</p>
 
       {players.length === 0 ? (

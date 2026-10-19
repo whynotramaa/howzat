@@ -88,7 +88,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
           <EmptyState title="Not kicked off yet" description="Updates on kick-off." />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
-            <h1 className="text-xl font-semibold tracking-[-0.02em]">{snapshot.tournamentName}</h1>
+            <h1 className="serif text-[2.5rem] leading-none sm:text-[3.5rem]">{snapshot.tournamentName}</h1>
             <Scoreboard snapshot={snapshot} slug={slug} />
 
             <Tabs
@@ -130,7 +130,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
           <p className="text-[0.8125rem] text-muted">
             Scored minute by minute on <span className="text-primary">Howzat</span>.
           </p>
-          <Link to="/" className="text-[0.8125rem] text-accent transition-opacity hover:opacity-70">
+          <Link to="/" className="text-[0.8125rem] text-primary underline decoration-line-strong underline-offset-4 transition-opacity hover:opacity-70">
             Run your own tournament →
           </Link>
         </div>
