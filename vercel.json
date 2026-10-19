@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npx prisma generate --schema apps/api/prisma/schema.prisma && npm run build --workspace @howzat/api && npm run build --workspace @howzat/web",
+  "buildCommand": "npx prisma migrate deploy --schema apps/api/prisma/schema.prisma && npx prisma generate --schema apps/api/prisma/schema.prisma && npm run build --workspace @howzat/api && npm run build --workspace @howzat/web",
   "outputDirectory": "apps/web/dist",
   "functions": {
     "api/server.ts": {
