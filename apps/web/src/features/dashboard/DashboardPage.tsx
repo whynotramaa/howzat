@@ -37,7 +37,7 @@ export function DashboardPage() {
     data?.live.find((match) => match.isScorer) ?? data?.upcoming.find((match) => match.isScorer);
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="dashboard flex flex-col gap-7">
       <PageHeader
         eyebrow={new Date().toLocaleDateString(undefined, {
           weekday: 'long',
@@ -95,7 +95,7 @@ export function DashboardPage() {
                   <EmptyState compact {...emptyCopy(active, data.squads.length)} />
                 </div>
               ) : (
-                <div className="mt-4 grid">
+                <div className="mt-4 grid gap-3">
                   {matches.map((match, index) => (
                     <DashboardMatch key={match.id} match={match} index={index} />
                   ))}
@@ -103,7 +103,7 @@ export function DashboardPage() {
               )}
             </section>
 
-            <aside className="flex min-w-0 flex-col gap-10">
+            <aside className="dashboard-secondary flex min-w-0 flex-col gap-8 xl:border-l xl:border-line xl:pl-6">
               <SideList
                 title="Your tournaments"
                 description=""
@@ -249,13 +249,13 @@ function TournamentRow({ tournament }: { tournament: TournamentDto }) {
     <li>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="flex items-center gap-3.5 border-b border-line py-4"
+        className="flex items-center gap-3 border-b border-line py-3"
       >
-        <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-sunken">
-          <SportGlyph sport={tournament.sport} className="size-8" />
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-sunken">
+          <SportGlyph sport={tournament.sport} className="size-6" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block break-words font-sans text-xl">{tournament.name}</span>
+          <span className="block break-words text-sm font-medium">{tournament.name}</span>
           <span className="mt-0.5 block text-xs text-muted">
             {FORMAT_LABELS[tournament.format]} · {registered}/{tournament.teamsCount} teams
           </span>
@@ -267,10 +267,10 @@ function TournamentRow({ tournament }: { tournament: TournamentDto }) {
 
 function SquadRow({ squad }: { squad: SquadMembershipDto }) {
   return (
-    <li className="flex items-center gap-3.5 border-b border-line py-4">
-      <TeamMark shortName={squad.team.shortName} color={squad.team.primaryColor} size="lg" />
+    <li className="flex items-center gap-3 border-b border-line py-3">
+      <TeamMark shortName={squad.team.shortName} color={squad.team.primaryColor} size="md" />
       <span className="min-w-0 flex-1">
-        <span className="block break-words font-sans text-xl">{squad.team.name}</span>
+        <span className="block break-words text-sm font-medium">{squad.team.name}</span>
         <span className="mt-0.5 block text-xs text-muted">{squad.tournament.name}</span>
       </span>
       <Pill>{ROLE_LABELS[squad.role]}</Pill>

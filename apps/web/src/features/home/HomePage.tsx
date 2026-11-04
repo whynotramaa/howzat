@@ -119,12 +119,12 @@ export function HomePage() {
       <section className="home-hero mx-auto grid max-w-[1200px] items-center gap-10 border-y border-line-strong px-6 py-10 sm:px-10 sm:py-16 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
         <div>
           <p className="eyebrow">The local game, live</p>
-          <h1 className="hero-title display mt-6">
+          <h1 className="hero-title mt-6">
             Your game.
             <br />
             <span className="text-secondary">On the record.</span>
           </h1>
-          <p className="mt-6 text-lg text-secondary">Cricket. Football. Every moment.</p>
+
           <div className="home-actions mt-8 flex flex-wrap gap-3">
             <ButtonLink to={home} size="lg">
               {user ? 'Open dashboard' : 'Start a tournament'}
@@ -133,7 +133,6 @@ export function HomePage() {
               How it works
             </ButtonLink>
           </div>
-          <p className="mt-4 text-sm text-muted">Free to play. Open to everyone.</p>
         </div>
         <div className="home-art px-2 py-4 sm:px-4">
           <HeroStage />
@@ -156,9 +155,7 @@ export function HomePage() {
               className="flex flex-col border-line pt-7 md:odd:pr-12 md:even:border-l md:even:pl-12 max-md:not-first:mt-16 max-md:not-first:border-t"
             >
               <p className="eyebrow">{sport.name}</p>
-              <h3 className="display mt-4 text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
-                {sport.title}
-              </h3>
+              <h3 className="display mt-4 text-[1.625rem] leading-none">{sport.title}</h3>
               <div className="mt-6 h-32">{sport.art}</div>
               <ul className="mt-6 border-t border-line">
                 {sport.points.map((point) => (
@@ -190,7 +187,7 @@ export function HomePage() {
             >
               <div className="h-40">{step.art}</div>
               <span className="tabular mt-10 text-sm text-muted">{step.n}</span>
-              <h3 className="display mt-3 text-[2rem]">{step.title}</h3>
+              <h3 className="display mt-3 text-xl">{step.title}</h3>
               <p className="mt-4 text-[0.9375rem] leading-relaxed text-secondary">{step.body}</p>
             </ScrollReveal>
           ))}
@@ -201,7 +198,7 @@ export function HomePage() {
         <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-6 py-24 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:py-32">
           <div>
             <p className="eyebrow">No signal at the ground</p>
-            <h2 className="display mt-6 text-[clamp(2.25rem,4.5vw,3.75rem)]">
+            <h2 className="display mt-6 text-[clamp(1.75rem,3vw,2.5rem)]">
               Cricket scoring, <em>offline</em>.
             </h2>
             <p className="mt-6 max-w-md text-[0.9375rem] leading-relaxed text-secondary">
@@ -229,7 +226,7 @@ export function HomePage() {
                 {String(index + 1).padStart(2, '0')}
               </span>
               <div>
-                <dt className="display text-[1.75rem]">{title}</dt>
+                <dt className="display text-lg">{title}</dt>
                 <dd className="mt-2 text-[0.9375rem] leading-relaxed text-secondary">{body}</dd>
               </div>
             </div>
@@ -239,7 +236,7 @@ export function HomePage() {
 
       <section className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-col items-start gap-10 px-6 py-14 sm:px-10 lg:py-20">
-          <h2 className="display max-w-[16ch] text-[clamp(2.75rem,6vw,5.5rem)] leading-[0.95]">
+          <h2 className="display max-w-[16ch] text-[clamp(2rem,4vw,3rem)] leading-[0.95]">
             Your next match deserves a <em>proper</em> scoreboard.
           </h2>
           <div className="flex flex-wrap items-center gap-6">
@@ -274,7 +271,7 @@ function SectionTitle({ eyebrow, children }: { eyebrow: string; children: ReactN
   return (
     <div>
       <p className="eyebrow">{eyebrow}</p>
-      <h2 className="display mt-6 max-w-[20ch] text-[clamp(2.5rem,5vw,4.25rem)]">{children}</h2>
+      <h2 className="home-section-title display mt-4 max-w-[28ch]">{children}</h2>
     </div>
   );
 }

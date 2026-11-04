@@ -111,7 +111,7 @@ body {
   background: var(--surface);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -187,8 +187,8 @@ select {
 
 .display {
   font-family: var(--font-sans);
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-weight: 500;
+  letter-spacing: -0.025em;
   line-height: 1.08;
 }
 
@@ -267,10 +267,10 @@ address {
 }
 
 .eyebrow {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -828,11 +828,10 @@ table {
 }
 
 .hero-title {
-  font-family: var(--font-sans);
-  font-size: clamp(3.75rem, 8vw, 7.5rem);
-  font-weight: 700;
-  line-height: 0.92;
-  letter-spacing: -0.02em;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
 }
 
 .avatar-ring {
@@ -1041,7 +1040,7 @@ summary::-webkit-details-marker {
   font-weight: 500;
 }
 .scoreboard {
-  border-top: 2px solid var(--text-primary);
+  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line-strong);
   background: transparent;
 }
@@ -1051,12 +1050,12 @@ summary::-webkit-details-marker {
 }
 .scoreboard > div:first-child p:first-child {
   font-family: var(--font-sans);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 500;
 }
 .scoreboard .board-stat dd {
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 500;
 }
 .crease-card,
@@ -1069,9 +1068,9 @@ summary::-webkit-details-marker {
 }
 .crease-name {
   font-family: var(--font-sans);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 .crease-stat {
   font-family: var(--font-sans);
@@ -1097,7 +1096,7 @@ summary::-webkit-details-marker {
   gap: 8px;
 }
 .scoring-console .scoreboard > div:first-child p:first-child {
-  font-size: 18px;
+  font-size: 15px;
 }
 .scoring-console .scoreboard > div:first-child > span {
   font-size: 12px;
@@ -1119,7 +1118,7 @@ summary::-webkit-details-marker {
 .scoring-console .pad-key {
   border-radius: 3px;
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 500;
 }
 .scoring-console .pad-key[data-tone='six'] {
@@ -1152,25 +1151,27 @@ summary::-webkit-details-marker {
   border-left: 1px solid var(--line);
 }
 .stat-tile .score-figure {
-  font-size: 38px;
+  font-size: 28px;
 }
 .page-header {
   padding-bottom: 24px;
   border-bottom: 1px solid var(--line-strong);
 }
 .page-header h1 {
-  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
 }
 .section-title {
   font-family: var(--font-sans);
-  font-size: 24px;
-  line-height: 1.2;
+  font-size: 18px;
+  line-height: 1.35;
   font-weight: 700;
 }
 .home-hero .hero-title {
-  font-size: clamp(3.25rem, 7vw, 5.5rem);
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+  font-size: clamp(3.5rem, 6.6vw, 5.75rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
 }
 .home-hero .home-actions > a:nth-child(2) {
   background: transparent;
@@ -1181,14 +1182,14 @@ summary::-webkit-details-marker {
 }
 .home-hero .home-art button {
   font-family: var(--font-sans);
-  font-size: 22px;
+  font-size: 14px;
 }
 .home-hero .home-art svg {
   max-height: 340px;
 }
 .football-scoreline {
   border: 0;
-  border-top: 2px solid var(--text-primary);
+  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line-strong);
   border-radius: 0;
   background: transparent;
@@ -1229,7 +1230,7 @@ summary::-webkit-details-marker {
     margin-left: auto;
   }
   .scoreboard > div:first-child p:first-child {
-    font-size: 18px;
+    font-size: 15px;
   }
   .masthead > a .serif {
     font-size: 26px;
@@ -1264,7 +1265,7 @@ summary::-webkit-details-marker {
     gap: 10px;
   }
   .match-side > span:nth-child(2) {
-    font-size: 18px;
+    font-size: 15px;
   }
 }
 @media (max-width: 359px) {
@@ -1278,8 +1279,8 @@ summary::-webkit-details-marker {
 
 .scoring-workspace header h1 {
   font-family: var(--font-sans);
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 500;
 }
 .football-scoreline p {
   font-family: var(--font-sans);
@@ -1301,4 +1302,266 @@ summary::-webkit-details-marker {
 }
 summary {
   font-family: var(--font-sans);
+}
+
+#main-content h2.display,
+#main-content h3.display {
+  font-size: 20px;
+  line-height: 1.3;
+}
+.dashboard-secondary .section-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.dashboard .match-ledger {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  background: var(--surface-raised);
+}
+.dashboard .stat-strip {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+.dashboard .stat-tile {
+  gap: 12px;
+  padding-block: 16px;
+}
+.dashboard .stat-tile .score-figure {
+  font-weight: 500;
+}
+.dashboard .stat-tile .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.home-section-title {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1.15;
+}
+
+.live-page .scoreboard,
+.live-page .crease-card,
+.live-page .score-panel {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+}
+.live-page .scoreboard > div:first-child,
+.live-page .scoreboard > div:nth-child(2) {
+  padding-inline: 20px;
+}
+
+.innings-choice[aria-pressed='true'] {
+  border-color: var(--cta);
+  background: var(--cta);
+  color: #fff;
+}
+.innings-choice .innings-overs {
+  opacity: 0.75;
+}
+.scorecard-section {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+}
+.scorecard-section-title {
+  padding: 16px 14px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.scorecard-table {
+  table-layout: fixed;
+  font-size: 12px;
+}
+.scorecard-number-col {
+  width: 28px;
+}
+.scorecard-rate-col {
+  width: 60px;
+}
+.scorecard-table th {
+  padding: 10px 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.scorecard-table td {
+  padding: 14px 4px;
+  line-height: 1.4;
+}
+.scorecard-table :is(th, td):first-child {
+  padding-left: 14px;
+}
+.scorecard-table :is(th, td):last-child {
+  padding-right: 14px;
+}
+.scorecard-table tr {
+  border-bottom: 1px solid var(--line);
+}
+.scorecard-table tbody tr:last-child {
+  border-bottom: 0;
+}
+.scorecard-player {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.scorecard-dismissal {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.scorecard-not-out {
+  color: var(--success);
+}
+.scorecard-totals {
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.scorecard-totals > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.scorecard-totals dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.scorecard-total {
+  border-top: 1px solid var(--line);
+  background: var(--surface-sunken);
+}
+.scorecard-total dt {
+  font-weight: 500;
+}
+.scorecard-wickets li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  font-size: 12px;
+}
+@media (min-width: 640px) {
+  .scorecard-number-col {
+    width: 60px;
+  }
+  .scorecard-rate-col {
+    width: 76px;
+  }
+  .scorecard-table {
+    font-size: 13px;
+  }
+  .scorecard-player {
+    font-size: 14px;
+  }
+  .scorecard-table :is(th, td):first-child {
+    padding-left: 20px;
+  }
+  .scorecard-table :is(th, td):last-child {
+    padding-right: 20px;
+  }
+  .scorecard-section-title {
+    padding-inline: 20px;
+  }
+  .scorecard-totals > div,
+  .scorecard-wickets li {
+    padding-inline: 20px;
+  }
+}
+
+@media (max-width: 639px) {
+  .live-page[data-view='scorecard'] .scoreboard .score-figure {
+    font-size: 40px;
+  }
+  .live-page[data-view='scorecard'] .scoreboard .mono.text-lg {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+}
+
+.live-runs-col {
+  width: 60px;
+}
+.live-crease .scorecard-table th {
+  background: var(--surface-sunken);
+}
+.live-batting-table tbody td {
+  padding-block: 16px;
+}
+.live-batting-table strong {
+  font-size: 14px;
+}
+.live-balls {
+  font-size: 11px;
+}
+.live-striker {
+  display: inline;
+  margin-left: 5px;
+  color: var(--success);
+  font-size: 8px;
+  white-space: nowrap;
+}
+.live-partnership {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.live-partnership dt {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.live-partnership dd {
+  font-weight: 500;
+}
+.live-extras {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.live-wicket-history[open] .live-history-arrow {
+  transform: rotate(180deg);
+}
+.live-momentum .eyebrow {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+@media (min-width: 640px) {
+  .live-runs-col {
+    width: 76px;
+  }
+  .live-partnership,
+  .live-extras {
+    padding-inline: 20px;
+  }
+}
+@media (max-width: 639px) {
+  .live-page[data-view='live'] .scoreboard > div:nth-child(2) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .live-page[data-view='live'] .scoreboard .mono.text-lg {
+    font-size: 14px;
+    white-space: nowrap;
+  }
 }

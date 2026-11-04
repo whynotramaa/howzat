@@ -1,15 +1,15 @@
 :root {
-  --surface: #f7f4ec;
-  --surface-raised: #fcfaf4;
-  --surface-sunken: #eeeadf;
-  --surface-hover: #ebe8df;
+  --surface: #f7f8f5;
+  --surface-raised: #ffffff;
+  --surface-sunken: #edf0e9;
+  --surface-hover: #edf0e9;
   --surface-inverse: #191917;
-  --line: #e0dcd2;
-  --line-strong: #8f8a7e;
+  --line: #e0e5dc;
+  --line-strong: #bac4b6;
   --line-inverse: #3a3934;
-  --text-primary: #19392e;
-  --text-secondary: #4e4c46;
-  --text-muted: #68655c;
+  --text-primary: #242e29;
+  --text-secondary: #566159;
+  --text-muted: #667166;
   --text-on-inverse: #f4f2ec;
   --text-muted-on-inverse: #a8a59b;
 
@@ -65,9 +65,9 @@
 
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
   --radius-full: 999px;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);

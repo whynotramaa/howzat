@@ -87,7 +87,7 @@ export function Sheet({
       >
         <header className="flex items-start gap-4 border-b border-line px-6 py-5">
           <div className="min-w-0 flex-1">
-            <h2 className="display text-[2rem] text-primary">{title}</h2>
+            <h2 className="display text-[1.375rem] text-primary">{title}</h2>
             {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
           </div>
 

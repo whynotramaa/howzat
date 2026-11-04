@@ -26,14 +26,14 @@ function Side({ side, decided }: { side: MatchSide | null; decided: boolean }) {
       <TeamMark shortName={side.shortName} color={side.color} size="md" />
       <span
         className={cn(
-          'min-w-0 flex-1 break-words font-sans text-xl font-medium leading-tight',
+          'min-w-0 flex-1 break-words font-sans text-base font-medium leading-snug',
           decided && !side.winner ? 'text-secondary' : 'text-primary',
         )}
       >
         {side.name}
       </span>
       {side.score != null && side.score !== '' ? (
-        <span className="score-figure shrink-0 text-[2.25rem]">{side.score}</span>
+        <span className="score-figure shrink-0 text-[1.875rem]">{side.score}</span>
       ) : null}
       {side.note ? <span className="text-xs text-muted">{side.note}</span> : null}
     </div>
@@ -65,7 +65,6 @@ export function MatchCard({
   className?: string;
   style?: CSSProperties;
 }) {
-  const live = status === 'LIVE' || status === 'INNINGS_BREAK';
   const decided = Boolean(home?.winner || away?.winner);
 
   return (
@@ -73,7 +72,6 @@ export function MatchCard({
       style={style}
       className={cn(
         'match-ledger relative flex min-w-0 flex-col border-t border-line-strong py-5',
-        live && 'match-ledger-live',
         className,
       )}
     >

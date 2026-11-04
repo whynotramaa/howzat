@@ -1,4 +1,3 @@
-import { InningsInsight } from '@/components/ui/Matchday';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -14,16 +13,14 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Table, Td, Th } from '@/components/ui/Table';
 import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { EyeIcon, StumpsIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
+import { EyeIcon, TrendIcon, TrophyIcon } from '@/components/ui/Icons';
 import {
   BallChip,
-  CreaseCard,
   LeaderRow,
   OverStrip,
   Panel,
   RunsPerOver,
   Scoreboard,
-  StatLine,
 } from '@/components/ui/Score';
 import { cn } from '@/lib/cn';
 import { MomentOverlay, useMoment } from './Moment';
@@ -55,7 +52,7 @@ export function LiveMatchPage() {
   }, [matchLabel, snapshot]);
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="live-page flex min-h-dvh flex-col" data-view={view}>
       <MomentOverlay moment={moment} />
       <SketchDefs />
 
@@ -145,20 +142,7 @@ export function LiveMatchPage() {
               </h1>
               <span className="text-xs text-secondary">Innings {snapshot.inningsNumber}</span>
             </div>
-            <Board snapshot={snapshot} slug={slug} />
-            <InningsInsight
-              balls={snapshot.batting.balls}
-              quota={
-                snapshot.batting.quotaOvers
-                  ? Number(snapshot.batting.quotaOvers.split('.')[0]) * 6 +
-                    Number(snapshot.batting.quotaOvers.split('.')[1] ?? 0)
-                  : (snapshot.batting.oversQuota ?? 20) * 6
-              }
-              wickets={snapshot.batting.wickets}
-              runs={snapshot.batting.runs}
-              target={snapshot.target}
-            />
-
+            <Board snapshot={snapshot} slug={slug} compact={view !== 'live'} />
             <Tabs items={VIEWS} value={view} onChange={setView} />
 
             {view === 'live' ? (
@@ -196,13 +180,22 @@ function NotStarted() {
   );
 }
 
-function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
+function Board({
+  snapshot,
+  slug,
+  compact,
+}: {
+  snapshot: MatchSnapshot;
+  slug: string;
+  compact: boolean;
+}) {
   const { batting, bowling, required, target } = snapshot;
   const quota = batting.quotaOvers ?? (batting.oversQuota ? String(batting.oversQuota) : null);
   const finished = Boolean(snapshot.resultText);
 
   return (
     <Scoreboard
+      size={compact ? 'md' : 'lg'}
       team={{ name: batting.name, shortName: batting.short, primaryColor: batting.color }}
       eyebrow={`Innings ${snapshot.inningsNumber} · v ${bowling.short}`}
       status={
@@ -263,17 +256,19 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 sm:px-6">
-        <p className="eyebrow">This over</p>
-        <OverStrip
-          size="sm"
-          balls={snapshot.thisOver.map((ball, index) => ({
-            key: `${index}-${ball}`,
-            display: ball,
-          }))}
-          emptyLabel="New over"
-        />
-      </div>
+      {!compact ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 sm:px-6">
+          <p className="eyebrow">This over</p>
+          <OverStrip
+            size="sm"
+            balls={snapshot.thisOver.map((ball, index) => ({
+              key: `${index}-${ball}`,
+              display: ball,
+            }))}
+            emptyLabel="New over"
+          />
+        </div>
+      ) : null}
     </Scoreboard>
   );
 }
@@ -281,60 +276,155 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
 function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
   const window = recentWindow(snapshot.recentBalls);
   const partnership = currentPartnership(snapshot);
-  const { extras } = snapshot;
-  const lastWicket = snapshot.fallOfWickets[snapshot.fallOfWickets.length - 1];
+  const { extras, bowler } = snapshot;
+  const lastWicket = snapshot.fallOfWickets.at(-1);
 
   return (
-    <div className="flex flex-col gap-4">
-      <CreaseCard
-        batters={snapshot.batsmen.map((batsman) => ({
-          id: batsman.playerId,
-          name: batsman.name,
-          runs: batsman.runs,
-          balls: batsman.balls,
-          fours: batsman.fours,
-          sixes: batsman.sixes,
-          onStrike: batsman.onStrike,
-        }))}
-        bowler={
-          snapshot.bowler
-            ? {
-                name: snapshot.bowler.name,
-                overs: snapshot.bowler.overs,
-                maidens: snapshot.bowler.maidens,
-                runs: snapshot.bowler.runs,
-                wickets: snapshot.bowler.wickets,
-                econ: snapshot.bowler.econ,
-              }
-            : null
-        }
-      />
+    <div className="live-summary grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <section className="scorecard-section live-crease" aria-label="At the crease">
+          <Table density="compact" className="scorecard-table live-batting-table">
+            <caption className="sr-only">Current batters</caption>
+            <colgroup>
+              <col />
+              <col className="live-runs-col" />
+              <col className="scorecard-number-col" />
+              <col className="scorecard-number-col" />
+              <col className="scorecard-rate-col" />
+            </colgroup>
+            <thead>
+              <tr>
+                <Th align="left">Batter</Th>
+                <Th align="right">
+                  <abbr title="Runs (balls)" className="no-underline">
+                    R(B)
+                  </abbr>
+                </Th>
+                <Th align="right">4s</Th>
+                <Th align="right">6s</Th>
+                <Th align="right">SR</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot.batsmen.map((batter) => (
+                <tr key={batter.playerId}>
+                  <td className="scorecard-player">
+                    <span className="font-medium text-primary">{batter.name}</span>
+                    {batter.onStrike ? (
+                      <span className="live-striker">
+                        <span aria-hidden>●</span>
+                        <span className="sr-only"> on strike</span>
+                      </span>
+                    ) : null}
+                  </td>
+                  <Td align="right">
+                    <strong className="text-primary">{batter.runs}</strong>
+                    <span className="live-balls"> ({batter.balls})</span>
+                  </Td>
+                  <Td align="right">{batter.fours}</Td>
+                  <Td align="right">{batter.sixes}</Td>
+                  <Td align="right">{batter.sr.toFixed(1)}</Td>
+                </tr>
+              ))}
+              {snapshot.batsmen.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-sm text-muted">
+                    No batters at the crease
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </Table>
 
-      <StatLine
-        items={[
-          { label: 'Partnership', value: `${partnership.runs} (${partnership.balls})` },
-          {
-            label: 'Extras',
-            value: `${extras.total} (w ${extras.wides}, nb ${extras.noBalls}, b ${extras.byes}, lb ${extras.legByes})`,
-          },
-          {
-            label: 'Last wicket',
-            value: lastWicket
-              ? `${lastWicket.name} at ${lastWicket.teamRuns}-${lastWicket.wicket}`
-              : 'None',
-          },
-        ]}
-        note={`Last ${window.balls} balls: ${window.runs} runs, ${window.fours} fours, ${window.sixes} sixes`}
-      />
+          <dl className="live-partnership">
+            <div>
+              <dt>Partnership</dt>
+              <dd className="tabular">
+                {partnership.runs} <span className="text-muted">({partnership.balls})</span>
+              </dd>
+            </div>
+            {lastWicket ? (
+              <div>
+                <dt>Last wicket</dt>
+                <dd className="tabular">
+                  {lastWicket.teamRuns}/{lastWicket.wicket}{' '}
+                  <span className="text-muted">({lastWicket.overs} ov)</span>
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+
+          <Table density="compact" className="scorecard-table live-bowling-table">
+            <caption className="sr-only">Current bowler</caption>
+            <colgroup>
+              <col />
+              <col className="live-runs-col" />
+              <col className="live-runs-col" />
+              <col className="scorecard-rate-col" />
+            </colgroup>
+            <thead>
+              <tr>
+                <Th align="left">Bowler</Th>
+                <Th align="right">W-R</Th>
+                <Th align="right">Overs</Th>
+                <Th align="right">Econ</Th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="scorecard-player font-medium text-primary">
+                  {bowler?.name ?? 'Not named'}
+                </td>
+                <Td align="right" emphasis>
+                  {bowler ? `${bowler.wickets}-${bowler.runs}` : '—'}
+                </Td>
+                <Td align="right">{bowler?.overs ?? '—'}</Td>
+                <Td align="right">{bowler?.econ != null ? bowler.econ.toFixed(2) : '—'}</Td>
+              </tr>
+            </tbody>
+          </Table>
+          <div className="live-extras">
+            <span>Extras</span>
+            <span className="tabular">
+              <strong className="text-primary">{extras.total}</strong>
+              <span className="text-muted">
+                {' '}
+                (w {extras.wides}, nb {extras.noBalls}, b {extras.byes}, lb {extras.legByes})
+              </span>
+            </span>
+          </div>
+        </section>
+
+        {snapshot.fallOfWickets.length > 0 ? (
+          <details className="scorecard-section live-wicket-history">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[0.8125rem] font-medium">
+              Fall of wickets{' '}
+              <span aria-hidden className="live-history-arrow text-muted">
+                ⌄
+              </span>
+            </summary>
+            <ol className="scorecard-wickets">
+              {snapshot.fallOfWickets.map((wicket) => (
+                <li key={wicket.wicket}>
+                  <span className="tabular font-bold">
+                    {wicket.teamRuns}/{wicket.wicket}
+                  </span>
+                  <span className="min-w-0 flex-1 text-secondary">{wicket.name}</span>
+                  <span className="tabular text-muted">{wicket.overs} ov</span>
+                </li>
+              ))}
+            </ol>
+          </details>
+        ) : null}
+      </div>
 
       <Panel
-        title="Momentum"
+        title="Runs per over"
         icon={<TrendIcon />}
-        meta={<span className="text-xs text-muted">per over</span>}
+        className="live-momentum"
         bodyClassName="flex flex-col gap-4"
       >
         <RunsPerOver balls={snapshot.recentBalls} />
-
         <div className="flex flex-col gap-2 border-t border-line pt-3">
           <LeaderRow
             label={`Last ${window.balls} balls`}
@@ -347,21 +437,6 @@ function LiveView({ snapshot }: { snapshot: MatchSnapshot }) {
           />
         </div>
       </Panel>
-
-      {snapshot.fallOfWickets.length > 0 ? (
-        <Panel title="Fall of wickets" icon={<StumpsIcon />} bodyClassName="flex flex-col gap-2.5">
-          {snapshot.fallOfWickets
-            .slice()
-            .reverse()
-            .map((wicket) => (
-              <LeaderRow
-                key={wicket.wicket}
-                label={`${wicket.wicket}. ${wicket.name}`}
-                value={`${wicket.teamRuns} (${wicket.overs})`}
-              />
-            ))}
-        </Panel>
-      ) : null}
     </div>
   );
 }
@@ -437,6 +512,7 @@ interface ScorecardResponse {
 }
 
 function ScorecardView({ slug }: { slug: string }) {
+  const [selectedInnings, setSelectedInnings] = useState<number | null>(null);
   const { data, isPending, error, refetch } = useQuery({
     queryKey: ['public', 'scorecard', slug],
     queryFn: () => apiFetch<ScorecardResponse>(`/public/matches/${slug}/scorecard`),
@@ -445,180 +521,170 @@ function ScorecardView({ slug }: { slug: string }) {
 
   if (isPending) return <Skeleton className="h-96" />;
   if (error) return <ErrorText error={error} onRetry={() => void refetch()} />;
-  if (!data || data.innings.length === 0) {
-    return <p className="text-sm text-muted">No innings yet</p>;
-  }
+  const innings =
+    data?.innings.find((entry) => entry.number === selectedInnings) ?? data?.innings.at(-1);
+  if (!innings) return <p className="text-sm text-muted">No innings yet</p>;
+
+  const balls = oversToBalls(innings.overs);
+  const rate = balls > 0 ? ((innings.runs * 6) / balls).toFixed(2) : '0.00';
 
   return (
-    <div className="flex flex-col gap-4">
-      {data.innings.map((innings) => {
-        const balls = oversToBalls(innings.overs);
-        const rate = balls > 0 ? ((innings.runs * 6) / balls).toFixed(2) : '0.00';
-
-        return (
-          <section
-            key={innings.number}
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised"
+    <div className="match-scorecard flex min-w-0 flex-col gap-5">
+      <div role="group" aria-label="Innings" className="flex flex-wrap gap-2">
+        {data?.innings.map((entry) => (
+          <button
+            key={entry.number}
+            type="button"
+            aria-pressed={entry.number === innings.number}
+            onClick={() => setSelectedInnings(entry.number)}
+            className="innings-choice tabular inline-flex min-h-11 items-center gap-2 rounded-md border border-line bg-raised px-3 text-[0.8125rem] text-secondary"
           >
-            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">
-              <div className="flex min-w-0 items-center gap-3">
-                <TeamMark
-                  shortName={innings.battingTeam.shortName}
-                  color={innings.battingTeam.primaryColor}
-                  size="sm"
-                />
-                <div className="min-w-0">
-                  <h3 className="truncate text-[0.8125rem] font-semibold">
-                    {innings.battingTeam.name}
-                  </h3>
-                  <p className="text-xs text-muted">Innings {innings.number}</p>
-                </div>
-              </div>
+            <span className="font-medium">{entry.battingTeam.shortName}</span>
+            <span>
+              {entry.runs}/{entry.wickets}
+            </span>
+            <span className="innings-overs">({entry.overs})</span>
+          </button>
+        ))}
+      </div>
 
-              <p className="score-figure shrink-0 text-xl">
-                {innings.runs}-{innings.wickets}
-                <span className="tabular ml-1.5 text-[0.8125rem] font-medium text-muted">
-                  ({innings.overs})
-                </span>
-              </p>
-            </div>
-
-            <div
-              role="region"
-              aria-label="Batting scorecard"
-              tabIndex={0}
-              className="overflow-x-auto"
-            >
-              <Table density="compact" className="min-w-[32rem]">
-                <thead>
-                  <tr className="border-b border-line-strong">
-                    <Th align="left" className="pl-4 sm:pl-5">
-                      Batter
-                    </Th>
-                    <Th align="right">R</Th>
-                    <Th align="right">B</Th>
-                    <Th align="right">4s</Th>
-                    <Th align="right">6s</Th>
-                    <Th align="right" className="pr-4 sm:pr-5">
-                      SR
-                    </Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {innings.batting.map((batter) => (
-                    <tr key={batter.playerId} className="border-b border-line">
-                      <td className="py-2 pl-4 sm:pl-5">
-                        <p
-                          className={cn(
-                            'text-[0.8125rem] font-medium',
-                            !batter.isOut && 'text-accent',
-                          )}
-                        >
-                          {batter.name}
-                          {!batter.isOut ? <span className="font-normal"> *</span> : null}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {batter.isOut ? batter.dismissal : 'not out'}
-                        </p>
-                      </td>
-                      <Td align="right" emphasis className="font-bold">
-                        {batter.runs}
-                      </Td>
-                      <Td align="right">{batter.balls}</Td>
-                      <Td align="right">{batter.fours}</Td>
-                      <Td align="right">{batter.sixes}</Td>
-                      <Td align="right" className="pr-4 sm:pr-5">
-                        {batter.balls > 0
-                          ? ((batter.runs / batter.balls) * 100).toFixed(2)
-                          : '0.00'}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2 text-[0.8125rem] sm:px-5">
-              <span className="font-semibold text-primary">Extras</span>
-              <span className="tabular text-secondary">
-                <span className="font-bold text-primary">{innings.extras.total}</span> (w{' '}
-                {innings.extras.wides}, nb {innings.extras.noBalls}, b {innings.extras.byes}, lb{' '}
+      <section className="scorecard-section" aria-labelledby="batting-title">
+        <h2 id="batting-title" className="scorecard-section-title">
+          Batting
+        </h2>
+        <Table density="compact" className="scorecard-table">
+          <caption className="sr-only">{innings.battingTeam.name} batting scorecard</caption>
+          <colgroup>
+            <col />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-rate-col" />
+          </colgroup>
+          <thead>
+            <tr>
+              <Th align="left">Batter</Th>
+              <Th align="right">R</Th>
+              <Th align="right">B</Th>
+              <Th align="right">4s</Th>
+              <Th align="right">6s</Th>
+              <Th align="right">SR</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {innings.batting.map((batter) => (
+              <tr key={batter.playerId}>
+                <td className="scorecard-player">
+                  <p className="font-medium text-primary">{batter.name}</p>
+                  <p className={cn('scorecard-dismissal', !batter.isOut && 'scorecard-not-out')}>
+                    {batter.isOut ? batter.dismissal : 'Not out'}
+                  </p>
+                </td>
+                <Td align="right" emphasis>
+                  {batter.runs}
+                </Td>
+                <Td align="right">{batter.balls}</Td>
+                <Td align="right">{batter.fours}</Td>
+                <Td align="right">{batter.sixes}</Td>
+                <Td align="right">
+                  {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(2) : '0.00'}
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <dl className="scorecard-totals">
+          <div>
+            <dt>Extras</dt>
+            <dd>
+              <strong>{innings.extras.total}</strong>
+              <span className="text-muted">
+                {' '}
+                (w {innings.extras.wides}, nb {innings.extras.noBalls}, b {innings.extras.byes}, lb{' '}
                 {innings.extras.legByes})
               </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 border-y border-line px-4 py-2 text-[0.8125rem] sm:px-5">
-              <span className="font-semibold text-primary">Total</span>
-              <span className="tabular text-secondary">
-                <span className="font-bold text-primary">
-                  {innings.runs}-{innings.wickets}
-                </span>{' '}
-                ({innings.overs} Ov, RR {rate})
+            </dd>
+          </div>
+          <div className="scorecard-total">
+            <dt>Total</dt>
+            <dd>
+              <strong>
+                {innings.runs}/{innings.wickets}
+              </strong>
+              <span className="text-secondary">
+                {' '}
+                ({innings.overs} ov) · RR {rate}
               </span>
-            </div>
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-            <div
-              role="region"
-              aria-label="Bowling scorecard"
-              tabIndex={0}
-              className="overflow-x-auto border-t border-line"
-            >
-              <Table density="compact" className="min-w-[30rem]">
-                <thead>
-                  <tr className="border-b border-line-strong">
-                    <Th align="left" className="pl-4 sm:pl-5">
-                      Bowler
-                    </Th>
-                    <Th align="right">O</Th>
-                    <Th align="right">M</Th>
-                    <Th align="right">R</Th>
-                    <Th align="right">W</Th>
-                    <Th align="right" className="pr-4 sm:pr-5">
-                      ECO
-                    </Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {innings.bowling.map((bowler) => {
-                    const bowled = oversToBalls(bowler.overs);
-                    return (
-                      <tr key={bowler.playerId} className="border-b border-line last:border-b-0">
-                        <td className="py-2 pl-4 text-[0.8125rem] font-medium sm:pl-5">
-                          {bowler.name}
-                        </td>
-                        <Td align="right">{bowler.overs}</Td>
-                        <Td align="right">{bowler.maidens}</Td>
-                        <Td align="right">{bowler.runs}</Td>
-                        <Td align="right" emphasis className="font-bold">
-                          {bowler.wickets}
-                        </Td>
-                        <Td align="right" className="pr-4 sm:pr-5">
-                          {bowled > 0 ? ((bowler.runs * 6) / bowled).toFixed(2) : '0.00'}
-                        </Td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            </div>
+      <section className="scorecard-section" aria-labelledby="bowling-title">
+        <h2 id="bowling-title" className="scorecard-section-title">
+          Bowling
+        </h2>
+        <Table density="compact" className="scorecard-table">
+          <caption className="sr-only">{innings.bowlingTeam.name} bowling scorecard</caption>
+          <colgroup>
+            <col />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-number-col" />
+            <col className="scorecard-rate-col" />
+          </colgroup>
+          <thead>
+            <tr>
+              <Th align="left">Bowler</Th>
+              <Th align="right">O</Th>
+              <Th align="right">M</Th>
+              <Th align="right">R</Th>
+              <Th align="right">W</Th>
+              <Th align="right">ECO</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {innings.bowling.map((bowler) => {
+              const bowled = oversToBalls(bowler.overs);
+              return (
+                <tr key={bowler.playerId}>
+                  <td className="scorecard-player font-medium text-primary">{bowler.name}</td>
+                  <Td align="right">{bowler.overs}</Td>
+                  <Td align="right">{bowler.maidens}</Td>
+                  <Td align="right">{bowler.runs}</Td>
+                  <Td align="right" emphasis>
+                    {bowler.wickets}
+                  </Td>
+                  <Td align="right">
+                    {bowled > 0 ? ((bowler.runs * 6) / bowled).toFixed(2) : '0.00'}
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      </section>
 
-            {innings.fallOfWickets.length > 0 ? (
-              <div className="border-t border-line">
-                <p className="eyebrow border-b border-line px-4 py-2 sm:px-5">Fall of wickets</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-4 py-3 text-[0.8125rem] sm:px-5">
-                  {innings.fallOfWickets.map((wicket) => (
-                    <span key={wicket.wicket} className="tabular text-secondary">
-                      <span className="font-bold text-primary">
-                        {wicket.teamRuns}-{wicket.wicket}
-                      </span>{' '}
-                      ({wicket.name}, {wicket.overs})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </section>
-        );
-      })}
+      {innings.fallOfWickets.length > 0 ? (
+        <section className="scorecard-section" aria-labelledby="wickets-title">
+          <h2 id="wickets-title" className="scorecard-section-title">
+            Fall of wickets
+          </h2>
+          <ol className="scorecard-wickets">
+            {innings.fallOfWickets.map((wicket) => (
+              <li key={wicket.wicket}>
+                <span className="tabular font-bold">
+                  {wicket.teamRuns}/{wicket.wicket}
+                </span>
+                <span className="min-w-0 flex-1 text-secondary">{wicket.name}</span>
+                <span className="tabular text-muted">{wicket.overs} ov</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
     </div>
   );
 }

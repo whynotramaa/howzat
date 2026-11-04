@@ -140,7 +140,7 @@ function TournamentCard({ tournament, index }: { tournament: TournamentDto; inde
       >
         <div className="flex items-start justify-between gap-3">
           <span className="grid size-14 place-items-center rounded-[var(--radius-lg)] bg-sunken">
-            <SportGlyph sport={tournament.sport} className="size-10" />
+            <SportGlyph sport={tournament.sport} className="size-7" />
           </span>
           <Pill
             tone={ready ? 'success' : registered < tournament.teamsCount ? 'neutral' : 'warning'}
@@ -241,15 +241,15 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
                 onClick={() => setSport(option.value)}
                 aria-pressed={sport === option.value}
                 className={cn(
-                  'flex h-20 items-center justify-center gap-3 rounded-[var(--radius-xl)] border text-[0.9375rem] font-semibold',
+                  'flex h-16 items-center justify-center gap-2 rounded-[var(--radius-xl)] border text-[0.9375rem] font-semibold',
                   'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                   sport === option.value
                     ? 'border-primary bg-raised text-primary'
                     : 'border-line text-muted hover:border-line-strong hover:text-primary',
                 )}
               >
-                <SportGlyph sport={option.value} className="size-10" />
-                <span className="display text-[1.5rem] font-normal">{option.label}</span>
+                <SportGlyph sport={option.value} className="size-7" />
+                <span className="text-base font-medium">{option.label}</span>
               </button>
             ))}
           </div>

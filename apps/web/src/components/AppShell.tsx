@@ -66,7 +66,7 @@ export function AppShell() {
         Skip to content
       </a>
       <header className="app-topbar border-b border-line">
-        <div className="masthead mx-auto flex h-16 max-w-[1320px] items-center justify-between gap-3 px-5 sm:h-20 sm:px-8 lg:px-10">
+        <div className="masthead mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-3 px-5 sm:h-16 sm:px-8 lg:px-10">
           <Link to="/dashboard" aria-label="Howzat home" className="shrink-0">
             <Wordmark size="sm" />
           </Link>
@@ -132,7 +132,7 @@ export function AppShell() {
         <main
           id="main-content"
           className={cn(
-            'mx-auto w-full max-w-[1320px]',
+            'mx-auto w-full max-w-[1240px]',
             scoring
               ? 'scoring-workspace px-4 pt-4 pb-8 sm:px-8'
               : 'px-5 pt-7 pb-28 sm:px-8 lg:py-9 lg:px-10',

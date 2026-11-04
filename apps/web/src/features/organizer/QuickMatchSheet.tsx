@@ -81,15 +81,15 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
               onClick={() => setSport(option)}
               aria-pressed={sport === option}
               className={cn(
-                'flex h-20 items-center justify-center gap-3 rounded-[var(--radius-xl)] border',
+                'flex h-16 items-center justify-center gap-2 rounded-[var(--radius-xl)] border',
                 'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                 sport === option
                   ? 'border-primary bg-raised text-primary'
                   : 'border-line text-muted hover:border-line-strong hover:text-primary',
               )}
             >
-              <SportGlyph sport={option} className="size-10" />
-              <span className="display text-[1.5rem]">
+              <SportGlyph sport={option} className="size-7" />
+              <span className="text-base font-medium">
                 {option === 'CRICKET' ? 'Cricket' : 'Football'}
               </span>
             </button>
