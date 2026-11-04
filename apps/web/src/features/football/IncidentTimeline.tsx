@@ -10,7 +10,7 @@ export function IncidentTimeline({
   homeTeamId,
   homeShort,
   awayShort,
-  emptyMessage = 'Nothing has happened yet. Goals and cards appear here as they are recorded.',
+  emptyMessage = 'No events yet.',
 }: {
   incidents: FootballIncident[];
   homeTeamId: string;

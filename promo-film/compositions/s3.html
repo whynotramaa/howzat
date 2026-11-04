@@ -1,0 +1,124 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s3-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s3" data-width="1920" data-height="1080">
+    <canvas id="s3-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, Wd = WORLD, K = CAST, C = I.C, V = I.V, E = I.E;
+      const ST = Wd.stadium({ ex: 62, ez: 68, kind: 'cricket', seed: 7 });
+      const FIELD = [[-24, -18], [27, -6], [-31, 24], [19, 36], [-9, 46], [41, 28], [33, -34]];
+      const BAT_POS = [-0.45, 0, 9.3], UMP_POS = [0.9, 0, -11.8];
+      const REL = [-0.3, 2.25, -9.98], BOUNCE = [-0.1, 0.04, 3.4], HIT = [-0.03, 0.66, 8.97], LAND = [-2, 9.5, -86];
+      const T_REL = 3.2, T_BNC = 3.55, T_HIT = 3.9, T_FREE = 8.4, FLIGHT = 2.2;
+      const sim = (t) => (t < T_HIT ? t : t < T_FREE ? T_HIT : T_HIT + (t - T_FREE));
+      function ball(ts) {
+        if (ts < T_REL) return null;
+        if (ts < T_BNC) {
+          const u = (ts - T_REL) / (T_BNC - T_REL);
+          return V.add(V.lerp(REL, BOUNCE, u), [0, -0.4 * u * (1 - u), 0]);
+        }
+        if (ts < T_HIT) return V.lerp(BOUNCE, HIT, (ts - T_BNC) / (T_HIT - T_BNC));
+        const s = I.clamp((ts - T_HIT) / FLIGHT, 0, 1);
+        return V.add(V.lerp(HIT, LAND, s), [0, 4 * 30 * s * (1 - s), 0]);
+      }
+      const run25 = K.run(1.4 * 2.5 + 0.1 * 6.25, 1, 0.12);
+      function bowler(ts) {
+        const pose = ts < 2.5 ? K.run(1.4 * ts + 0.1 * ts * ts, 1, 0.12) : I.key(ts, [[2.5, run25], [2.72, K.BOWL.gather, E.out2], [2.95, K.BOWL.land, E.in2], [3.2, K.BOWL.release], [3.65, K.BOWL.follow, E.out2]]);
+        const z = I.key(ts, [[0, -30], [2.5, -12.3, E.lin], [2.72, -11.2, E.lin], [2.95, -10.5, E.lin], [3.2, -10.2], [3.9, -8.6, E.out2], [6.5, -7.9]]);
+        return { pos: [-0.5, 0, z], pose };
+      }
+      const batPose = (ts) => I.key(ts, [[0, K.BAT.stance], [3.0, K.BAT.stance], [3.5, K.BAT.lift], [3.9, K.BAT.punch, E.in2], [4.35, K.BAT.finish, E.out2]]);
+      const batTip = (ts) => I.key(ts, [[0, K.BAT.stanceBat], [3.0, K.BAT.stanceBat], [3.5, K.BAT.liftBat], [3.9, K.BAT.punchBat, E.in2], [4.35, K.BAT.finishBat, E.out2]]);
+      const CTR = [-0.12, 0.95, 9.0], SIDE0 = [5.9, 1.3, 6.6], SIDE1 = [5.53, 1.2, 6.5];
+      const r0 = Math.hypot(SIDE1[0] - CTR[0], SIDE1[2] - CTR[2]), a0 = Math.atan2(SIDE1[2] - CTR[2], SIDE1[0] - CTR[0]), a1 = -1.5 * Math.PI;
+      const ORB_END = [CTR[0] + 4.5 * Math.cos(a1), 1.6, CTR[2] + 4.5 * Math.sin(a1)];
+      function camera(t, ts) {
+        if (t < T_REL) {
+          const bz = bowler(t).pos[2];
+          const look = I.ramp(t, 1.7, 3.0);
+          const tgt = V.lerp([-0.5, 1.3, bz + 1.5], [0, 1.0, 9], look);
+          return I.cam([2.9, 1.45 + Math.sin(t * 9) * 0.03, bz - 3.2 - look * 1.5], tgt, 44);
+        }
+        if (t < T_HIT) return I.cam(V.lerp(SIDE0, SIDE1, I.ramp(t, T_REL, T_HIT, E.lin)), CTR, 40);
+        if (t < T_FREE) {
+          const u = I.ramp(t, T_HIT, T_FREE, E.io2);
+          const a = I.lerp(a0, a1, u), r = I.key(u, [[0, r0], [0.5, 3.3], [1, 4.5]]), y = I.key(u, [[0, 1.2], [0.5, 2.0], [1, 1.6]]);
+          return I.cam([CTR[0] + r * Math.cos(a), y, CTR[2] + r * Math.sin(a)], CTR, 40, Math.sin(u * Math.PI) * 0.05);
+        }
+        if (t < 10.6) {
+          const k = I.ramp(t, T_FREE, 10.6, E.io2), bp = ball(ts);
+          return I.cam(V.lerp(ORB_END, [-0.6, 7, 6], k), V.lerp(CTR, bp, I.ramp(t, T_FREE, 8.75, E.io2)), I.lerp(40, 56, k));
+        }
+        if (t < 12) {
+          const k = I.ramp(t, 10.6, 12, E.out2);
+          return I.cam(V.lerp([7, 16, 24], [5, 17, 14], k), [-2, 11, -86], 38);
+        }
+        const k = I.ramp(t, 12, 14, E.out2);
+        return I.cam(V.lerp([1.7, 0.38, -9.2], [1.6, 0.42, -9.5], k), [0.85, 1.95, -11.8], 54, 0.035);
+      }
+      const tl = I.scene('s3', 15, 14, (ctx, t, b) => {
+        I.paper(ctx);
+        const ts = sim(t), c = camera(t, ts), D = I.List();
+        const cheer = I.ramp(t, 10.5, 11.2);
+        ST.draw(D, ctx, c, t < T_HIT || t >= T_FREE ? t : T_HIT, b, { lights: 1, cheer, board: t < 10.8 ? ['141/4', 'need 16 off 6'] : ['147/4', 'need 10 off 5'], boardA: -2.2 });
+        const fig = (o) => I.figure3(D, ctx, c, { b, ...o });
+        const bw = bowler(ts);
+        fig({ pos: bw.pos, yaw: 0, pose: bw.pose, kit: K.KITS.bowl, seed: 5 });
+        fig({ pos: BAT_POS, yaw: Math.PI / 2, pose: batPose(ts), kit: K.KITS.bat, seed: 1, bat: batTip(ts) });
+        fig({ pos: [0, 0, 11.9], yaw: Math.PI, pose: I.mix(K.KEEP, K.READY, I.ramp(ts, 4.1, 4.7)), kit: K.KITS.keep, seed: 2 });
+        fig({ pos: UMP_POS, yaw: 0, pose: I.key(t, [[12.15, K.UMP.stand], [12.62, K.UMP.six, E.outBack]]), kit: K.KITS.ump, seed: 3 });
+        fig({ pos: [1.4, 0, I.key(ts, [[3, -9.4], [3.9, -7.6, E.out2]])], yaw: 0, pose: K.BAT.stance, kit: K.KITS.bat, seed: 4, bat: K.BAT.stanceBat });
+        FIELD.forEach(([fx, fz], i) => fig({ pos: [fx, 0, fz], yaw: Math.atan2(-fx, 9 - fz), pose: K.READY, kit: K.KITS.bowl, seed: 10 + i }));
+        const bp = ball(ts);
+        if (ts >= T_REL) {
+          const fade = 1 - I.ramp(t, T_FREE, T_FREE + 0.9);
+          if (fade > 0) {
+            const pts = [];
+            for (let k = 0; k <= 16; k++) {
+              const tt = T_REL + (Math.min(ts, T_HIT) - T_REL) * (k / 16);
+              pts.push(ball(tt));
+            }
+            D.add(I.depth(c, BOUNCE) - 1, () => I.line3(ctx, c, pts, { ww: 0.05, color: C.tang, seed: 900, b, wmin: 2, wmax: 9, alpha: 0.85 * fade }), 1);
+          }
+          if (ts > T_HIT) {
+            const pts = [];
+            const s1 = Math.min(ts, T_HIT + FLIGHT);
+            for (let k = 0; k <= 26; k++) pts.push(ball(T_HIT + (s1 - T_HIT) * (k / 26)));
+            D.add(1e5, () => I.line3(ctx, c, pts, { ww: 0.08, color: C.tang, seed: 901, b, wmin: 2.5, wmax: 14 }), 2);
+          }
+          if (ts < T_HIT + FLIGHT) D.add(I.depth(c, bp) - 0.3, () => I.disc3(ctx, c, bp, 0.11, { fill: C.tang, seed: 902, b, min: 3.5, w: 2.4 }), 1);
+          const pu = (ts - T_BNC) / 0.7;
+          if (pu > 0 && pu < 1) D.add(I.depth(c, BOUNCE) - 0.5, () => Wd.burst3(ctx, c, BOUNCE, pu, C.pitch, 31, b, { r: 0.6, n: 9, ww: 0.05, drop: 0.3, col2: C.ink }), 1);
+        }
+        if (t >= T_HIT && t < T_FREE + 0.3) {
+          const k = I.ramp(t, T_HIT, T_HIT + 0.25, E.out3) * (1 - I.ramp(t, T_FREE, T_FREE + 0.3));
+          D.add(I.depth(c, HIT) - 0.6, () => {
+            Wd.burst3(ctx, c, HIT, 0.42 * k + 0.0001, C.yellow, 40, b, { r: 0.75, n: 12, ww: 0.035, drop: 0, col2: C.tang });
+            for (let i = 0; i < 5; i++) {
+              const rr = 0.35 + i * 0.12, arc = [];
+              for (let j = 0; j <= 10; j++) {
+                const a = -0.9 + (j / 10) * 1.6 + i * 0.15;
+                arc.push([HIT[0] + 0.15, HIT[1] + Math.sin(a) * rr, HIT[2] + Math.cos(a) * rr * 0.6 + 0.2]);
+              }
+              I.line3(ctx, c, arc, { ww: 0.02, color: i % 2 ? C.yellow : C.ink, seed: 950 + i, b, wmin: 1.4, wmax: 4, alpha: k * 0.85 });
+            }
+          }, 1);
+        }
+        if (t >= 10.6) {
+          const u = (t - 10.6) / 1.8;
+          D.add(I.depth(c, LAND) - 5, () => {
+            Wd.burst3(ctx, c, LAND, u, C.pink, 51, b, { r: 14, n: 20, ww: 0.5, drop: 6, col2: C.yellow });
+            Wd.burst3(ctx, c, V.add(LAND, [4, 3, 0]), u - 0.15, C.cobalt, 52, b, { r: 10, n: 16, ww: 0.4, drop: 5, col2: C.tang });
+            Wd.burst3(ctx, c, V.add(LAND, [-5, 2, 2]), u - 0.25, C.yellow, 53, b, { r: 9, n: 14, ww: 0.4, drop: 5, col2: C.sky });
+          }, 1);
+        }
+        D.flush();
+      });
+      window.__timelines['s3'] = tl;
+    })();
+  </script>
+</template>

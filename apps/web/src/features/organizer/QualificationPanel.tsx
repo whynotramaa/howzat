@@ -45,11 +45,7 @@ export function QualificationPanel({
 
   return (
     <section className="flex flex-col gap-5">
-      <SectionHeading
-        eyebrow="What if"
-        title="Who can still qualify"
-        description="Pick a team and the number of spots. Howzat plays out every remaining result and counts the paths through."
-      />
+      <SectionHeading eyebrow="What if" title="Who can still qualify" />
       <div className="flex flex-col gap-5 rounded-[var(--radius-xl)] border border-line bg-raised p-5">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-48 flex-1">

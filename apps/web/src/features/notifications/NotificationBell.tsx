@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from './queries';
 
 export function NotificationBell() {
-  const { data } = useNotifications();
+  const { data, isPending, error, refetch } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -22,7 +22,10 @@ export function NotificationBell() {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     }
     function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        containerRef.current?.querySelector('button')?.focus();
+      }
     }
 
     document.addEventListener('mousedown', handlePointer);
@@ -45,10 +48,10 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-controls="notification-list"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         className={cn(
-          'relative grid size-8 place-items-center rounded-[var(--radius-md)] transition-colors',
+          'relative grid size-11 place-items-center rounded-[var(--radius-md)] transition-colors',
           'duration-[var(--dur-fast)]',
           open ? 'bg-hover text-primary' : 'text-muted hover:bg-hover hover:text-primary',
         )}
@@ -70,7 +73,9 @@ export function NotificationBell() {
 
       {open ? (
         <div
-          role="menu"
+          id="notification-list"
+          role="region"
+          aria-label="Notifications"
           className={cn(
             'sheet-in absolute right-0 z-40 mt-2.5 w-[min(22rem,calc(100vw-2.5rem))]',
             'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-[var(--shadow-md)]',
@@ -89,7 +94,22 @@ export function NotificationBell() {
             ) : null}
           </div>
 
-          {items.length === 0 ? (
+          {error ? (
+            <div className="p-4 text-sm">
+              <p>Notifications unavailable.</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-2 min-h-11 underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : isPending ? (
+            <p role="status" className="p-4 text-sm">
+              Loading…
+            </p>
+          ) : items.length === 0 ? (
             <p className="px-4 py-8 text-center text-[0.8125rem] text-muted">Nothing yet</p>
           ) : (
             <ul className="max-h-[26rem] overflow-y-auto">
@@ -97,7 +117,6 @@ export function NotificationBell() {
                 <li key={notification.id}>
                   <button
                     type="button"
-                    role="menuitem"
                     onClick={() => handleOpen(notification)}
                     className={cn(
                       'flex w-full gap-3 border-b border-line px-4 py-3 text-left last:border-0',

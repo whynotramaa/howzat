@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   defaultFormation,
   formationSpots,
@@ -7,7 +7,7 @@ import {
   type MatchWithInningsDto,
   type TeamLineup,
 } from '@howzat/shared';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { BackLink } from '@/components/ui/BackLink';
 import { MatchHero } from '@/components/ui/MatchCard';
@@ -149,15 +149,19 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
           actions={
             <>
               {started && !finished ? (
-                <Link to={`/matches/${match.id}/score`}>
-                  <Button size="sm">Open the console</Button>
-                </Link>
+                <ButtonLink to={`/matches/${match.id}/score`} size="sm">
+                  Open the console
+                </ButtonLink>
               ) : null}
-              <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="secondary">
-                  Public page
-                </Button>
-              </a>
+              <ButtonLink
+                to={`/live/${match.publicSlug}`}
+                target="_blank"
+                rel="noreferrer"
+                size="sm"
+                variant="secondary"
+              >
+                Public page
+              </ButtonLink>
               <ShareLink
                 slug={match.publicSlug}
                 matchLabel={`${data.home.shortName} v ${data.away.shortName}`}
@@ -249,7 +253,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         <Card>
           <CardHeader className="border-0 px-6 pt-6 pb-0">
             <p className="eyebrow mb-2.5">This match</p>
-            <p className="serif text-[1.875rem] text-primary">How long are we playing?</p>
+            <p className="display text-[1.875rem] text-primary">How long are we playing?</p>
             <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
               Set for this fixture alone. The tournament default stays as it is.
             </p>
@@ -340,7 +344,7 @@ function TeamSheetEditor({
           <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="lg" />
           <div className="min-w-0">
             <p className="eyebrow mb-1">Team sheet</p>
-            <p className="serif truncate text-[1.5rem] text-primary">{squad.name}</p>
+            <p className="display truncate text-[1.5rem] text-primary">{squad.name}</p>
           </div>
         </div>
 
@@ -379,7 +383,7 @@ function TeamSheetEditor({
                   onClick={() => onSlotFocus(spot.slot === activeSlot ? null : spot.slot)}
                   className={cn(
                     'flex min-w-[5.5rem] flex-col items-start gap-0.5 rounded-[var(--radius-lg)] border px-2.5 py-2',
-                    'text-left transition-all duration-[var(--dur-fast)] disabled:opacity-50',
+                    'text-left transition-colors duration-[var(--dur-fast)] disabled:opacity-50',
                     spot.slot === slot
                       ? 'border-[var(--text-primary)] bg-accent-soft'
                       : player
@@ -428,7 +432,12 @@ function TeamSheetEditor({
                     isStarting ? 'bg-sunken' : 'hover:bg-hover',
                   )}
                 >
-                  <PlayerAvatar seed={player.id} name={player.name} size="sm" color={squad.primaryColor} />
+                  <PlayerAvatar
+                    seed={player.id}
+                    name={player.name}
+                    size="sm"
+                    color={squad.primaryColor}
+                  />
                   <button
                     type="button"
                     disabled={disabled || slot === null}

@@ -6,25 +6,25 @@ import type {
   PlayerDashboardDto,
   SquadMembershipDto,
   TournamentDto,
+  MatchSnapshot,
+  FootballSnapshot,
 } from '@howzat/shared';
 import { api } from '@/lib/api';
 import { stageLabel } from '@/lib/pdf/sources';
-import { Button } from '@/components/ui/Button';
+import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState, PageHeader, SectionHeading, StatStrip } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { MatchCard, type MatchSide } from '@/components/ui/MatchCard';
 import { Pill, TeamMark } from '@/components/ui/Pill';
-import { Scene, SportGlyph } from '@/components/ui/Sketch';
+import { SportGlyph } from '@/components/ui/Sketch';
 import { Tabs } from '@/components/ui/Tabs';
-import { useAuth } from '@/features/auth/AuthProvider';
 
 type MatchTab = 'live' | 'upcoming' | 'recent';
 
 export function DashboardPage() {
-  const { user } = useAuth();
   const [tab, setTab] = useState<MatchTab | null>(null);
 
-  const { data, isPending, error } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     queryKey: ['me', 'dashboard'],
     queryFn: () => api.get<PlayerDashboardDto>('/me/dashboard'),
     staleTime: 20_000,
@@ -33,40 +33,35 @@ export function DashboardPage() {
 
   const active: MatchTab = tab ?? (data?.live.length ? 'live' : 'upcoming');
   const matches = data ? data[active] : [];
-  const first = user?.name?.trim().split(/\s+/)[0];
+  const scoringMatch =
+    data?.live.find((match) => match.isScorer) ?? data?.upcoming.find((match) => match.isScorer);
 
   return (
-    <div className="flex flex-col gap-14">
+    <div className="flex flex-col gap-7">
       <PageHeader
         eyebrow={new Date().toLocaleDateString(undefined, {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
         })}
-        title={
-          first ? (
-            <>
-              {partOfDay()}, <em>{first}</em>.
-            </>
-          ) : (
-            'Your matchday'
-          )
-        }
-        description={data ? summary(data) : 'Pulling together your fixtures, squads and numbers.'}
+        title="Your matchday"
         actions={
           <>
-            <Link to="/tournaments?new=1">
-              <Button>New tournament</Button>
-            </Link>
-            <Link to="/tournaments">
-              <Button variant="secondary">All tournaments</Button>
-            </Link>
+            {scoringMatch ? (
+              <ButtonLink to={`/matches/${scoringMatch.id}/score`}>
+                {data?.live.includes(scoringMatch) ? 'Resume scoring' : 'Open scoring'}
+              </ButtonLink>
+            ) : (
+              <ButtonLink to="/tournaments?new=1">New tournament</ButtonLink>
+            )}
+            <ButtonLink to="/tournaments" variant="secondary">
+              All tournaments
+            </ButtonLink>
           </>
         }
-        art={<Scene name={data?.live.length ? 'stumps' : 'trophy'} />}
       />
 
-      {error ? <ErrorText error={error} /> : null}
+      {error ? <ErrorText error={error} onRetry={() => void refetch()} /> : null}
 
       {isPending ? (
         <div className="flex flex-col gap-4">
@@ -82,27 +77,9 @@ export function DashboardPage() {
         </div>
       ) : data ? (
         <>
-          <StatStrip
-            items={[
-              { label: 'Matches played', value: data.career.matches, hint: 'Across every squad' },
-              { label: 'Runs', value: data.career.batting.runs, hint: 'Career, all formats' },
-              { label: 'Wickets', value: data.career.bowling.wickets, hint: 'Career, all formats' },
-              {
-                label: 'Waiting to score',
-                value: data.matchesToScore,
-                hint: data.matchesToScore > 0 ? 'You hold the pen' : 'Nothing assigned',
-                tone: data.matchesToScore > 0 ? 'accent' : 'default',
-              },
-            ]}
-          />
-
-          <div className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_280px]">
             <section className="min-w-0">
-              <SectionHeading
-                eyebrow="Your matches"
-                title="On the card"
-                description="Every fixture you play in or score, with live games first."
-              />
+              <SectionHeading title="Matches" />
               <Tabs
                 className="mt-5"
                 value={active}
@@ -118,7 +95,7 @@ export function DashboardPage() {
                   <EmptyState compact {...emptyCopy(active, data.squads.length)} />
                 </div>
               ) : (
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="mt-4 grid">
                   {matches.map((match, index) => (
                     <DashboardMatch key={match.id} match={match} index={index} />
                   ))}
@@ -128,8 +105,8 @@ export function DashboardPage() {
 
             <aside className="flex min-w-0 flex-col gap-10">
               <SideList
-                title="Running"
-                description="Tournaments you organise"
+                title="Your tournaments"
+                description=""
                 to="/tournaments"
                 empty="Nothing running. Start a tournament and it shows up here."
                 items={data.organizing.map((tournament) => (
@@ -138,7 +115,7 @@ export function DashboardPage() {
               />
               <SideList
                 title="Squads"
-                description="Teams you are named in"
+                description=""
                 to={`/players/${data.user.username}`}
                 empty="No squad yet. An organiser adds you by your username."
                 items={data.squads.map((squad) => (
@@ -147,6 +124,18 @@ export function DashboardPage() {
               />
             </aside>
           </div>
+          <StatStrip
+            items={[
+              { label: 'Matches played', value: data.career.matches },
+              { label: 'Runs', value: data.career.batting.runs },
+              { label: 'Wickets', value: data.career.bowling.wickets },
+              {
+                label: 'Waiting to score',
+                value: data.matchesToScore,
+                tone: data.matchesToScore > 0 ? 'accent' : 'default',
+              },
+            ]}
+          />
         </>
       ) : null}
     </div>
@@ -156,12 +145,31 @@ export function DashboardPage() {
 function DashboardMatch({ match, index }: { match: DashboardMatchDto; index: number }) {
   const live = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
+  const { data: snapshot } = useQuery({
+    queryKey: ['dashboard', 'score', match.publicSlug],
+    queryFn: () =>
+      api.get<MatchSnapshot | FootballSnapshot | { snapshot: null }>(
+        `/public/matches/${match.publicSlug}/${match.sport === 'FOOTBALL' ? 'football' : 'snapshot'}`,
+      ),
+    enabled: live,
+    refetchInterval: live ? 15_000 : false,
+    staleTime: 10_000,
+  });
+  const currentScore = (teamId: string): string | undefined => {
+    if (!snapshot) return undefined;
+    if ('batting' in snapshot && snapshot.batting.teamId === teamId)
+      return `${snapshot.batting.runs}/${snapshot.batting.wickets}`;
+    if ('home' in snapshot)
+      return String(snapshot.home.teamId === teamId ? snapshot.home.goals : snapshot.away.goals);
+    return undefined;
+  };
   const side = (team: DashboardMatchDto['myTeam']): MatchSide | null =>
     team
       ? {
           name: team.name,
           shortName: team.shortName,
           color: team.primaryColor,
+          score: currentScore(team.id),
           winner: Boolean(match.winnerTeamId && match.winnerTeamId === team.id),
         }
       : null;
@@ -185,9 +193,9 @@ function DashboardMatch({ match, index }: { match: DashboardMatchDto; index: num
         .join(' · ')}
       actions={
         match.isScorer && !finished ? (
-          <Link to={`/matches/${match.id}/score`}>
-            <Button size="sm">{live ? 'Keep scoring' : 'Score'}</Button>
-          </Link>
+          <ButtonLink to={`/matches/${match.id}/score`} size="sm">
+            {live ? 'Keep scoring' : 'Score'}
+          </ButtonLink>
         ) : match.isScorer ? (
           <Pill tone="accent">Scorer</Pill>
         ) : null
@@ -213,8 +221,8 @@ function SideList({
     <section>
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="serif text-[1.75rem]">{title}</h2>
-          <p className="mt-1 text-xs text-muted">{description}</p>
+          <h2 className="section-title">{title}</h2>
+          {description ? <p className="mt-1 text-xs text-muted">{description}</p> : null}
         </div>
         <Link
           to={to}
@@ -236,27 +244,20 @@ function SideList({
 
 function TournamentRow({ tournament }: { tournament: TournamentDto }) {
   const registered = tournament.registeredTeams ?? 0;
-  const progress = Math.min(1, registered / Math.max(1, tournament.teamsCount));
 
   return (
     <li>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="card-lift flex items-center gap-3.5 rounded-[var(--radius-xl)] border border-line bg-raised p-3.5"
+        className="flex items-center gap-3.5 border-b border-line py-4"
       >
         <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-sunken">
           <SportGlyph sport={tournament.sport} className="size-8" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{tournament.name}</span>
+          <span className="block break-words font-sans text-xl">{tournament.name}</span>
           <span className="mt-0.5 block text-xs text-muted">
             {FORMAT_LABELS[tournament.format]} · {registered}/{tournament.teamsCount} teams
-          </span>
-          <span className="mt-2 block h-1 overflow-hidden rounded-full bg-sunken">
-            <span
-              className="block h-full rounded-full bg-[var(--ink-blue)]"
-              style={{ width: `${progress * 100}%` }}
-            />
           </span>
         </span>
       </Link>
@@ -266,11 +267,11 @@ function TournamentRow({ tournament }: { tournament: TournamentDto }) {
 
 function SquadRow({ squad }: { squad: SquadMembershipDto }) {
   return (
-    <li className="flex items-center gap-3.5 rounded-[var(--radius-xl)] border border-line bg-raised p-3.5">
+    <li className="flex items-center gap-3.5 border-b border-line py-4">
       <TeamMark shortName={squad.team.shortName} color={squad.team.primaryColor} size="lg" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{squad.team.name}</span>
-        <span className="mt-0.5 block truncate text-xs text-muted">{squad.tournament.name}</span>
+        <span className="block break-words font-sans text-xl">{squad.team.name}</span>
+        <span className="mt-0.5 block text-xs text-muted">{squad.tournament.name}</span>
       </span>
       <Pill>{ROLE_LABELS[squad.role]}</Pill>
     </li>
@@ -306,7 +307,8 @@ function emptyCopy(tab: MatchTab, squads: number) {
         }
       : {
           title: 'No fixtures yet',
-          description: 'Your organiser has not drawn the fixtures. They appear here the moment they do.',
+          description:
+            'Your organiser has not drawn the fixtures. They appear here the moment they do.',
           scene: 'fixtures' as const,
         };
   return {
@@ -314,28 +316,6 @@ function emptyCopy(tab: MatchTab, squads: number) {
     description: 'Finished matches collect here with the final word on who won.',
     scene: 'trophy' as const,
   };
-}
-
-function summary(data: PlayerDashboardDto): string {
-  if (data.live.length > 0)
-    return data.live.length === 1
-      ? 'One of your matches is live right now. Jump in to follow it or pick up the scoring.'
-      : `${data.live.length} of your matches are live right now.`;
-  const next = data.upcoming[0];
-  if (next?.myTeam && next.opponent)
-    return `Next up, ${next.myTeam.name} take on ${next.opponent.name}${
-      next.scheduledAt ? ` on ${formatWhen(next.scheduledAt)}` : ''
-    }.`;
-  if (data.organizing.length > 0)
-    return `You are running ${data.organizing.length} ${
-      data.organizing.length === 1 ? 'tournament' : 'tournaments'
-    }. Fill the squads and draw the fixtures to get going.`;
-  return 'A quiet card today. Start a tournament or ask an organiser to add you to a squad.';
-}
-
-function partOfDay(): string {
-  const hour = new Date().getHours();
-  return hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
 }
 
 function formatWhen(iso: string | null): string {

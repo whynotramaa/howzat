@@ -35,7 +35,7 @@ export function SubstitutionRule({
               aria-pressed={active}
               className={cn(
                 'flex flex-col items-start gap-1 rounded-[var(--radius-sm)] border px-3.5 py-3 text-left',
-                'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+                'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                 active
                   ? 'border-[var(--text-primary)] bg-accent-soft'
                   : 'border-line bg-raised hover:border-line-strong hover:bg-hover',

@@ -1,0 +1,897 @@
+{
+  "ok": true,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 20,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 11 overlap (assets/sfx/stadium-ambience.mp3 at 44.6-51s, assets/sfx/storm.mp3 at 40-50s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 7.85-75s, assets/sfx/whoosh-b.mp3 at 14.8-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 7.85-75s, assets/sfx/whoosh-deep.mp3 at 19-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 7.85-75s, assets/sfx/whoosh-a.mp3 at 23.4-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 7.85-75s, assets/sfx/whoosh-b.mp3 at 57.8-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 7.85-75s, assets/sfx/whoosh-deep.mp3 at 66.6-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-b.mp3 at 14.8-75s, assets/sfx/whoosh-deep.mp3 at 19-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-b.mp3 at 14.8-75s, assets/sfx/whoosh-a.mp3 at 23.4-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-b.mp3 at 14.8-75s, assets/sfx/whoosh-b.mp3 at 57.8-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-b.mp3 at 14.8-75s, assets/sfx/whoosh-deep.mp3 at 66.6-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 13 overlap (assets/sfx/bat.mp3 at 18.93-75s, assets/sfx/thunder.mp3 at 40-47s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 13 overlap (assets/sfx/bat.mp3 at 18.93-75s, assets/sfx/kick.mp3 at 61.23-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 13 overlap (assets/sfx/bat.mp3 at 18.93-75s, assets/sfx/whistle.mp3 at 62.4-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-deep.mp3 at 19-75s, assets/sfx/whoosh-a.mp3 at 23.4-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-deep.mp3 at 19-75s, assets/sfx/whoosh-b.mp3 at 57.8-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-deep.mp3 at 19-75s, assets/sfx/whoosh-deep.mp3 at 66.6-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 23.4-75s, assets/sfx/whoosh-b.mp3 at 57.8-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-a.mp3 at 23.4-75s, assets/sfx/whoosh-deep.mp3 at 66.6-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 12 overlap (assets/sfx/whoosh-b.mp3 at 57.8-75s, assets/sfx/whoosh-deep.mp3 at 66.6-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      },
+      {
+        "code": "duplicate_audio_track",
+        "severity": "warning",
+        "message": "Multiple audible <audio>/<video> elements on track 13 overlap (assets/sfx/kick.mp3 at 61.23-75s, assets/sfx/whistle.mp3 at 62.4-75s). This causes layered audio playback.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Use non-overlapping time windows or different track indices."
+      }
+    ],
+    "filesScanned": 10
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 1,
+    "infoCount": 12,
+    "findings": [
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "warning",
+        "time": 29.167,
+        "selector": "#s4-cv",
+        "message": "Canvas content touches the frame edge (left, right, bottom).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s4.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 29.167,
+        "lastSeen": 37.5,
+        "occurrences": 2,
+        "heldMs": 0,
+        "times": [
+          29.167,
+          37.5
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 4.167,
+        "selector": "#s1-cv",
+        "message": "Canvas content touches the frame edge (left, right, top).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s1.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 4.167,
+        "lastSeen": 4.167,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          4.167
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 12.5,
+        "selector": "#s2-cv",
+        "message": "Canvas content touches the frame edge (left, right, bottom).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s2.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 12.5,
+        "lastSeen": 12.5,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          12.5
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 20.833,
+        "selector": "#s3-cv",
+        "message": "Canvas content touches the frame edge (left, right, top).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s3.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 20.833,
+        "lastSeen": 20.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          20.833
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 45.833,
+        "selector": "#s5-cv",
+        "message": "Canvas content touches the frame edge (top, bottom).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s5.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 45.833,
+        "lastSeen": 45.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          45.833
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 54.167,
+        "selector": "#s6-cv",
+        "message": "Canvas content touches the frame edge (left).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s6.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 54.167,
+        "lastSeen": 54.167,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          54.167
+        ]
+      },
+      {
+        "code": "canvas_content_at_edge",
+        "severity": "info",
+        "time": 62.5,
+        "selector": "#s7-cv",
+        "message": "Canvas content touches the frame edge (left, right, top).",
+        "rect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "containerSelector": "#root",
+        "fixHint": "Keep drawn text inside the visible part of the canvas, or mark intentional full-bleed art with data-layout-allow-overflow.",
+        "containerRect": {
+          "left": 0,
+          "top": 0,
+          "right": 1920,
+          "bottom": 1080,
+          "width": 1920,
+          "height": 1080
+        },
+        "dataAttributes": {},
+        "sourceFile": "compositions/s7.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "firstSeen": 62.5,
+        "lastSeen": 62.5,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          62.5
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(1)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 801.5,
+          "top": 281,
+          "right": 926.3,
+          "bottom": 638,
+          "width": 124.8,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "H",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 801.5,
+          "y": 281,
+          "width": 124.8,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(2)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 926.3,
+          "top": 281,
+          "right": 1030.92,
+          "bottom": 638,
+          "width": 104.63,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "o",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 926.3,
+          "y": 281,
+          "width": 104.63,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(3)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1030.92,
+          "top": 281,
+          "right": 1183.27,
+          "bottom": 638,
+          "width": 152.34,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "w",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 1030.92,
+          "y": 281,
+          "width": 152.34,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(4)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1183.27,
+          "top": 281,
+          "right": 1269.75,
+          "bottom": 638,
+          "width": 86.48,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "z",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 1183.27,
+          "y": 281,
+          "width": 86.48,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(5)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1269.75,
+          "top": 281,
+          "right": 1356.91,
+          "bottom": 638,
+          "width": 87.16,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "a",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 1269.75,
+          "y": 281,
+          "width": 87.16,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      },
+      {
+        "code": "text_occluded",
+        "severity": "info",
+        "time": 70.833,
+        "selector": "#s8-word > span:nth-of-type(6)",
+        "message": "Text is hidden beneath an opaque element.",
+        "rect": {
+          "left": 1356.91,
+          "top": 281,
+          "right": 1412.48,
+          "bottom": 638,
+          "width": 55.58,
+          "height": 357
+        },
+        "containerSelector": "#grain-cv",
+        "text": "t",
+        "fixHint": "Give the text its own zone, raise its stacking order above the covering element, or mark intentional layering with data-layout-allow-occlusion.",
+        "coveredFraction": 1,
+        "dataAttributes": {},
+        "sourceFile": "compositions/s8.html",
+        "bbox": {
+          "x": 1356.91,
+          "y": 281,
+          "width": 55.58,
+          "height": 357
+        },
+        "firstSeen": 70.833,
+        "lastSeen": 70.833,
+        "occurrences": 1,
+        "heldMs": 0,
+        "times": [
+          70.833
+        ]
+      }
+    ],
+    "duration": 75,
+    "samples": [
+      4.167,
+      12.5,
+      20.833,
+      29.167,
+      37.5,
+      45.833,
+      54.167,
+      62.5,
+      70.833
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 13,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      4.167,
+      20.833,
+      37.5,
+      54.167,
+      70.833
+    ],
+    "checked": 6,
+    "passed": 6
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 599
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}

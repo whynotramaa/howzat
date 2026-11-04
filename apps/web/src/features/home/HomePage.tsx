@@ -1,6 +1,6 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
+import { ButtonLink } from '@/components/ui/Button';
 import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
@@ -11,30 +11,45 @@ const STEPS = [
   {
     n: '01',
     title: 'Set up the tournament',
-    body: 'Add teams and squads by username, pick the format, and generate the fixtures. It takes a few minutes, not an evening.',
+    body: 'Add teams. Pick a format. Draw fixtures.',
     art: <FixturesSketch />,
   },
   {
     n: '02',
     title: 'Score from the boundary',
-    body: 'Your scorer records each ball or goal on a phone. Big keys, one-tap undo, and it keeps going when the signal drops.',
+    body: 'Record balls or goals. Undo a mistake in one tap.',
     art: <PadSketch />,
   },
   {
     n: '03',
     title: 'Share one link',
-    body: 'Post the live link in the group chat. Everyone follows along ball by ball, and nobody has to sign up.',
+    body: 'One live link. No spectator sign-up.',
     art: <ShareSketch />,
   },
 ];
 
 const INDEX = [
-  ['Offline scoring', 'Balls queue on the phone and sync in order when the connection returns.'],
-  ['Public live pages', 'A clean scoreboard, commentary and scorecard for every match, open to anyone with the link.'],
+  [
+    'Offline cricket scoring',
+    'Balls queue on the phone and sync in order when the connection returns.',
+  ],
+  [
+    'Public live pages',
+    'A clean scoreboard, commentary and scorecard for every match, open to anyone with the link.',
+  ],
   ['Points table', 'Standings and net run rate update the moment a result is recorded.'],
-  ['Cricket and football', 'Ball by ball for cricket. Goals, cards, substitutions and a match clock for football.'],
-  ['Rain rules', 'Revise targets with Duckworth-Lewis-Stern mid-match. The chase updates for everyone.'],
-  ['Scorecards to keep', 'Download match and tournament scorecards as PDF when the last ball is bowled.'],
+  [
+    'Cricket and football',
+    'Ball by ball for cricket. Goals, cards, substitutions and a match clock for football.',
+  ],
+  [
+    'Rain rules',
+    'Revise targets with Duckworth-Lewis-Stern mid-match. The chase updates for everyone.',
+  ],
+  [
+    'Scorecards to keep',
+    'Download match and tournament scorecards as PDF when the last ball is bowled.',
+  ],
 ];
 
 const SPORTS = [
@@ -43,10 +58,10 @@ const SPORTS = [
     title: 'Ball by ball.',
     art: <OverSketch />,
     points: [
-      'Runs, extras and wickets, with every dismissal credited to the right bowler.',
-      'Strike changes and the end of each over are handled for you.',
-      'Duckworth-Lewis-Stern targets when the rain arrives.',
-      'A points table with net run rate after every result.',
+      'Runs, extras and wickets.',
+      'Automatic strike and over changes.',
+      'DLS targets for rain interruptions.',
+      'Standings with net run rate.',
     ],
   },
   {
@@ -54,17 +69,17 @@ const SPORTS = [
     title: 'Minute by minute.',
     art: <TimelineSketch />,
     points: [
-      'A running match clock with stoppage time, kept by the scorer.',
-      'Goals, own goals and cards on one timeline.',
-      "Substitutions checked against your league's rules.",
-      'Full halves, short halves, quarters or five-a-side, set per match.',
+      'Match clock with stoppage time.',
+      'Goals, cards and substitutions.',
+      'Substitution limits checked.',
+      'Flexible periods and team sizes.',
     ],
   },
 ];
 
 export function HomePage() {
   const { user } = useAuth();
-  const home = user ? '/dashboard' : '/login';
+  const home = user ? '/dashboard' : '/login?mode=register&next=tournament';
 
   return (
     <div className="min-h-dvh bg-surface text-primary">
@@ -74,7 +89,7 @@ export function HomePage() {
         <Link to="/" aria-label="Howzat home">
           <Wordmark size="sm" />
         </Link>
-        <nav className="hidden items-center gap-9 text-sm text-secondary md:flex">
+        <nav className="masthead-nav hidden items-center gap-9 text-lg text-secondary md:flex">
           <a href="#sports" className="transition-colors hover:text-primary">
             Cricket and football
           </a>
@@ -84,9 +99,6 @@ export function HomePage() {
           <a href="#index" className="transition-colors hover:text-primary">
             What's included
           </a>
-          <Link to="/engineering" className="transition-colors hover:text-primary">
-            Engineering
-          </Link>
         </nav>
         <div className="flex items-center gap-4">
           <ThemeToggle />
@@ -98,57 +110,57 @@ export function HomePage() {
               Sign in
             </Link>
           )}
-          <Link to={home}>
-            <Button size="sm">{user ? 'Dashboard' : 'Get started'}</Button>
-          </Link>
+          <ButtonLink to={home} size="sm">
+            {user ? 'Dashboard' : 'Get started'}
+          </ButtonLink>
         </div>
       </header>
 
-      <section className="mx-auto max-w-[1200px] px-6 pt-20 pb-24 sm:px-10 lg:pt-32 lg:pb-32">
-        <p className="eyebrow reveal">Live scoring for local cricket and football</p>
-        <div className="mt-8 grid items-end gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-          <h1 className="hero-title serif reveal max-w-[11ch] [--delay:80ms]">
-            Every ball, <em>live</em> for everyone.
+      <section className="home-hero mx-auto grid max-w-[1200px] items-center gap-10 border-y border-line-strong px-6 py-10 sm:px-10 sm:py-16 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
+        <div>
+          <p className="eyebrow">The local game, live</p>
+          <h1 className="hero-title display mt-6">
+            Your game.
+            <br />
+            <span className="text-secondary">On the record.</span>
           </h1>
-          <HeroStage />
-        </div>
-        <div className="reveal mt-14 grid gap-10 border-t border-line pt-10 [--delay:160ms] md:grid-cols-[1fr_auto] md:items-end">
-          <p className="max-w-[34rem] text-lg leading-relaxed text-secondary">
-            Howzat runs your cricket or football tournament from a phone on the touchline. The
-            scorer taps in each ball, goal and card, and the whole club follows from one shared
-            link.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link to={home}>
-              <Button size="lg">{user ? 'Open dashboard' : 'Start a tournament'}</Button>
-            </Link>
-            <a href="#how">
-              <Button size="lg" variant="secondary">
-                See how it works
-              </Button>
-            </a>
+          <p className="mt-6 text-lg text-secondary">Cricket. Football. Every moment.</p>
+          <div className="home-actions mt-8 flex flex-wrap gap-3">
+            <ButtonLink to={home} size="lg">
+              {user ? 'Open dashboard' : 'Start a tournament'}
+            </ButtonLink>
+            <ButtonLink to="#how" reloadDocument size="lg" variant="secondary">
+              How it works
+            </ButtonLink>
           </div>
+          <p className="mt-4 text-sm text-muted">Free to play. Open to everyone.</p>
+        </div>
+        <div className="home-art px-2 py-4 sm:px-4">
+          <HeroStage />
         </div>
       </section>
 
-      <section id="sports" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 pb-24 sm:px-10 lg:pb-32">
+      <section
+        id="sports"
+        className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-12 sm:px-10 lg:py-16"
+      >
         <SectionTitle eyebrow="Two sports">
           One scorebook, <em>two</em> games.
         </SectionTitle>
-        <div className="mt-16 grid border-t border-line md:grid-cols-2">
+        <div className="mt-10 grid border-t border-line md:grid-cols-2">
           {SPORTS.map((sport, index) => (
             <ScrollReveal
               key={sport.name}
               index={index}
               step={160}
-              className="flex flex-col border-line pt-12 md:odd:pr-12 md:even:border-l md:even:pl-12 max-md:not-first:mt-16 max-md:not-first:border-t"
+              className="flex flex-col border-line pt-7 md:odd:pr-12 md:even:border-l md:even:pl-12 max-md:not-first:mt-16 max-md:not-first:border-t"
             >
               <p className="eyebrow">{sport.name}</p>
-              <h3 className="serif mt-4 text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
+              <h3 className="display mt-4 text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
                 {sport.title}
               </h3>
-              <div className="mt-10 h-40">{sport.art}</div>
-              <ul className="mt-10 border-t border-line">
+              <div className="mt-6 h-32">{sport.art}</div>
+              <ul className="mt-6 border-t border-line">
                 {sport.points.map((point) => (
                   <li
                     key={point}
@@ -163,27 +175,11 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-line bg-raised">
-        <div className="mx-auto max-w-[1200px] px-6 py-20 sm:px-10 lg:py-28">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <h2 className="serif max-w-[18ch] text-[clamp(2.25rem,4.5vw,3.75rem)]">
-              What happens when the bowler runs in.
-            </h2>
-            <p className="max-w-sm text-[0.9375rem] leading-relaxed text-secondary">
-              One tap at the ground becomes an update on every phone that is watching.
-            </p>
-          </div>
-          <ScrollReveal className="mt-16">
-            <BallJourney />
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <section id="how" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-24 sm:px-10 lg:py-32">
+      <section id="how" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-14 sm:px-10 lg:py-20">
         <SectionTitle eyebrow="How it works">
-          From fixtures to the final in <em>three</em> steps.
+          Set up. Score. <em>Share.</em>
         </SectionTitle>
-        <ol className="mt-20 grid gap-y-16 md:grid-cols-3">
+        <ol className="mt-10 grid gap-y-10 md:grid-cols-3">
           {STEPS.map((step, index) => (
             <ScrollReveal
               as="li"
@@ -194,7 +190,7 @@ export function HomePage() {
             >
               <div className="h-40">{step.art}</div>
               <span className="tabular mt-10 text-sm text-muted">{step.n}</span>
-              <h3 className="serif mt-3 text-[2rem]">{step.title}</h3>
+              <h3 className="display mt-3 text-[2rem]">{step.title}</h3>
               <p className="mt-4 text-[0.9375rem] leading-relaxed text-secondary">{step.body}</p>
             </ScrollReveal>
           ))}
@@ -205,13 +201,11 @@ export function HomePage() {
         <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-6 py-24 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:py-32">
           <div>
             <p className="eyebrow">No signal at the ground</p>
-            <h2 className="serif mt-6 text-[clamp(2.25rem,4.5vw,3.75rem)]">
-              The scoring <em>never</em> stops.
+            <h2 className="display mt-6 text-[clamp(2.25rem,4.5vw,3.75rem)]">
+              Cricket scoring, <em>offline</em>.
             </h2>
             <p className="mt-6 max-w-md text-[0.9375rem] leading-relaxed text-secondary">
-              Most grounds have a dead corner. When the connection drops, each ball is saved on the
-              scorer's phone in order. When it returns, the queue syncs and the live page catches up
-              on its own.
+              Cricket deliveries save on your phone and sync when the signal returns.
             </p>
           </div>
           <ScrollReveal>
@@ -220,11 +214,12 @@ export function HomePage() {
         </div>
       </section>
 
-      <section id="index" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-24 sm:px-10 lg:py-32">
-        <SectionTitle eyebrow="What's included">
-          Everything match night needs, and <em>nothing</em> it doesn't.
-        </SectionTitle>
-        <dl className="mt-16 grid border-t border-line md:grid-cols-2">
+      <section
+        id="index"
+        className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-14 sm:px-10 lg:py-20"
+      >
+        <SectionTitle eyebrow="What's included">The match-day essentials.</SectionTitle>
+        <dl className="mt-10 grid border-t border-line md:grid-cols-2">
           {INDEX.map(([title, body], index) => (
             <div
               key={title}
@@ -234,7 +229,7 @@ export function HomePage() {
                 {String(index + 1).padStart(2, '0')}
               </span>
               <div>
-                <dt className="serif text-[1.75rem]">{title}</dt>
+                <dt className="display text-[1.75rem]">{title}</dt>
                 <dd className="mt-2 text-[0.9375rem] leading-relaxed text-secondary">{body}</dd>
               </div>
             </div>
@@ -243,14 +238,14 @@ export function HomePage() {
       </section>
 
       <section className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-col items-start gap-10 px-6 py-24 sm:px-10 lg:py-32">
-          <h2 className="serif max-w-[16ch] text-[clamp(2.75rem,6vw,5.5rem)] leading-[0.95]">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-start gap-10 px-6 py-14 sm:px-10 lg:py-20">
+          <h2 className="display max-w-[16ch] text-[clamp(2.75rem,6vw,5.5rem)] leading-[0.95]">
             Your next match deserves a <em>proper</em> scoreboard.
           </h2>
           <div className="flex flex-wrap items-center gap-6">
-            <Link to={home}>
-              <Button size="lg">{user ? 'Open dashboard' : 'Create your tournament'}</Button>
-            </Link>
+            <ButtonLink to={home} size="lg">
+              {user ? 'Open dashboard' : 'Create your tournament'}
+            </ButtonLink>
             <span className="text-sm text-muted">
               Free to set up. Spectators never need an account.
             </span>
@@ -279,44 +274,32 @@ function SectionTitle({ eyebrow, children }: { eyebrow: string; children: ReactN
   return (
     <div>
       <p className="eyebrow">{eyebrow}</p>
-      <h2 className="serif mt-6 max-w-[20ch] text-[clamp(2.5rem,5vw,4.25rem)]">{children}</h2>
+      <h2 className="display mt-6 max-w-[20ch] text-[clamp(2.5rem,5vw,4.25rem)]">{children}</h2>
     </div>
   );
 }
 
 function HeroStage() {
   const [sport, setSport] = useState<'cricket' | 'football'>('cricket');
-  const [held, setHeld] = useState(false);
-
-  useEffect(() => {
-    if (held) return;
-    const id = window.setInterval(
-      () => setSport((current) => (current === 'cricket' ? 'football' : 'cricket')),
-      6500,
-    );
-    return () => window.clearInterval(id);
-  }, [held]);
-
   return (
     <div className="flex flex-col items-center gap-6">
       {sport === 'cricket' ? <HeroSketch key="cricket" /> : <GoalSketch key="football" />}
-      <div className="flex gap-8 text-sm" role="group" aria-label="Choose a sport">
+      <div className="flex gap-6 font-sans text-xl" role="group" aria-label="Choose a sport">
         {(['cricket', 'football'] as const).map((name) => (
           <button
             key={name}
             type="button"
             aria-pressed={sport === name}
             onClick={() => {
-              setHeld(true);
               setSport(name);
             }}
             className={
               sport === name
-                ? 'text-primary capitalize'
-                : 'text-muted capitalize transition-colors hover:text-primary'
+                ? 'min-h-11 border-b border-primary px-1 text-primary capitalize'
+                : 'min-h-11 border-b border-transparent px-1 text-muted capitalize transition-colors hover:text-primary'
             }
           >
-            {sport === name ? <span className="scribble">{name}</span> : name}
+            {name}
           </button>
         ))}
       </div>
@@ -353,11 +336,15 @@ function GoalSketch() {
       <Label x={250} y={300} delay={2000} size={34}>
         goal
       </Label>
-      <Stroke d="M220 312c8-4 15 4 23 0s15 4 23 0 15 4 23 0" color="var(--ink-green)" width={1.6} delay={2200} />
-      <g>
+      <Stroke
+        d="M220 312c8-4 15 4 23 0s15 4 23 0 15 4 23 0"
+        color="var(--ink-green)"
+        width={1.6}
+        delay={2200}
+      />
+      <g transform="translate(70 330)">
         <circle r="9" fill="var(--surface-raised)" stroke="currentColor" strokeWidth="1.6" />
         <path d="M0-3.6l3.4 2.5-1.3 4H-2.1l-1.3-4Z" fill="currentColor" />
-        <animateMotion dur="3.2s" repeatCount="indefinite" path={CURL} rotate="auto" />
       </g>
     </svg>
   );
@@ -373,7 +360,12 @@ function OverSketch() {
     ['2', 'currentColor'],
   ] as const;
   return (
-    <svg viewBox="0 0 380 160" role="img" aria-label="A sketch of one over, six balls in a row." className="h-full w-full text-primary">
+    <svg
+      viewBox="0 0 380 160"
+      role="img"
+      aria-label="A sketch of one over, six balls in a row."
+      className="h-full w-full text-primary"
+    >
       {balls.map(([mark, color], index) => {
         const x = 32 + index * 63;
         return (
@@ -401,7 +393,12 @@ function OverSketch() {
 function TimelineSketch() {
   const at = (minute: number) => 20 + (minute * 320) / 90;
   return (
-    <svg viewBox="0 0 380 160" role="img" aria-label="A sketch of a football match timeline from kick-off to full time." className="h-full w-full text-primary">
+    <svg
+      viewBox="0 0 380 160"
+      role="img"
+      aria-label="A sketch of a football match timeline from kick-off to full time."
+      className="h-full w-full text-primary"
+    >
       <Stroke d="M20 92c108-3 214-3 330 0" width={1.6} />
       <Stroke d="M20 82v20M350 82v20" width={1.4} delay={300} />
       <Stroke d={`M${at(45)} 84v16`} width={1.2} delay={400} />
@@ -473,7 +470,11 @@ function HeroSketch() {
       <Stroke d="M112 212l18-32" width={2.2} delay={500} />
       <Stroke d="M106 208c6-1 11 1 14 5l-32 66c-3 5-9 6-13 3-4-2-5-7-3-11Z" delay={650} />
       <Stroke d={LOFT} color="var(--ink-blue)" dashed delay={1000} />
-      <Stroke d="M318 344c8-7 16 7 24 0s16 7 24 0 16 7 24 0 16 7 24 0" color="var(--ink-amber)" delay={1300} />
+      <Stroke
+        d="M318 344c8-7 16 7 24 0s16 7 24 0 16 7 24 0 16 7 24 0"
+        color="var(--ink-amber)"
+        delay={1300}
+      />
       <Stroke d="M402 344v-52" width={1.5} delay={1500} />
       <Stroke d="M402 292c10 1 18 5 26 11-8 3-17 3-26 0" color="var(--ink-red)" delay={1700} />
       <Label x={250} y={40} delay={1600}>
@@ -482,113 +483,13 @@ function HeroSketch() {
       <Label x={352} y={250} delay={2000} size={34}>
         six
       </Label>
-      <Stroke d="M330 262c8-4 14 4 22 0s14 4 22 0" color="var(--ink-red)" width={1.6} delay={2200} />
-      <circle r="6.5" fill="var(--ink-red)">
-        <animateMotion dur="3.2s" repeatCount="indefinite" path={LOFT} />
-      </circle>
-    </svg>
-  );
-}
-
-const JOURNEY = 'M196 168c70-26 148-30 222-6M560 162c76-30 150-32 226-4';
-
-function BallJourney() {
-  return (
-    <svg
-      viewBox="0 0 980 330"
-      role="img"
-      aria-label="A diagram. The scorer taps a ball on their phone, Howzat records it, and every spectator's phone updates."
-      className="h-auto w-full text-primary"
-    >
-      <Stroke d="M92 72c22-2 46-1 70 1 4 34 4 120-1 172-24 3-48 3-70 0-4-52-4-120 1-173Z" />
-      <Stroke d="M100 96h55M100 228h55" width={1.2} delay={200} />
-      <g className="sketch-fade" style={delayed(500)}>
-        {[0, 1, 2].map((row) =>
-          [0, 1].map((col) => {
-            const hit = row === 1 && col === 1;
-            return (
-              <rect
-                key={`${row}-${col}`}
-                x={106 + col * 24}
-                y={112 + row * 34}
-                width="18"
-                height="24"
-                rx="4"
-                fill={hit ? 'var(--ink-blue)' : 'none'}
-                stroke={hit ? 'var(--ink-blue)' : 'currentColor'}
-                strokeWidth="1.2"
-                filter="url(#sketch-rough)"
-              />
-            );
-          }),
-        )}
-        <text x="139" y="164" textAnchor="middle" fontSize="12" fill="#fff" fontWeight="700">
-          4
-        </text>
-      </g>
-      <Label x={126} y={290} delay={700}>
-        the scorer taps four
-      </Label>
-
-      <Stroke d="M196 168c70-26 148-30 222-6" color="var(--ink-blue)" delay={700} />
-      <Stroke d="M406 150l14 12-16 9" color="var(--ink-blue)" delay={1100} />
-
       <Stroke
-        d="M490 82c48-2 86 34 88 80 2 48-38 86-86 86-48 0-88-38-86-86 0-46 38-80 84-80Z"
-        delay={900}
-      />
-      <Stroke
-        d="M470 128c1 22 1 44-1 70M490 126c1 24 0 48 0 72M510 128c0 22 1 46 0 70"
-        delay={1200}
+        d="M330 262c8-4 14 4 22 0s14 4 22 0"
+        color="var(--ink-red)"
         width={1.6}
+        delay={2200}
       />
-      <Stroke d="M466 120c9-2 18-2 28 0M500 112c6-5 13-8 22-9" delay={1400} width={1.6} />
-      <Label x={490} y={290} delay={1500}>
-        saved, in order, in one place
-      </Label>
-
-      <Stroke d="M560 162c76-30 150-32 226-4" color="var(--ink-blue)" delay={1500} />
-      <Stroke d="M774 146l14 12-16 9" color="var(--ink-blue)" delay={1900} />
-
-      {(
-        [
-          [808, 60, 'var(--ink-green)'],
-          [880, 118, 'var(--ink-amber)'],
-          [818, 188, 'var(--ink-violet)'],
-        ] as const
-      ).map(([x, y, color], index) => (
-        <g key={index}>
-          <Stroke
-            d={`M${x} ${y}c14-1 30-1 44 1 2 22 2 52-1 70-14 2-30 2-44 0-2-22-2-48 1-71Z`}
-            delay={1900 + index * 180}
-          />
-          <rect
-            x={x + 8}
-            y={y + 12}
-            width="28"
-            height="20"
-            rx="3"
-            fill={color}
-            className="sketch-fade"
-            style={delayed(2300 + index * 180)}
-          />
-          <Stroke
-            d={`M${x + 9} ${y + 44}h24M${x + 9} ${y + 52}h16`}
-            width={1.2}
-            delay={2400 + index * 180}
-          />
-        </g>
-      ))}
-      <Label x={860} y={290} delay={2600}>
-        everyone sees it land
-      </Label>
-
-      <circle r="7" fill="var(--ink-red)">
-        <animateMotion dur="3.6s" repeatCount="indefinite" path={JOURNEY} />
-      </circle>
-      <circle r="7" fill="var(--ink-red)" opacity="0.25">
-        <animateMotion dur="3.6s" begin="0.12s" repeatCount="indefinite" path={JOURNEY} />
-      </circle>
+      <circle cx="120" cy="214" r="6.5" fill="var(--ink-red)"></circle>
     </svg>
   );
 }
@@ -656,7 +557,7 @@ function PadSketch() {
               fontSize="18"
               fill={tone ? '#fff' : 'currentColor'}
               className="sketch-fade"
-              style={delayed(700 + index * 60, { fontFamily: 'var(--font-serif)' })}
+              style={delayed(700 + index * 60, { fontFamily: 'var(--font-sans)' })}
             >
               {key}
             </text>
@@ -739,7 +640,12 @@ function OfflineSketch() {
         />
       ))}
       <Stroke d="M190 186v-12M204 186v-24M218 186v-36M232 186v-48" width={5} dashed delay={500} />
-      <Stroke d="M186 136c18 16 34 34 52 54M238 136c-18 16-34 34-52 54" color="var(--ink-red)" width={2.4} delay={900} />
+      <Stroke
+        d="M186 136c18 16 34 34 52 54M238 136c-18 16-34 34-52 54"
+        color="var(--ink-red)"
+        width={2.4}
+        delay={900}
+      />
 
       <Stroke
         d="M276 48c22-2 46-1 66 1 3 30 3 92-1 126-22 3-44 3-66 0-3-36-3-96 1-127Z"

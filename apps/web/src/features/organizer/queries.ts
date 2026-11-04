@@ -8,8 +8,9 @@ import type {
   TeamWithPlayersDto,
   TournamentDto,
   UserRef,
+  UpdatePlayerInput,
 } from '@howzat/shared';
-import { api } from '@/lib/api';
+import { api, apiFetch } from '@/lib/api';
 
 export const keys = {
   tournaments: ['tournaments'] as const,
@@ -35,6 +36,7 @@ export function useTournaments() {
 export function useTournament(id: string) {
   return useQuery({
     queryKey: keys.tournament(id),
+    enabled: Boolean(id),
     queryFn: () => api.get<TournamentDto>(`/tournaments/${id}`),
   });
 }
@@ -123,6 +125,15 @@ export function useAddPlayersBulk(teamId: string, tournamentId: string) {
   return useMutation({
     mutationFn: (players: CreatePlayerInput[]) =>
       api.post<ListResponse<PlayerDto>>(`/teams/${teamId}/players/bulk`, { players }),
+    onSuccess: () => invalidateSquad(queryClient, teamId, tournamentId),
+  });
+}
+
+export function useUpdatePlayer(teamId: string, tournamentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdatePlayerInput & { id: string }) =>
+      apiFetch<PlayerDto>(`/players/${id}`, { method: 'PATCH', body: input }),
     onSuccess: () => invalidateSquad(queryClient, teamId, tournamentId),
   });
 }

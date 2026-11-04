@@ -154,11 +154,14 @@ function AwardCard({
               size="lg"
             />
             <div className="min-w-0">
-              <p className="serif truncate text-[1.375rem] text-primary">{player.playerName}</p>
+              <p className="display truncate text-[1.375rem] text-primary">{player.playerName}</p>
               <p className="mt-1 truncate text-xs text-muted">{player.team.name}</p>
             </div>
           </div>
-          <p className="score-figure tabular border-t border-dashed border-line pt-4 text-[2.5rem] leading-none" style={{ color: tone }}>
+          <p
+            className="score-figure tabular border-t border-dashed border-line pt-4 text-[2.5rem] leading-none"
+            style={{ color: tone }}
+          >
             {value(player)}
           </p>
         </>

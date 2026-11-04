@@ -14,40 +14,26 @@ export interface MatchSide {
 }
 
 function Side({ side, decided }: { side: MatchSide | null; decided: boolean }) {
-  if (!side) {
+  if (!side)
     return (
-      <div className="flex min-w-0 flex-col items-center gap-2.5 text-center">
-        <span className="grid size-12 place-items-center rounded-full border-[1.5px] border-dashed border-line-strong font-serif text-lg text-muted">
-          ?
-        </span>
-        <span className="text-[0.875rem] font-medium text-muted">To be decided</span>
+      <div className="flex min-h-10 items-center gap-3">
+        <span className="w-9 text-center text-muted">—</span>
+        <span className="font-sans text-xl text-muted">To be decided</span>
       </div>
     );
-  }
-
-  const faded = decided && !side.winner;
-
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2.5 text-center">
-      <TeamMark shortName={side.shortName} color={side.color} size="lg" />
+    <div className="match-side flex min-w-0 items-center gap-3">
+      <TeamMark shortName={side.shortName} color={side.color} size="md" />
       <span
         className={cn(
-          'line-clamp-2 max-w-full text-[0.9375rem] leading-snug text-primary',
-          side.winner ? 'font-bold' : 'font-semibold',
-          faded && 'text-secondary',
+          'min-w-0 flex-1 break-words font-sans text-xl font-medium leading-tight',
+          decided && !side.winner ? 'text-secondary' : 'text-primary',
         )}
       >
         {side.name}
       </span>
       {side.score != null && side.score !== '' ? (
-        <span
-          className={cn(
-            'score-figure tabular text-[1.875rem] leading-none',
-            faded ? 'text-muted' : 'text-primary',
-          )}
-        >
-          {side.score}
-        </span>
+        <span className="score-figure shrink-0 text-[2.25rem]">{side.score}</span>
       ) : null}
       {side.note ? <span className="text-xs text-muted">{side.note}</span> : null}
     </div>
@@ -86,8 +72,8 @@ export function MatchCard({
     <article
       style={style}
       className={cn(
-        'card-lift relative flex flex-col rounded-[var(--radius-xl)] border bg-raised p-5',
-        live ? 'border-[color-mix(in_oklab,var(--live)_40%,var(--line))]' : 'border-line',
+        'match-ledger relative flex min-w-0 flex-col border-t border-line-strong py-5',
+        live && 'match-ledger-live',
         className,
       )}
     >
@@ -104,34 +90,38 @@ export function MatchCard({
         <StatusPill status={status} />
       </div>
 
-      <div className="pointer-events-none relative mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3">
+      <div className="pointer-events-none relative mt-4 grid gap-3">
         <Side side={home} decided={decided} />
-        <span
-          aria-hidden
-          className="mt-1.5 grid size-9 place-items-center rounded-full border border-line bg-surface font-serif text-[1.125rem] leading-none text-muted italic"
-        >
-          v
-        </span>
         <Side side={away} decided={decided} />
       </div>
 
       {result ? (
-        <p className="pointer-events-none relative mt-5 text-center font-serif text-[1.0625rem] leading-snug text-primary italic">
+        <p className="pointer-events-none relative mt-3 font-sans text-[1.0625rem] leading-snug text-primary italic">
           {result}
         </p>
       ) : null}
 
       {meta || actions ? (
-        <div className="relative mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-dashed border-line pt-4">
+        <div className="relative mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="pointer-events-none min-w-0 text-xs text-muted">{meta}</div>
-          {actions ? <div className="relative z-10 flex items-center gap-1.5">{actions}</div> : null}
+          {actions ? (
+            <div className="relative z-10 flex items-center gap-1.5">{actions}</div>
+          ) : null}
         </div>
       ) : null}
     </article>
   );
 }
 
-function HeroSide({ side, decided, align }: { side: MatchSide | null; decided: boolean; align: 'start' | 'end' }) {
+function HeroSide({
+  side,
+  decided,
+  align,
+}: {
+  side: MatchSide | null;
+  decided: boolean;
+  align: 'start' | 'end';
+}) {
   const faded = decided && side && !side.winner;
 
   return (
@@ -142,23 +132,33 @@ function HeroSide({ side, decided, align }: { side: MatchSide | null; decided: b
       )}
     >
       {side ? (
-        <TeamMark shortName={side.shortName} color={side.color} size="xl" className="max-sm:!size-16" />
+        <TeamMark
+          shortName={side.shortName}
+          color={side.color}
+          size="xl"
+          className="max-sm:!size-16"
+        />
       ) : (
-        <span className="grid size-16 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-line-strong font-serif text-2xl text-muted md:size-20">
+        <span className="grid size-16 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-line-strong font-sans text-2xl text-muted md:size-20">
           ?
         </span>
       )}
       <div className="min-w-0">
         <p
           className={cn(
-            'serif line-clamp-2 text-[clamp(1.375rem,3vw,2.5rem)]',
+            'display line-clamp-2 text-[clamp(1.375rem,3vw,2.5rem)]',
             faded ? 'text-secondary' : 'text-primary',
           )}
         >
           {side?.name ?? 'To be decided'}
         </p>
         {side?.score != null && side.score !== '' ? (
-          <p className={cn('score-figure tabular mt-2 text-[clamp(1.75rem,3.4vw,2.75rem)]', faded ? 'text-muted' : 'text-primary')}>
+          <p
+            className={cn(
+              'score-figure tabular mt-2 text-[clamp(1.75rem,3.4vw,2.75rem)]',
+              faded ? 'text-muted' : 'text-primary',
+            )}
+          >
             {side.score}
           </p>
         ) : null}
@@ -197,25 +197,29 @@ export function MatchHero({
       )}
     >
       <div className="flex flex-col items-center gap-3 text-center">
-        {eyebrow ? <div className="eyebrow flex flex-wrap justify-center gap-x-2.5">{eyebrow}</div> : null}
+        {eyebrow ? (
+          <div className="eyebrow flex flex-wrap justify-center gap-x-2.5">{eyebrow}</div>
+        ) : null}
         <StatusPill status={status} />
       </div>
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-8">
         <HeroSide side={home} decided={decided} align="start" />
         <span
           aria-hidden
-          className="grid size-12 place-items-center rounded-full border border-line-strong bg-surface font-serif text-[1.5rem] leading-none text-secondary italic md:size-14"
+          className="grid size-12 place-items-center rounded-full border border-line-strong bg-surface font-sans text-[1.5rem] leading-none text-secondary italic md:size-14"
         >
           v
         </span>
         <HeroSide side={away} decided={decided} align="end" />
       </div>
       {result ? (
-        <p className="serif mx-auto mt-8 max-w-[34ch] text-center text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">
+        <p className="display mx-auto mt-8 max-w-[34ch] text-center text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">
           {result}
         </p>
       ) : null}
-      {detail ? <div className="mt-5 text-center text-[0.8125rem] text-secondary">{detail}</div> : null}
+      {detail ? (
+        <div className="mt-5 text-center text-[0.8125rem] text-secondary">{detail}</div>
+      ) : null}
       {actions ? (
         <div className="mt-7 flex flex-wrap items-center justify-center gap-2 border-t border-dashed border-line pt-6">
           {actions}

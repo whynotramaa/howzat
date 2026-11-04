@@ -1,0 +1,121 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s7-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s7" data-width="1920" data-height="1080">
+    <canvas id="s7-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, Wd = WORLD, K = CAST, C = I.C, E = I.E, V = I.V;
+      const ST = Wd.stadium({ ex: 50, ez: 70, kind: 'football', seed: 19 });
+      const GOAL_Z = 50, CORNER = [3.0, 2.05, 50.3], NET = [3.0, 1.95, 51.7];
+      const T_SHOT = 3.2, T_IN = 3.6, T_NET = 3.75;
+      const sim = (t) => (t < 5.9 ? t : t < 7.0 ? 5.9 + (t - 5.9) * 0.35 : 6.285 + (t - 7.0));
+      const runPath = [[6, 0, 17], [4.5, 0, 26], [2.6, 0, 35.2]];
+      const celebPath = [[2.6, 0, 35.6], [7, 0, 40], [12, 0, 44]];
+      function striker(ts) {
+        if (ts < 3.0) {
+          const p = I.path(runPath, ts / 3.0);
+          return { pos: p, yaw: -0.18, pose: K.run(ts * 1.75, 1, 0.14) };
+        }
+        if (ts < 3.6) return { pos: runPath[2], yaw: -0.05, pose: I.key(ts, [[3.0, K.run(3.0 * 1.75, 1, 0.14)], [3.1, K.FOOT.plant, E.out2], [3.2, K.FOOT.strike, E.in3], [3.6, K.FOOT.strike]]) };
+        if (ts < 4.4) return { pos: V.lerp(runPath[2], celebPath[0], I.ramp(ts, 3.6, 4.4)), yaw: I.key(ts, [[3.6, -0.05], [4.4, 0.94]]), pose: I.mix(K.FOOT.strike, K.run(ts * 1.6, 0.8, 0.1), I.ramp(ts, 3.6, 4.0)) };
+        if (ts < 5.6) return { pos: I.path(celebPath, I.ramp(ts, 4.4, 5.6, E.lin)), yaw: 0.94, pose: K.run(ts * 1.9, 1.1, 0.16) };
+        const air = I.ramp(ts, 5.8, 6.25, E.lin);
+        const yaw = 0.94 + Math.PI * I.ramp(ts, 5.85, 6.22, E.io2);
+        const pose = I.key(ts, [[5.6, K.run(5.6 * 1.9, 1.1, 0.16)], [5.8, K.FOOT.crouch, E.out2], [6.0, K.FOOT.leap, E.out3], [6.25, K.FOOT.leap], [6.42, K.FOOT.land, E.out3]]);
+        const lift = ts > 5.8 && ts < 6.25 ? 0 : 0;
+        return { pos: [celebPath[2][0], lift, celebPath[2][2]], yaw, pose };
+      }
+      function ball(ts) {
+        if (ts < T_SHOT) {
+          const s = striker(ts), ph = ts * 1.75;
+          const f = [Math.sin(s.yaw), 0, Math.cos(s.yaw)];
+          return V.add(V.add(s.pos, V.mul(f, 0.75 + 0.3 * Math.abs(Math.sin(ph * Math.PI)))), [0.1, 0.11, 0]);
+        }
+        const from = V.add(runPath[2], [0.1, 0.11, 0.9]);
+        if (ts < T_IN) {
+          const u = (ts - T_SHOT) / (T_IN - T_SHOT);
+          return V.add(V.lerp(from, CORNER, u), [0, Math.sin(u * Math.PI) * 0.6, 0]);
+        }
+        if (ts < T_NET) return V.lerp(CORNER, NET, (ts - T_IN) / (T_NET - T_IN));
+        return V.add(NET, [0, -Math.min(1.84, (ts - T_NET) * 3), 0]);
+      }
+      function camera(t, ts) {
+        if (t < T_SHOT) {
+          const s = striker(ts).pos;
+          return I.cam(V.add(s, [-4.2, 1.5, -6.2]), V.add(s, [1.2, 0.9, 9]), 48);
+        }
+        if (t < 4.4) {
+          const k = I.ramp(t, T_SHOT, 4.4, E.out2);
+          return I.cam(V.lerp([-2.2, 1.7, 55], [-2.6, 1.9, 56], k), V.lerp([1.4, 1.3, 40], [2.5, 1.3, 42], k), 46);
+        }
+        if (t < 5.9) {
+          const s = striker(ts).pos, k = I.ramp(t, 4.4, 5.9, E.io2);
+          return I.cam(V.add(s, [V.lerp([5, 0, 0], [6, 0, 0], k)[0], 1.3, 3.5]), V.add(s, [0, 1.1, 0]), 46);
+        }
+        const P0 = V.add(celebPath[2], [6, 1.3, 3.5]), ctr = V.add(celebPath[2], [0, 1.2, 0]);
+        if (t < 8.0) {
+          const u = I.ramp(t, 5.9, 8.0, E.io2);
+          const a0 = Math.atan2(P0[2] - ctr[2], P0[0] - ctr[0]), a = a0 - u * 2.5;
+          const r = I.key(u, [[0, Math.hypot(P0[0] - ctr[0], P0[2] - ctr[2])], [0.5, 4.2], [1, 5.6]]);
+          return I.cam([ctr[0] + r * Math.cos(a), I.key(u, [[0, 1.3], [0.5, 0.8], [1, 1.6]]), ctr[2] + r * Math.sin(a)], ctr, 42, Math.sin(u * Math.PI) * -0.05);
+        }
+        const u = I.ramp(t, 8.0, 9.0, E.in3);
+        const a = Math.atan2(P0[2] - ctr[2], P0[0] - ctr[0]) - 2.5;
+        const end = [ctr[0] + 5.6 * Math.cos(a), 1.6, ctr[2] + 5.6 * Math.sin(a)];
+        return I.cam(V.lerp(end, [ctr[0] - 40, 140, ctr[2] - 90], u), V.lerp(ctr, [0, 0, 0], u), I.lerp(42, 60, u));
+      }
+      const tl = I.scene('s7', 58, 9, (ctx, t, b) => {
+        I.paper(ctx);
+        const ts = sim(t), c = camera(t, ts), D = I.List();
+        ST.draw(D, ctx, c, t, b, { lights: 1, cheer: I.ramp(ts, 3.65, 4.0) });
+        const bulge = ts > T_IN + 0.05 ? 0.9 * Math.exp(-(ts - T_NET) * 2.2) * Math.max(0, Math.cos((ts - T_NET) * 7) * 0.5 + 0.5) + (ts > T_NET ? 0.25 : 0) : 0;
+        Wd.goal(D, ctx, c, GOAL_Z, 1, b, bulge, [CORNER[0], CORNER[1]]);
+        Wd.goal(D, ctx, c, -GOAL_Z, -1, b, 0);
+        const s = striker(ts);
+        I.figure3(D, ctx, c, { pos: s.pos[1] ? s.pos : [s.pos[0], 0, s.pos[2]], yaw: s.yaw, pose: s.pose, kit: K.KITS.striker, seed: 81, b });
+        const dv = I.ramp(ts, 2.6, 3.0, E.out2);
+        I.figure3(D, ctx, c, { pos: V.lerp([-7, 0, 28], [-0.4, 0, 33.6], I.ramp(ts, 0, 2.7, E.lin)), yaw: 0.9, pose: dv > 0 ? I.mix(K.run(2.6 * 1.7, 1, 0.12), K.FOOT.dive, dv) : K.run(ts * 1.7, 1, 0.12), kit: K.KITS.def, seed: 82, b });
+        const gd = I.ramp(ts, 3.25, 3.65, E.out2);
+        I.figure3(D, ctx, c, { pos: [gd * 1.7, 0, 49.4], yaw: Math.PI, pose: I.mix(K.READY, K.FOOT.dive, gd), kit: K.KITS.gk, seed: 83, b });
+        [[-14, 30], [16, 24], [-22, 12], [9, 8]].forEach(([x, z], i) => I.figure3(D, ctx, c, { pos: [x, 0, z], yaw: 0.2 * i, pose: ts > 3.7 ? K.READY : K.run(ts * 1.4 + i * 0.3, 0.7, 0.1), kit: i % 2 ? K.KITS.def : K.KITS.striker, seed: 90 + i, b }));
+        const bp = ball(ts);
+        D.add(I.depth(c, bp) - 0.2, () => {
+          const d = I.disc3(ctx, c, bp, 0.13, { fill: C.white, seed: 84, b, min: 3, w: 2.2 });
+          if (d && d[3] > 5) I.dot(ctx, d[0] + d[3] * 0.15, d[1] - d[3] * 0.1, d[3] * 0.35, C.ink);
+        }, 1);
+        if (ts > T_SHOT && ts < T_NET + 0.3) {
+          const pts = [];
+          for (let k = 0; k <= 14; k++) pts.push(ball(T_SHOT + (Math.min(ts, T_NET) - T_SHOT) * (k / 14)));
+          D.add(1e5, () => I.line3(ctx, c, pts, { ww: 0.06, color: C.tang, seed: 85, b, wmin: 2, wmax: 10, alpha: 1 - I.ramp(ts, T_NET, T_NET + 0.3) }), 2);
+        }
+        if (ts > 6.2) {
+          const ctr = V.add(celebPath[2], [0, 1.4, 0]);
+          D.add(I.depth(c, ctr) + 2, () => {
+            Wd.burst3(ctx, c, V.add(ctr, [0, 1.5, 0]), (ts - 6.22) / 1.6, C.red, 86, b, { r: 3.2, n: 18, ww: 0.06, drop: 1.2, col2: C.yellow });
+            Wd.burst3(ctx, c, V.add(ctr, [0, 0.5, 0]), (ts - 6.3) / 1.6, C.pink, 87, b, { r: 2.4, n: 14, ww: 0.05, drop: 1, col2: C.sky });
+          }, 1);
+        }
+        D.flush();
+        if (t > 8.0) {
+          const u = I.ramp(t, 8.1, 9.0, E.io2);
+          const a = I.proj(c, [0, 30, -78]);
+          if (a) {
+            const pts = [];
+            for (let i = 0; i <= 20; i++) {
+              const k = (i / 20) * u;
+              pts.push([I.lerp(a[0], 960, k) + Math.sin(k * 9) * 40, I.lerp(a[1], -60, k)]);
+            }
+            I.stroke(ctx, pts, { w: 9, color: C.cobalt, seed: 88, b, amp: 3 });
+          }
+        }
+      });
+      const cv = document.getElementById('s7-cv');
+      tl.fromTo(cv, { x: 380, filter: 'blur(18px)' }, { x: 0, filter: 'blur(0px)', duration: 0.28, ease: 'power3.out' }, 0);
+      window.__timelines['s7'] = tl;
+    })();
+  </script>
+</template>

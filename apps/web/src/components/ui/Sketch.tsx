@@ -80,13 +80,7 @@ export function SketchDefs() {
 
 export type SceneName = 'trophy' | 'stumps' | 'goal' | 'squad' | 'fixtures' | 'scorebook';
 
-export function Scene({
-  name,
-  className,
-}: {
-  name: SceneName;
-  className?: string;
-}) {
+export function Scene({ name, className }: { name: SceneName; className?: string }) {
   return (
     <svg
       viewBox="0 0 220 140"
@@ -106,15 +100,32 @@ const SCENES: Record<SceneName, ReactNode> = {
       <Stroke d="M84 38c-14-2-18 18-2 24M136 38c14-2 18 18 2 24" width={1.4} delay={400} />
       <Stroke d="M110 80v18M94 108c10-4 22-4 32 0l2 10H92Z" delay={600} />
       <Stroke d="M98 44c6 10 14 14 24 12" color="var(--ink-amber)" width={2.4} delay={900} />
-      <Stroke d="M58 34l6 6M64 34l-6 6M160 24l5 5M165 24l-5 5" color="var(--ink-blue)" width={1.4} delay={1100} />
-      <Stroke d="M52 74c4-2 8 2 12 0M156 66c4-2 8 2 12 0" color="var(--ink-red)" width={1.4} delay={1200} />
+      <Stroke
+        d="M58 34l6 6M64 34l-6 6M160 24l5 5M165 24l-5 5"
+        color="var(--ink-blue)"
+        width={1.4}
+        delay={1100}
+      />
+      <Stroke
+        d="M52 74c4-2 8 2 12 0M156 66c4-2 8 2 12 0"
+        color="var(--ink-red)"
+        width={1.4}
+        delay={1200}
+      />
     </>
   ),
   stumps: (
     <>
-      <Stroke d="M92 120c1-24 0-48-1-70M110 120c0-24 1-48 0-71M128 120c1-24 0-48 0-70" delay={100} />
+      <Stroke
+        d="M92 120c1-24 0-48-1-70M110 120c0-24 1-48 0-71M128 120c1-24 0-48 0-70"
+        delay={100}
+      />
       <Stroke d="M88 49c8-2 16-2 22 0M110 49c8-2 16-1 22 1" width={1.6} delay={500} />
-      <Stroke d="M150 112c4-8 14-10 20-4 6 6 2 16-6 18-8 2-16-6-14-14Z" color="var(--ink-red)" delay={800} />
+      <Stroke
+        d="M150 112c4-8 14-10 20-4 6 6 2 16-6 18-8 2-16-6-14-14Z"
+        color="var(--ink-red)"
+        delay={800}
+      />
       <Stroke d="M156 108c4 4 8 8 10 14" color="var(--ink-red)" width={1} delay={1000} />
       <Stroke d="M40 70c20-14 34-16 46-14" color="var(--ink-blue)" dashed delay={1100} />
     </>
@@ -127,7 +138,11 @@ const SCENES: Record<SceneName, ReactNode> = {
         width={0.8}
         delay={500}
       />
-      <Stroke d="M178 118c4-8 14-9 19-3 5 7 1 14-6 15-8 1-15-5-13-12Z" color="var(--ink-green)" delay={900} />
+      <Stroke
+        d="M178 118c4-8 14-9 19-3 5 7 1 14-6 15-8 1-15-5-13-12Z"
+        color="var(--ink-green)"
+        delay={900}
+      />
       <Stroke d="M30 84c16-6 26-6 34-2" color="var(--ink-blue)" dashed delay={1100} />
     </>
   ),
@@ -164,7 +179,10 @@ const SCENES: Record<SceneName, ReactNode> = {
   ),
   scorebook: (
     <>
-      <Stroke d="M58 26c34-2 70-2 104 0 2 32 2 62 0 92-34 2-70 2-104 0-2-30-2-60 0-92Z" delay={100} />
+      <Stroke
+        d="M58 26c34-2 70-2 104 0 2 32 2 62 0 92-34 2-70 2-104 0-2-30-2-60 0-92Z"
+        delay={100}
+      />
       <Stroke d="M110 26v92" width={1} delay={300} />
       {[44, 60, 76, 92].map((y, index) => (
         <Stroke key={y} d={`M68 ${y}h32M120 ${y}h32`} width={1} delay={500 + index * 80} />
@@ -191,14 +209,21 @@ export function SportGlyph({ sport, className }: { sport: Sport; className?: str
         <>
           <path d="M14 36c6-7 13-15 20-23l3 3c-7 8-14 15-21 21Z" />
           <path d="M34 13l4-4" />
-          <circle cx="34" cy="34" r="5" stroke="var(--ink-red)" />
-          <path d="M31 31c2 2 4 4 6 6" stroke="var(--ink-red)" strokeWidth="1" />
+          <circle cx="34" cy="34" r="5" fill="var(--ink-red)" stroke="none" />
+          <path d="M32.5 30.5c2 1 3 3 3 7" stroke="var(--surface-raised)" strokeWidth="1" />
         </>
       ) : (
         <>
           <circle cx="24" cy="24" r="13" />
-          <path d="M24 17l6 4.4-2.3 7h-7.4l-2.3-7Z" fill="var(--ink-green)" stroke="var(--ink-green)" />
-          <path d="M24 17v-6M30 21.4l6-2M27.7 28.4l3.6 5M20.3 28.4l-3.6 5M18 21.4l-6-2" strokeWidth="1.1" />
+          <path
+            d="M24 17l6 4.4-2.3 7h-7.4l-2.3-7Z"
+            fill="var(--ink-green)"
+            stroke="var(--ink-green)"
+          />
+          <path
+            d="M24 17v-6M30 21.4l6-2M27.7 28.4l3.6 5M20.3 28.4l-3.6 5M18 21.4l-6-2"
+            strokeWidth="1.1"
+          />
         </>
       )}
     </svg>

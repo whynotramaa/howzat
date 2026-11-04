@@ -20,9 +20,10 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div
-      role="tablist"
+      role="group"
+      aria-label="View options"
       className={cn(
-        'flex w-full max-w-full gap-7 overflow-x-auto border-b border-line',
+        'flex w-full max-w-full gap-6 overflow-x-auto overflow-y-hidden border-b border-line',
         className,
       )}
     >
@@ -33,11 +34,10 @@ export function Tabs<T extends string>({
           <button
             key={item.value}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              'relative -mb-px inline-flex h-12 items-center gap-2 border-b-[1.5px]',
+              'relative inline-flex h-12 shrink-0 items-center gap-2 border-b-2 px-1',
               'text-[0.875rem] font-medium whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
               active
                 ? 'border-current text-primary'
@@ -47,10 +47,7 @@ export function Tabs<T extends string>({
             {item.label}
             {item.meta !== undefined ? (
               <span
-                className={cn(
-                  'tabular text-[0.75rem]',
-                  active ? 'text-secondary' : 'text-muted',
-                )}
+                className={cn('tabular text-[0.75rem]', active ? 'text-secondary' : 'text-muted')}
               >
                 {item.meta}
               </span>

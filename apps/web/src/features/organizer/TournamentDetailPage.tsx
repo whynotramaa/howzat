@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { TeamDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState, PageHeader, SectionHeading, StatStrip } from '@/components/ui/Card';
 import { SportGlyph } from '@/components/ui/Sketch';
 import { Input } from '@/components/ui/Input';
@@ -31,7 +31,16 @@ const FORMAT_LABELS = {
   LEAGUE_PLAYOFFS: 'League + playoffs',
 } as const;
 
-const TEAM_COLORS = ['#2f63d8', '#d0533c', '#4d8a57', '#d99a2b', '#7a58c9', '#1f8a8a', '#b8336a', '#191917'];
+const TEAM_COLORS = [
+  '#2f63d8',
+  '#d0533c',
+  '#4d8a57',
+  '#d99a2b',
+  '#7a58c9',
+  '#1f8a8a',
+  '#b8336a',
+  '#191917',
+];
 
 export function TournamentDetailPage() {
   const { tournamentId = '' } = useParams();
@@ -49,7 +58,8 @@ export function TournamentDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   if (tournament.isPending) return <SkeletonCard rows={4} />;
-  if (tournament.error) return <ErrorText error={tournament.error} />;
+  if (tournament.error)
+    return <ErrorText error={tournament.error} onRetry={() => void tournament.refetch()} />;
   if (!tournament.data) return null;
 
   const registered = teams.data?.total ?? 0;
@@ -72,18 +82,12 @@ export function TournamentDetailPage() {
     if (match) void navigate(`/matches/${match.id}`);
   }
 
-  const nextStep = readyForFixtures
-    ? isSingleMatch
-      ? 'Ready to start'
-      : 'Ready for fixtures'
-    : !full
-      ? `${tournament.data.teamsCount - registered} to register`
-      : `${registered - eligible} squad${registered - eligible === 1 ? '' : 's'} short`;
-
   const steps = [
     {
       label: 'Register teams',
-      detail: full ? 'Every slot filled' : `${tournament.data.teamsCount - registered} slots still open`,
+      detail: full
+        ? 'Every slot filled'
+        : `${tournament.data.teamsCount - registered} slots still open`,
       done: full,
     },
     {
@@ -110,7 +114,7 @@ export function TournamentDetailPage() {
   const current = steps.findIndex((step) => !step.done);
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-7">
       <PageHeader
         back={<BackLink to="/tournaments">Tournaments</BackLink>}
         eyebrow={
@@ -129,17 +133,12 @@ export function TournamentDetailPage() {
           </>
         }
         title={tournament.data.name}
-        description={readyForFixtures
-          ? `Every squad is in. ${isSingleMatch ? 'Start the match whenever the teams walk out.' : 'Draw the fixtures and the season begins.'}`
-          : `${nextStep}. ${tournament.data.teamsCount} teams play this ${FORMAT_LABELS[tournament.data.format].toLowerCase()}${tournament.data.doubleRoundRobin ? ' home and away' : ''}.`}
         art={<SportGlyph sport={tournament.data.sport} className="ml-auto size-36" />}
         actions={
           <>
             {isSingleMatch ? (
               soleMatch ? (
-                <Link to={`/matches/${soleMatch.id}`}>
-                  <Button>Open match</Button>
-                </Link>
+                <ButtonLink to={`/matches/${soleMatch.id}`}>Open match</ButtonLink>
               ) : (
                 <Button
                   disabled={!readyForFixtures}
@@ -150,15 +149,18 @@ export function TournamentDetailPage() {
                 </Button>
               )
             ) : (
-              <Link to={`/tournaments/${tournamentId}/fixtures`}>
-                <Button disabled={!readyForFixtures && fixtureCount === 0}>
-                  {fixtureCount > 0 ? 'Fixtures' : 'Generate fixtures'}
-                </Button>
-              </Link>
+              <ButtonLink
+                to={`/tournaments/${tournamentId}/fixtures`}
+                disabled={!readyForFixtures && fixtureCount === 0}
+              >
+                {fixtureCount > 0 ? 'Fixtures' : 'Generate fixtures'}
+              </ButtonLink>
             )}
-            <Button variant="secondary" onClick={() => setAdding(true)} disabled={full}>
-              Add team
-            </Button>
+            {!full ? (
+              <Button variant="secondary" onClick={() => setAdding(true)}>
+                Add team
+              </Button>
+            ) : null}
             <ShareLink
               slug={tournamentId}
               url={`${window.location.origin}/tournament/${tournamentId}`}
@@ -191,54 +193,67 @@ export function TournamentDetailPage() {
 
       {generate.error ? <ErrorText error={generate.error} /> : null}
 
-      <ol className="grid gap-3 md:grid-cols-3">
-        {steps.map((step, index) => (
-          <li
-            key={step.label}
-            className={cn(
-              'flex items-center gap-4 rounded-[var(--radius-xl)] border bg-raised p-4',
-              index === current ? 'border-primary' : 'border-line',
-            )}
-          >
-            <span
+      {!fixtures.isPending && !fixtures.error && fixtureCount === 0 ? (
+        <ol className="grid gap-3 md:grid-cols-3">
+          {steps.map((step, index) => (
+            <li
+              key={step.label}
               className={cn(
-                'grid size-10 shrink-0 place-items-center rounded-full border font-serif text-[1.25rem] leading-none',
-                step.done
-                  ? 'border-success bg-success text-[var(--surface-raised)]'
-                  : index === current
-                    ? 'border-primary text-primary'
-                    : 'border-line-strong text-muted',
+                'flex items-center gap-4 rounded-[var(--radius-xl)] border bg-raised p-4',
+                index === current ? 'border-primary' : 'border-line',
               )}
             >
-              {step.done ? (
-                <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="m3.5 8.5 3 3 6-7" />
-                </svg>
-              ) : (
-                index + 1
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-primary">{step.label}</span>
-              <span className="block truncate text-xs text-muted">{step.detail}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
+              <span
+                className={cn(
+                  'grid size-10 shrink-0 place-items-center rounded-full border font-sans text-[1.25rem] leading-none',
+                  step.done
+                    ? 'border-success bg-success text-[var(--surface-raised)]'
+                    : index === current
+                      ? 'border-primary text-primary'
+                      : 'border-line-strong text-muted',
+                )}
+              >
+                {step.done ? (
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="m3.5 8.5 3 3 6-7" />
+                  </svg>
+                ) : (
+                  index + 1
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-primary">{step.label}</span>
+                <span className="block truncate text-xs text-muted">{step.detail}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
 
       <StatStrip
         items={[
           { label: 'Teams in', value: `${registered}/${tournament.data.teamsCount}` },
-          { label: 'Squads ready', value: `${eligible}/${registered}`, tone: registered > 0 && eligible === registered ? 'success' : 'default' },
+          {
+            label: 'Squads ready',
+            value: `${eligible}/${registered}`,
+            tone: registered > 0 && eligible === registered ? 'success' : 'default',
+          },
           { label: 'Matches played', value: `${played}/${fixtureCount}` },
         ]}
       />
 
       <section className="flex min-w-0 flex-col gap-5">
         <SectionHeading
-          eyebrow="The field"
           title="Teams"
-          description="Open a team to pick its squad. A team is ready once its squad is full."
           action={
             <Button size="sm" variant="secondary" onClick={() => setAdding(true)} disabled={full}>
               Add team
@@ -264,17 +279,29 @@ export function TournamentDetailPage() {
                   className="card-lift flex h-full flex-col items-center rounded-[var(--radius-xl)] border border-line bg-raised px-4 pt-6 pb-4 text-center"
                 >
                   <TeamMark shortName={team.shortName} color={team.primaryColor} size="xl" />
-                  <span className="mt-4 line-clamp-1 text-[0.9375rem] font-semibold text-primary">
+                  <span className="mt-4 break-words text-[0.9375rem] font-semibold text-primary">
                     {team.name}
                   </span>
-                  <span className={cn('mt-1 text-xs', team.isEligible ? 'text-success' : 'text-warning')}>
-                    {team.isEligible ? 'Squad ready' : `${team.squadSize - team.playerCount} more to pick`}
+                  <span
+                    className={cn(
+                      'mt-1 text-xs',
+                      team.isEligible ? 'text-success' : 'text-warning',
+                    )}
+                  >
+                    {team.isEligible
+                      ? 'Squad ready'
+                      : `${team.squadSize - team.playerCount} more to pick`}
                   </span>
                   <span className="mt-4 flex w-full items-center gap-2">
                     <span className="h-1 flex-1 overflow-hidden rounded-full bg-sunken">
                       <span
-                        className={cn('block h-full rounded-full', team.isEligible ? 'bg-success' : 'bg-[var(--ink-amber)]')}
-                        style={{ width: `${Math.min(100, (team.playerCount / Math.max(1, team.squadSize)) * 100)}%` }}
+                        className={cn(
+                          'block h-full rounded-full',
+                          team.isEligible ? 'bg-success' : 'bg-[var(--ink-amber)]',
+                        )}
+                        style={{
+                          width: `${Math.min(100, (team.playerCount / Math.max(1, team.squadSize)) * 100)}%`,
+                        }}
                       />
                     </span>
                     <span className="tabular text-xs text-muted">
@@ -286,29 +313,38 @@ export function TournamentDetailPage() {
                   type="button"
                   onClick={() => setRemoving(team)}
                   aria-label={`Remove ${team.name}`}
-                  className="absolute top-2.5 right-2.5 grid size-8 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-alert"
+                  className="absolute top-1 right-1 grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-alert"
                 >
-                  <svg viewBox="0 0 16 16" className="size-3" fill="none" stroke="currentColor" aria-hidden>
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="size-3"
+                    fill="none"
+                    stroke="currentColor"
+                    aria-hidden
+                  >
                     <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
                   </svg>
                 </button>
               </li>
             ))}
             {!full
-              ? Array.from({ length: Math.min(4, tournament.data.teamsCount - registered) }, (_, index) => (
-                  <li key={`open-${index}`}>
-                    <button
-                      type="button"
-                      onClick={() => setAdding(true)}
-                      className="grid h-full min-h-44 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-muted transition-colors hover:border-primary hover:text-primary"
-                    >
-                      <span className="grid size-12 place-items-center rounded-full border border-dashed border-current text-xl leading-none">
-                        +
-                      </span>
-                      <span className="text-xs font-medium">Open slot</span>
-                    </button>
-                  </li>
-                ))
+              ? Array.from(
+                  { length: Math.min(4, tournament.data.teamsCount - registered) },
+                  (_, index) => (
+                    <li key={`open-${index}`}>
+                      <button
+                        type="button"
+                        onClick={() => setAdding(true)}
+                        className="grid h-full min-h-44 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-muted transition-colors hover:border-primary hover:text-primary"
+                      >
+                        <span className="grid size-12 place-items-center rounded-full border border-dashed border-current text-xl leading-none">
+                          +
+                        </span>
+                        <span className="text-xs font-medium">Open slot</span>
+                      </button>
+                    </li>
+                  ),
+                )
               : null}
           </ul>
         ) : (
@@ -330,13 +366,14 @@ export function TournamentDetailPage() {
         <section className="flex min-w-0 flex-col gap-5">
           <SectionHeading
             eyebrow="Standings"
-            title="The table"
-            description="Updated the moment a result goes in."
+            title="Standings"
             action={
               <PdfButton
                 size="sm"
                 variant="quiet"
-                build={() => import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))}
+                build={() =>
+                  import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))
+                }
               />
             }
           />
@@ -404,8 +441,8 @@ export function TournamentDetailPage() {
               variant="danger"
               isLoading={deleteTeam.isPending}
               onClick={() => {
-                if (removing) deleteTeam.mutate(removing.id);
-                setRemoving(null);
+                if (removing)
+                  deleteTeam.mutate(removing.id, { onSuccess: () => setRemoving(null) });
               }}
             >
               Remove
@@ -527,7 +564,7 @@ function AddTeamSheet({
           <TeamMark shortName={shortName || '···'} color={primaryColor} size="xl" />
           <div className="min-w-0">
             <p className="eyebrow">Crest preview</p>
-            <p className="serif mt-2 truncate text-[1.75rem]">{name || 'Your team'}</p>
+            <p className="display mt-2 truncate text-[1.75rem]">{name || 'Your team'}</p>
           </div>
         </div>
 

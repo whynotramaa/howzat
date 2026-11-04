@@ -1,0 +1,124 @@
+<template>
+  <style>
+    @font-face {
+      font-family: 'Behind The Nineties';
+      src: url('assets/fonts/BehindTheNineties.woff2') format('woff2');
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: 'Apple Garamond';
+      src: url('assets/fonts/AppleGaramond.woff2') format('woff2');
+      font-weight: 400;
+    }
+    #root { position: absolute; inset: 0; }
+    #s8-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+    #s8-lock {
+      position: absolute; left: 0; top: 330px; width: 1920px; height: 260px;
+      display: flex; align-items: center; justify-content: center; gap: 44px;
+    }
+    #s8-spacer { width: 250px; height: 250px; flex: none; }
+    #s8-word {
+      font-family: 'Behind The Nineties', serif; font-size: 224px; line-height: 1;
+      color: #191917; letter-spacing: -2px; white-space: nowrap;
+    }
+    #s8-word span { display: inline-block; }
+    #s8-url {
+      position: absolute; left: 0; top: 690px; width: 1920px; text-align: center;
+      font-family: 'Apple Garamond', serif; font-size: 52px; color: #4a4944; letter-spacing: 1px;
+    }
+  </style>
+  <div id="root" data-composition-id="s8" data-width="1920" data-height="1080" data-composition-variables='[{"id":"url","type":"string","label":"End card URL","default":"howzat.ramaa.tech"}]'>
+    <canvas id="s8-cv" width="1920" height="1080"></canvas>
+    <div id="s8-lock">
+      <div id="s8-spacer"></div>
+      <div id="s8-word"><span>H</span><span>o</span><span>w</span><span>z</span><span>a</span><span>t</span></div>
+    </div>
+    <div id="s8-url" data-var-text="url">howzat.ramaa.tech</div>
+  </div>
+  <script>
+    (function () {
+      const I = INK, C = I.C, E = I.E;
+      const COLS = [C.cobalt, C.pink, C.yellow, C.grass, C.sky, C.tang, C.red, C.cobalt];
+      const sp = document.getElementById('s8-spacer');
+      let box = null;
+      const getBox = () => {
+        if (box) return box;
+        let x = 0, y = 0, el = sp;
+        while (el && el.id !== 'root') {
+          x += el.offsetLeft;
+          y += el.offsetTop;
+          el = el.offsetParent;
+        }
+        box = { x, y, s: sp.offsetWidth / 32 };
+        return box;
+      };
+      const cubic = (p0, p1, p2, p3, n = 12) => {
+        const o = [];
+        for (let i = 0; i <= n; i++) {
+          const u = i / n, v = 1 - u;
+          o.push([v * v * v * p0[0] + 3 * v * v * u * p1[0] + 3 * v * u * u * p2[0] + u * u * u * p3[0], v * v * v * p0[1] + 3 * v * v * u * p1[1] + 3 * v * u * u * p2[1] + u * u * u * p3[1]]);
+        }
+        return o;
+      };
+      const rel = (x, y, d) => cubic([x, y], [x + d[0], y + d[1]], [x + d[2], y + d[3]], [x + d[4], y + d[5]]);
+      const MARK = [
+        { pts: rel(5, 27.3, [7.4, -0.5, 14.7, -0.4, 22, 0.1]), t0: 2.05, t1: 2.45 },
+        { pts: rel(9.2, 12.4, [0.2, 4, 0.1, 8.2, -0.2, 13.1]).reverse(), t0: 2.35, t1: 2.75 },
+        { pts: rel(16, 12.2, [0.1, 4.3, 0, 8.6, -0.1, 13.3]).reverse(), t0: 2.45, t1: 2.85 },
+        { pts: rel(22.7, 12.5, [0.1, 4, 0.2, 8.2, 0.1, 13]).reverse(), t0: 2.55, t1: 2.95 },
+        { pts: rel(7.8, 9.6, [2.6, -0.3, 5.2, -0.2, 7.6, 0.1]), t0: 2.9, t1: 3.15 },
+        { pts: rel(18.4, 6.9, [2.3, -1.2, 4.6, -1.8, 6.9, -2.1]), t0: 3.0, t1: 3.3, bail: true },
+      ];
+      function partial(pts, f) {
+        if (f >= 1) return pts;
+        const n = (pts.length - 1) * f, i = Math.floor(n), u = n - i, out = pts.slice(0, i + 1);
+        if (i < pts.length - 1) out.push([I.lerp(pts[i][0], pts[i + 1][0], u), I.lerp(pts[i][1], pts[i + 1][1], u)]);
+        return out;
+      }
+      const tl = I.scene('s8', 67, 8, (ctx, t, b) => {
+        I.paper(ctx);
+        const bx = getBox(), M = (p) => [bx.x + p[0] * bx.s, bx.y + p[1] * bx.s];
+        const target = M([16, 27.2]);
+        COLS.forEach((col, i) => {
+          const fromLeft = i % 2 === 0;
+          const start = [fromLeft ? -120 : 2040, 140 + i * 110];
+          const head = I.ramp(t, 0.0 + i * 0.06, 1.9 + i * 0.04, E.io2), tail = I.ramp(t, 1.55 + i * 0.04, 2.45 + i * 0.03, E.in2);
+          if (head <= 0 || tail >= 1) return;
+          const pts = [];
+          for (let k = 0; k <= 50; k++) {
+            const u = tail + (head - tail) * (k / 50);
+            const x = I.lerp(start[0], target[0], u), y = I.lerp(start[1], target[1], E.io2(u));
+            const amp = 70 * (1 - u) * (1 - u);
+            pts.push([x, y + Math.sin(u * 12 + i * 0.8) * amp]);
+          }
+          I.stroke(ctx, pts, { w: 9, color: col, seed: 6000 + i, b, amp: 2.5 });
+        });
+        MARK.forEach((m, i) => {
+          const f = I.ramp(t, m.t0, m.t1, E.io2);
+          if (f <= 0) return;
+          let pts = partial(m.pts, f).map(M);
+          if (m.bail) {
+            const pop = I.E.spring(I.clamp((t - m.t1) / 0.7, 0, 1.6), 0.45, 13);
+            const dy = -(1 - pop) * 0;
+            pts = pts.map((p) => [p[0] + (pop - 1) * 6, p[1] + dy]);
+          }
+          I.stroke(ctx, pts, { w: bx.s * 2, color: C.ink, seed: 6100 + i, b, amp: 1.2 });
+        });
+        const sq = I.ramp(t, 4.4, 5.2, E.io2);
+        if (sq > 0) {
+          const pts = [];
+          const x0 = 960 - 330, x1 = 960 + 330;
+          for (let k = 0; k <= 40; k++) {
+            const u = (k / 40) * sq;
+            pts.push([I.lerp(x0, x1, u), 640 + Math.sin(u * 18) * 9]);
+          }
+          I.stroke(ctx, pts, { w: 5, color: C.cobalt, seed: 6200, b, amp: 2.5 });
+        }
+      });
+      const letters = document.querySelectorAll('#s8-word span');
+      letters.forEach((el, i) => tl.fromTo(el, { opacity: 0, filter: 'blur(10px)' }, { opacity: 1, filter: 'blur(0px)', duration: 0.22, ease: 'power3.out' }, 3.25 + i * 0.09));
+      tl.fromTo('#s8-url', { opacity: 0, filter: 'blur(8px)' }, { opacity: 1, filter: 'blur(0px)', duration: 0.25, ease: 'power3.out' }, 4.15);
+      window.__timelines['s8'] = tl;
+    })();
+  </script>
+</template>

@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { StandingsRowDto, TournamentMatchDto, TournamentReportDto } from '@howzat/shared';
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
 import { TeamMark } from '@/components/ui/Pill';
 import { EmptyState, PageHeader, SectionHeading, StatStrip } from '@/components/ui/Card';
 import { MatchCard, type MatchSide } from '@/components/ui/MatchCard';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn';
 
 export function PublicTournamentPage() {
   const { tournamentId = '' } = useParams();
-  const { data, isPending, error } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     queryKey: ['public', 'tournament', tournamentId],
     queryFn: () => apiFetch<TournamentReportDto>(`/public/tournaments/${tournamentId}/standings`),
   });
@@ -49,7 +49,20 @@ export function PublicTournamentPage() {
           <EmptyState
             scene="trophy"
             title="This tournament could not be loaded"
-            description="The link may be wrong, or the organiser removed it."
+            description={
+              error instanceof ApiError && error.status === 404
+                ? 'Check the tournament link.'
+                : 'Check your connection and retry.'
+            }
+            action={
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="min-h-11 rounded-md border border-line-strong px-5 text-sm font-medium"
+              >
+                Retry
+              </button>
+            }
           />
         ) : data ? (
           <>
@@ -62,7 +75,6 @@ export function PublicTournamentPage() {
                 </>
               }
               title={data.tournament.name}
-              description={describe(data)}
               art={
                 <div className="grid place-items-center">
                   <SportGlyph sport={data.tournament.sport} className="!size-36" />
@@ -138,43 +150,53 @@ const FORMAT_LABELS = {
   LEAGUE_PLAYOFFS: 'League and playoffs',
 } as const;
 
-function describe(data: TournamentReportDto): string {
-  const leader = data.items[0];
-  if (data.totals.live > 0)
-    return `${data.totals.live === 1 ? 'A match is' : `${data.totals.live} matches are`} live right now. Tap in to follow it ball by ball.`;
-  if (data.totals.completed === 0) return 'The fixtures are drawn and nobody has played yet. Bookmark this page to follow along.';
-  if (data.totals.upcoming === 0 && leader) return `All done. ${leader.team.name} finish top of the table.`;
-  return `${data.totals.completed} of ${data.totals.total} played${leader ? `, with ${leader.team.name} leading on ${leader.points} points` : ''}.`;
-}
-
 function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball: boolean }) {
   if (items.length === 0) return null;
 
   return (
     <section>
-      <SectionHeading
-        eyebrow="Standings"
-        title="The table"
-        description={isFootball ? '3 points for a win, 1 for a draw.' : '2 points for a win, 1 for a tie or no result.'}
-      />
-      <div className="mt-6 overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
-        <table className="w-full min-w-[34rem] text-[0.8125rem]">
+      <SectionHeading eyebrow="Standings" title="The table" />
+      <div
+        role="region"
+        aria-label="Standings"
+        tabIndex={0}
+        className="mt-6 overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised"
+      >
+        <table className="w-full min-w-[34rem] text-sm">
           <thead>
             <tr className="border-b border-line-strong">
-              <th className="eyebrow px-4 py-2 text-left">Team</th>
-              <th className="eyebrow px-3 py-2 text-center">P</th>
-              <th className="eyebrow px-3 py-2 text-center">W</th>
-              <th className="eyebrow px-3 py-2 text-center">{isFootball ? 'D' : 'L'}</th>
-              <th className="eyebrow px-3 py-2 text-center">{isFootball ? 'L' : 'T'}</th>
-              {isFootball ? null : <th className="eyebrow px-3 py-2 text-center">NR</th>}
-              <th className="eyebrow hidden px-3 py-2 text-right lg:table-cell">
+              <th scope="col" className="eyebrow px-4 py-2 text-left">
+                Team
+              </th>
+              <th scope="col" className="eyebrow px-3 py-2 text-center">
+                P
+              </th>
+              <th scope="col" className="eyebrow px-3 py-2 text-center">
+                W
+              </th>
+              <th scope="col" className="eyebrow px-3 py-2 text-center">
+                {isFootball ? 'D' : 'L'}
+              </th>
+              <th scope="col" className="eyebrow px-3 py-2 text-center">
+                {isFootball ? 'L' : 'T'}
+              </th>
+              {isFootball ? null : (
+                <th scope="col" className="eyebrow px-3 py-2 text-center">
+                  NR
+                </th>
+              )}
+              <th scope="col" className="eyebrow px-4 py-2 text-right">
+                Pts
+              </th>
+              <th scope="col" className="eyebrow px-3 py-2 text-right">
+                {isFootball ? 'GD' : 'NRR'}
+              </th>
+              <th scope="col" className="eyebrow hidden px-3 py-2 text-right lg:table-cell">
                 {isFootball ? 'GF' : 'For'}
               </th>
-              <th className="eyebrow hidden px-3 py-2 text-right lg:table-cell">
+              <th scope="col" className="eyebrow hidden px-3 py-2 text-right lg:table-cell">
                 {isFootball ? 'GA' : 'Against'}
               </th>
-              <th className="eyebrow px-3 py-2 text-right">{isFootball ? 'GD' : 'NRR'}</th>
-              <th className="eyebrow px-4 py-2 text-right">Pts</th>
             </tr>
           </thead>
 
@@ -189,7 +211,9 @@ function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball
                       <span
                         className={cn(
                           'score-figure tabular grid size-7 shrink-0 place-items-center rounded-full text-sm',
-                          row.position === 1 ? 'bg-[var(--ink-amber)] text-on-accent' : 'bg-sunken text-secondary',
+                          row.position === 1
+                            ? 'bg-[var(--ink-amber)] text-[#191917]'
+                            : 'bg-sunken text-secondary',
                         )}
                       >
                         {row.position}
@@ -213,11 +237,8 @@ function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball
                   {isFootball ? null : (
                     <td className="mono px-3 py-2 text-center text-secondary">{row.noResult}</td>
                   )}
-                  <td className="mono hidden px-3 py-2 text-right text-[0.8125rem] text-muted lg:table-cell">
-                    {isFootball ? row.goalsFor : `${row.runsScored}/${row.oversFaced}`}
-                  </td>
-                  <td className="mono hidden px-3 py-2 text-right text-[0.8125rem] text-muted lg:table-cell">
-                    {isFootball ? row.goalsAgainst : `${row.runsConceded}/${row.oversBowled}`}
+                  <td className="mono px-4 py-2 text-right font-semibold text-primary">
+                    {row.points}
                   </td>
                   <td
                     className={cn(
@@ -227,8 +248,11 @@ function Standings({ items, isFootball }: { items: StandingsRowDto[]; isFootball
                   >
                     {isFootball ? row.goalDifferenceText : row.nrrText}
                   </td>
-                  <td className="mono px-4 py-2 text-right font-semibold text-primary">
-                    {row.points}
+                  <td className="mono hidden px-3 py-2 text-right text-[0.8125rem] text-muted lg:table-cell">
+                    {isFootball ? row.goalsFor : `${row.runsScored}/${row.oversFaced}`}
+                  </td>
+                  <td className="mono hidden px-3 py-2 text-right text-[0.8125rem] text-muted lg:table-cell">
+                    {isFootball ? row.goalsAgainst : `${row.runsConceded}/${row.oversBowled}`}
                   </td>
                 </tr>
               );
@@ -283,7 +307,10 @@ function PublicMatchCard({
 }) {
   const isCompleted = match.status === 'COMPLETED' || match.status === 'ABANDONED';
   const to = `/live/${match.publicSlug}${isCompleted && !isFootball ? '?view=scorecard' : ''}`;
-  const side = (team: TournamentMatchDto['team1'], score: string | null | undefined): MatchSide | null =>
+  const side = (
+    team: TournamentMatchDto['team1'],
+    score: string | null | undefined,
+  ): MatchSide | null =>
     team
       ? {
           name: team.name,
@@ -307,7 +334,10 @@ function PublicMatchCard({
       meta={
         match.scheduledAt
           ? [
-              new Date(match.scheduledAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
+              new Date(match.scheduledAt).toLocaleString([], {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }),
               match.venue,
             ]
               .filter(Boolean)

@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/cn';
 
 const fieldShell = cn(
-  'h-12 w-full rounded-[var(--radius-md)] border bg-raised px-4 text-[0.9375rem] text-primary',
+  'h-12 w-full rounded-[var(--radius-md)] border bg-raised px-4 text-base text-primary',
   'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
   'placeholder:text-muted',
 );
@@ -19,7 +19,7 @@ const fieldShell = cn(
 function stateBorder(hasError: boolean): string {
   return hasError
     ? 'border-[var(--alert)]'
-    : 'border-line hover:border-line-strong focus:border-[var(--text-primary)]';
+    : 'border-line-strong hover:border-primary focus:border-[var(--focus)]';
 }
 
 export function Field({
@@ -46,11 +46,20 @@ export function Field({
       {children}
 
       {error ? (
-        <p role="alert" className="text-[0.8125rem] text-alert">
+        <p
+          id={htmlFor ? `${htmlFor}-error` : undefined}
+          role="alert"
+          className="text-[0.8125rem] text-alert"
+        >
           {error}
         </p>
       ) : hint ? (
-        <p className="text-[0.8125rem] leading-relaxed text-muted">{hint}</p>
+        <p
+          id={htmlFor ? `${htmlFor}-hint` : undefined}
+          className="text-[0.8125rem] leading-relaxed text-muted"
+        >
+          {hint}
+        </p>
       ) : null}
     </div>
   );
@@ -98,7 +107,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             onClick={() => setRevealed((current) => !current)}
             aria-label={revealed ? 'Hide password' : 'Show password'}
             aria-pressed={revealed}
-            tabIndex={-1}
             className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-[var(--radius-md)] text-muted transition-colors hover:text-primary"
           >
             <EyeIcon crossed={revealed} />
@@ -139,6 +147,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           {...props}
           id={selectId}
           ref={ref}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${selectId}-error` : hint ? `${selectId}-hint` : undefined}
           className={cn(
             fieldShell,
             stateBorder(Boolean(error)),
@@ -181,8 +191,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         {...props}
         id={areaId}
         ref={ref}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${areaId}-error` : hint ? `${areaId}-hint` : undefined}
         className={cn(
-          'w-full rounded-[var(--radius-md)] border bg-raised px-4 py-3 text-[0.9375rem] text-primary',
+          'w-full rounded-[var(--radius-md)] border bg-raised px-4 py-3 text-base text-primary',
           'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
           'placeholder:text-muted',
           stateBorder(Boolean(error)),

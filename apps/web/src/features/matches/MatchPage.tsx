@@ -1,8 +1,8 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PLAYERS_PER_TEAM, type MatchWithInningsDto, type TossDecision } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/Card';
 import { MatchHero, type MatchSide } from '@/components/ui/MatchCard';
@@ -69,9 +69,9 @@ export function MatchPage() {
           title="Live"
           body={`Innings ${data.currentInnings ?? 1} is under way`}
           action={
-            <Link to={`/matches/${matchId}/score`}>
-              <Button size="sm">Open scorer</Button>
-            </Link>
+            <ButtonLink to={`/matches/${matchId}/score`} size="sm">
+              Open scorer
+            </ButtonLink>
           }
         />
       ) : null}
@@ -194,11 +194,15 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
           <>
             {finished ? (
               <>
-                <a href={`/live/${match.publicSlug}?view=scorecard`} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="secondary">
-                    Scorecard
-                  </Button>
-                </a>
+                <ButtonLink
+                  to={`/live/${match.publicSlug}?view=scorecard`}
+                  target="_blank"
+                  rel="noreferrer"
+                  size="sm"
+                  variant="secondary"
+                >
+                  Scorecard
+                </ButtonLink>
                 <PdfButton
                   label="PDF"
                   build={() =>
@@ -211,11 +215,15 @@ function MatchHeader({ match }: { match: MatchWithInningsDto }) {
                 />
               </>
             ) : (
-              <a href={`/live/${match.publicSlug}`} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="secondary">
-                  Public page
-                </Button>
-              </a>
+              <ButtonLink
+                to={`/live/${match.publicSlug}`}
+                target="_blank"
+                rel="noreferrer"
+                size="sm"
+                variant="secondary"
+              >
+                Public page
+              </ButtonLink>
             )}
             <ShareLink
               slug={match.publicSlug}
@@ -239,7 +247,7 @@ function Banner({ title, body, action }: { title: string; body: string; action: 
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[color-mix(in_oklab,var(--live)_40%,var(--line))] bg-raised px-5 py-4">
       <p className="flex items-center gap-3">
         <span className="live-dot" />
-        <span className="serif text-[1.5rem]">{title}</span>
+        <span className="display text-[1.5rem]">{title}</span>
         <span className="text-sm text-secondary">{body}</span>
       </p>
       {action}
@@ -272,7 +280,7 @@ function StepCard({
         <span
           aria-hidden
           className={cn(
-            'grid size-10 shrink-0 place-items-center rounded-full border font-serif text-[1.25rem] leading-none',
+            'grid size-10 shrink-0 place-items-center rounded-full border font-sans text-[1.25rem] leading-none',
             state === 'done'
               ? 'border-success bg-success text-[var(--surface-raised)]'
               : state === 'ready'
@@ -297,7 +305,7 @@ function StepCard({
           )}
         </span>
         <div className="min-w-0">
-          <h2 className="serif text-[1.625rem]">{title}</h2>
+          <h2 className="display text-[1.625rem]">{title}</h2>
           <p className="mt-0.5 text-xs text-muted">{description}</p>
         </div>
       </header>
@@ -325,7 +333,11 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
       number={1}
       title="Toss"
       state={done ? 'done' : 'ready'}
-      description={done ? 'Recorded. You can still change it before the start.' : 'Who called it right, and what did they choose?'}
+      description={
+        done
+          ? 'Recorded. You can still change it before the start.'
+          : 'Who called it right, and what did they choose?'
+      }
     >
       <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-2.5">
@@ -361,7 +373,7 @@ function TossCard({ match }: { match: MatchWithInningsDto }) {
                 aria-pressed={decision === option}
                 onClick={() => setDecision(option)}
                 className={cn(
-                  'grid h-[4.5rem] place-items-center rounded-[var(--radius-xl)] border font-serif text-[1.5rem] leading-none transition-colors',
+                  'grid h-[4.5rem] place-items-center rounded-[var(--radius-xl)] border font-sans text-[1.5rem] leading-none transition-colors',
                   decision === option
                     ? 'border-primary bg-surface text-primary'
                     : 'border-line text-muted hover:border-line-strong hover:text-primary',
@@ -481,7 +493,11 @@ function PlayingXiCard({
         number={2}
         title="Playing XI"
         state={disabled ? 'blocked' : complete ? 'done' : 'ready'}
-        description={disabled ? 'Record the toss first' : 'Tap players in batting order, then mark a captain and keeper'}
+        description={
+          disabled
+            ? 'Record the toss first'
+            : 'Tap players in batting order, then mark a captain and keeper'
+        }
       >
         <div className="grid gap-4 lg:grid-cols-2">
           {sides.map((side) => {
@@ -533,7 +549,12 @@ function PlayingXiCard({
                             {picked ? position + 1 : ''}
                           </span>
 
-                          <PlayerAvatar seed={player.id} name={player.name} size="xs" color={side.primaryColor} />
+                          <PlayerAvatar
+                            seed={player.id}
+                            name={player.name}
+                            size="xs"
+                            color={side.primaryColor}
+                          />
 
                           <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
                             {player.name}
@@ -660,7 +681,7 @@ function ScorersCard({ match }: { match: MatchWithInningsDto }) {
     <>
       <section className="rounded-[var(--radius-xl)] border border-line bg-raised">
         <header className="px-5 pt-5">
-          <h2 className="serif text-[1.625rem]">Scorers</h2>
+          <h2 className="display text-[1.625rem]">Scorers</h2>
           <p className="mt-0.5 text-xs text-muted">
             Anyone you add here can score this match from their phone.
           </p>

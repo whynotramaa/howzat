@@ -34,7 +34,7 @@ export function ThemeToggle({ tone = 'default' }: { tone?: 'default' | 'inverse'
       title={`Switch to ${next} theme`}
       onClick={() => setTheme(next)}
       className={cn(
-        'grid size-10 shrink-0 place-items-center rounded-full transition-colors',
+        'grid size-11 shrink-0 place-items-center rounded-full transition-colors',
         tone === 'inverse'
           ? 'text-white/80 hover:bg-white/10 hover:text-white'
           : 'text-muted hover:bg-hover hover:text-primary',

@@ -1,0 +1,36 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s1-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s1" data-width="1920" data-height="1080">
+    <canvas id="s1-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, Wd = WORLD, K = CAST, C = I.C;
+      const ST = Wd.stadium({ ex: 62, ez: 68, kind: 'cricket', seed: 7 });
+      const CITY = Wd.city({ seed: 11, clear: 200 });
+      const camPts = [[-420, 600, -1300], [-230, 330, -760], [-110, 150, -360], [-40, 52, -165], [-8, 13, -78], [1.6, 2.4, -38]];
+      const tgtPts = [[0, 0, 0], [0, 0, 0], [0, 5, 0], [0, 4, 0], [0, 2, 0], [0, 1.4, 10]];
+      const FIELD = [[-24, -18], [27, -6], [-31, 24], [19, 36], [-9, 46], [41, 28], [33, -34]];
+      const tl = I.scene('s1', 0, 8, (ctx, t, b) => {
+        I.paper(ctx);
+        const x = t / 8, u = 0.3 * x + 0.7 * I.E.io2(x);
+        const c = I.cam(I.path(camPts, u), I.path(tgtPts, u), 46 + 8 * I.ramp(t, 5, 8), Math.sin(u * Math.PI) * 0.06);
+        const D = I.List();
+        CITY.draw(D, ctx, c, t, b);
+        ST.draw(D, ctx, c, t, b, { lights: I.ramp(t, 0.6, 2.8, I.E.lin), cheer: 0.12, board: ['141/4', 'need 16 off 6'], boardA: 1.0 });
+        const fig = (pos, yaw, pose, kit, seed, bat) => I.figure3(D, ctx, c, { pos, yaw, pose, kit, seed, b, bat });
+        fig([-0.45, 0, 9.3], Math.PI / 2, K.BAT.stance, K.KITS.bat, 1, K.BAT.stanceBat);
+        fig([0, 0, 11.9], Math.PI, K.KEEP, K.KITS.keep, 2);
+        fig([0.9, 0, -11.8], 0, K.UMP.stand, K.KITS.ump, 3);
+        fig([1.3, 0, -9.4], 0, K.BAT.stance, K.KITS.bat, 4, K.BAT.stanceBat);
+        fig([-0.5, 0, -27], 0, K.READY, K.KITS.bowl, 5);
+        FIELD.forEach(([fx, fz], i) => fig([fx, 0, fz], Math.atan2(-fx, 9 - fz), K.READY, K.KITS.bowl, 10 + i));
+        D.flush();
+      });
+      window.__timelines['s1'] = tl;
+    })();
+  </script>
+</template>

@@ -103,7 +103,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        'min-w-0 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
+        'score-panel min-w-0 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
         className,
       )}
     >
@@ -160,7 +160,7 @@ export function Scoreboard({
   children?: ReactNode;
 }) {
   return (
-    <section className="plate">
+    <section className="scoreboard">
       <div className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-7 sm:pt-6">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
@@ -177,14 +177,14 @@ export function Scoreboard({
           <p
             className={cn(
               'score-figure flex items-baseline text-primary',
-              size === 'lg' ? 'text-[4.5rem] sm:text-[6.5rem]' : 'text-[3.25rem] sm:text-[4.25rem]',
+              size === 'lg' ? 'text-[3.5rem] sm:text-[5rem]' : 'text-[2.75rem] sm:text-[4rem]',
             )}
           >
             <RollingNumber value={runs} />
             <span aria-hidden className="mx-[0.04em] text-line-strong">
               /
             </span>
-            <span className="text-muted">
+            <span className="text-primary">
               <RollingNumber value={wickets} />
             </span>
           </p>
@@ -233,12 +233,12 @@ export interface CreaseBowler {
 }
 
 const GRID =
-  'grid grid-cols-[minmax(0,1fr)_repeat(5,2.75rem)] items-center gap-x-1 sm:grid-cols-[minmax(0,1fr)_repeat(5,3.5rem)]';
+  'crease-row grid grid-cols-5 items-center gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_repeat(5,3rem)]';
 
 function HeadRow({ first, cols, action }: { first: string; cols: string[]; action?: ReactNode }) {
   return (
-    <div className={cn(GRID, 'eyebrow border-b border-line px-5 py-3')}>
-      <span className="flex items-center gap-3">
+    <div className={cn(GRID, 'crease-heading eyebrow border-b border-line px-4 py-2')}>
+      <span className="flex items-center justify-between gap-3">
         {first}
         {action}
       </span>
@@ -265,35 +265,48 @@ export function CreaseCard({
   bowlerAction?: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+    <section className="crease-card overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
       <HeadRow first="Batter" cols={['R', 'B', '4s', '6s', 'SR']} action={action} />
       {batters.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted">{emptyLabel}</p>
       ) : (
         batters.map((batter) => (
-          <div
-            key={batter.id}
-            className={cn(GRID, 'border-b border-line px-5 py-3 text-sm')}
-          >
+          <div key={batter.id} className={cn(GRID, 'border-b border-line px-4 py-3 text-sm')}>
             <span
               className={cn(
-                'flex min-w-0 items-center gap-2',
+                'crease-name col-span-5 flex min-w-0 items-center gap-2 sm:col-span-1',
                 batter.onStrike ? 'font-medium text-primary' : 'text-secondary',
               )}
             >
-              <span className="truncate">{batter.name}</span>
+              <span className="break-words">{batter.name}</span>
               {batter.onStrike ? (
                 <>
-                  <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--text-primary)]" />
+                  <span
+                    aria-hidden
+                    className="size-1.5 shrink-0 rounded-full bg-[var(--text-primary)]"
+                  />
                   <span className="sr-only">on strike</span>
                 </>
               ) : null}
             </span>
-            <span className="score-figure text-right text-[1.375rem] text-primary">{batter.runs}</span>
-            <span className="mono text-right text-secondary">{batter.balls}</span>
-            <span className="mono text-right text-secondary">{batter.fours}</span>
-            <span className="mono text-right text-secondary">{batter.sixes}</span>
-            <span className="mono text-right text-secondary">
+            <span className="crease-stat font-semibold text-primary">
+              <span className="sm:hidden">R </span>
+              {batter.runs}
+            </span>
+            <span className="crease-stat text-secondary">
+              <span className="sm:hidden">B </span>
+              {batter.balls}
+            </span>
+            <span className="crease-stat text-secondary">
+              <span className="sm:hidden">4s </span>
+              {batter.fours}
+            </span>
+            <span className="crease-stat text-secondary">
+              <span className="sm:hidden">6s </span>
+              {batter.sixes}
+            </span>
+            <span className="crease-stat text-secondary">
+              <span className="sm:hidden">SR </span>
               {batter.balls > 0 ? ((batter.runs / batter.balls) * 100).toFixed(1) : '0.0'}
             </span>
           </div>
@@ -301,15 +314,28 @@ export function CreaseCard({
       )}
 
       <HeadRow first="Bowler" cols={['O', 'M', 'R', 'W', 'ECO']} action={bowlerAction} />
-      <div className={cn(GRID, 'px-5 py-3 text-sm')}>
-        <span className="truncate font-medium text-primary">{bowler?.name ?? 'Not named'}</span>
-        <span className="mono text-right text-secondary">{bowler?.overs ?? '0.0'}</span>
-        <span className="mono text-right text-secondary">{bowler?.maidens ?? 0}</span>
-        <span className="mono text-right text-secondary">{bowler?.runs ?? 0}</span>
-        <span className="score-figure text-right text-[1.375rem] text-primary">
+      <div className={cn(GRID, 'px-4 py-3 text-sm')}>
+        <span className="crease-name col-span-5 break-words font-medium text-primary sm:col-span-1">
+          {bowler?.name ?? 'Not named'}
+        </span>
+        <span className="crease-stat text-secondary">
+          <span className="sm:hidden">O </span>
+          {bowler?.overs ?? '0.0'}
+        </span>
+        <span className="crease-stat text-secondary">
+          <span className="sm:hidden">M </span>
+          {bowler?.maidens ?? 0}
+        </span>
+        <span className="crease-stat text-secondary">
+          <span className="sm:hidden">R </span>
+          {bowler?.runs ?? 0}
+        </span>
+        <span className="crease-stat font-semibold text-primary">
+          <span className="sm:hidden">W </span>
           {bowler?.wickets ?? 0}
         </span>
-        <span className="mono text-right text-secondary">
+        <span className="crease-stat text-secondary">
+          <span className="sm:hidden">ECO </span>
           {bowler?.econ != null ? bowler.econ.toFixed(2) : '0.00'}
         </span>
       </div>
@@ -374,6 +400,7 @@ export function RunsPerOver({
         {overs.map((over, index) => (
           <div
             key={over.number}
+            tabIndex={0}
             className="rpo-col flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
           >
             <span className="rpo-tip rounded-[var(--radius-xs)] bg-inverse px-2 py-1 text-[0.6875rem] font-medium text-on-inverse">

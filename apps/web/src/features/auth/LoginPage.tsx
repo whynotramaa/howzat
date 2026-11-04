@@ -23,7 +23,16 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [step, setStep] = useState<Step>('login');
+  const [step, setStep] = useState<Step>(
+    new URLSearchParams(location.search).get('mode') === 'register' ? 'register' : 'login',
+  );
+  const requested = (location.state as { from?: string } | null)?.from;
+  const destination =
+    requested?.startsWith('/') && !requested.startsWith('//')
+      ? requested
+      : new URLSearchParams(location.search).get('next') === 'tournament'
+        ? '/tournaments?new=1'
+        : '/dashboard';
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -53,8 +62,7 @@ export function LoginPage() {
   if (isLoading) return <FullPageSpinner />;
 
   if (user) {
-    const from = (location.state as { from?: string } | null)?.from ?? '/tournaments';
-    return <Navigate to={from} replace />;
+    return <Navigate to={destination} replace />;
   }
 
   function goTo(next: Step) {
@@ -69,7 +77,7 @@ export function LoginPage() {
 
     try {
       await login({ identifier, password });
-      navigate('/dashboard', { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.code === 'EMAIL_UNVERIFIED') {
         const pendingEmail = (err.details as { email?: string } | undefined)?.email;
@@ -109,7 +117,7 @@ export function LoginPage() {
 
     try {
       await verifyEmail(email, code);
-      navigate('/dashboard', { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(messageFor(err));
       setCode('');
@@ -156,7 +164,7 @@ export function LoginPage() {
 
     try {
       await resetPassword({ email, code, newPassword: password });
-      navigate('/dashboard', { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(messageFor(err));
       setCode('');
@@ -170,11 +178,7 @@ export function LoginPage() {
     <AuthLayout>
       {step === 'login' ? (
         <form onSubmit={handleLogin} className="flex flex-col gap-8">
-          <FormHeading
-            eyebrow="Welcome back"
-            title="Sign in"
-            lead="Use the username or email you signed up with."
-          />
+          <FormHeading eyebrow="Welcome back" title="Sign in" lead={null} />
 
           <div className="flex flex-col gap-4">
             <Input
@@ -226,7 +230,7 @@ export function LoginPage() {
           <FormHeading
             eyebrow="Join the club"
             title="Create your account"
-            lead="Your username is how organizers add you to a squad."
+            lead="Your username is public."
           />
 
           <div className="flex flex-col gap-4">
@@ -289,11 +293,7 @@ export function LoginPage() {
         </form>
       ) : step === 'forgot' ? (
         <form onSubmit={handleForgot} className="flex flex-col gap-8">
-          <FormHeading
-            eyebrow="Account recovery"
-            title="Reset your password"
-            lead="Tell us the email on your account and we will send a code."
-          />
+          <FormHeading eyebrow="Account recovery" title="Reset your password" lead={null} />
 
           <Input
             label="Email"
@@ -479,8 +479,8 @@ function FormHeading({
   return (
     <div>
       <p className="eyebrow">{eyebrow}</p>
-      <h1 className="serif mt-5 text-[3.75rem] text-primary">{title}</h1>
-      <p className="mt-4 text-[0.9375rem] leading-relaxed text-secondary">{lead}</p>
+      <h1 className="display mt-5 text-[clamp(2.25rem,5vw,3.25rem)] text-primary">{title}</h1>
+      {lead ? <p className="mt-3 text-sm text-secondary">{lead}</p> : null}
     </div>
   );
 }
@@ -529,7 +529,7 @@ function CodeInput({
       placeholder="000000"
       value={value}
       onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-      className="serif tabular h-16 text-center text-[2.25rem] tracking-[0.4em] placeholder:text-[var(--line-strong)]"
+      className="display tabular h-16 text-center text-[2.25rem] tracking-[0.4em] placeholder:text-[var(--line-strong)]"
     />
   );
 }

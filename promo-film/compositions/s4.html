@@ -1,0 +1,210 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s4-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s4" data-width="1920" data-height="1080">
+    <canvas id="s4-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, P = PEOPLE, C = I.C, E = I.E;
+      const geom = (cx, cy, w) => {
+        const h = w * 2.05, x0 = cx - w / 2, y0 = cy - h / 2;
+        return { sx: x0 + 0.06 * w, sy: y0 + 0.08 * w, u: (0.88 * w) / 100 };
+      };
+      const SENT = ['4', '·', '1', 'W'];
+      function lenOf(pts) {
+        let L = 0;
+        for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        return L;
+      }
+      function partial(pts, f) {
+        const L = lenOf(pts) * I.clamp(f, 0, 1), out = [pts[0]];
+        let acc = 0;
+        for (let i = 1; i < pts.length; i++) {
+          const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+          if (acc + d >= L) {
+            const u = d ? (L - acc) / d : 0;
+            out.push([pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u]);
+            return out;
+          }
+          out.push(pts[i]);
+          acc += d;
+        }
+        return out;
+      }
+      const smoothPath = (pts, n = 60) => {
+        const out = [];
+        for (let i = 0; i <= n; i++) out.push(I.path(pts, i / n));
+        return out;
+      };
+      const UP = smoothPath([[380, 1000], [430, 700], [720, 420], [1200, 250], [1750, 300], [2150, 470], [2385, 668]]);
+      const HUB = [3420, 540];
+      const TO_HUB = smoothPath([[2385, 668], [2700, 640], [3000, 560], [3270, 540]]);
+      const OUT = [
+        { col: C.pink, pts: smoothPath([[3570, 540], [3900, 420], [4300, 380], [4700, 470]]) },
+        { col: C.yellow, pts: smoothPath([[3570, 540], [4100, 640], [4900, 660], [5550, 760]]) },
+        { col: C.grass, pts: smoothPath([[3570, 540], [4300, 520], [5600, 540], [6400, 690]]) },
+        { col: C.sky, pts: smoothPath([[3570, 540], [4500, 300], [6200, 260], [7300, 650]]) },
+      ];
+      function world(ctx, t, b) {
+        I.stroke(ctx, [[3700, 840], [7900, 830]], { w: 5, seed: 3000, b });
+        for (let i = 0; i < 26; i++) {
+          const x = 3760 + i * 160 + I.hash(i, 1) * 40, h = 90 + I.hash(i, 2) * 260;
+          if (x > 4500 && x < 4900) continue;
+          if (x > 5300 && x < 5800) continue;
+          if (x > 6200 && x < 6650) continue;
+          if (x > 7000) continue;
+          I.stroke(ctx, [[x, 838], [x, 838 - h], [x + 120, 838 - h], [x + 120, 838]], { fill: i % 2 ? C.paper2 : C.paper3, w: 3, seed: 3010 + i, b });
+          for (let k = 0; k < 4; k++) if (I.hash(i, k) < 0.5) I.dot(ctx, x + 25 + (k % 2) * 60, 838 - h + 40 + Math.floor(k / 2) * 50, 7, C.yellow, 0.8);
+        }
+        I.stroke(ctx, [[4550, 838], [4550, 300], [4850, 300], [4850, 838]], { fill: C.paper3, w: 4, seed: 3040, b });
+        for (let r = 0; r < 6; r++) for (let k = 0; k < 3; k++) I.stroke(ctx, P.rrect(4580 + k * 90, 340 + r * 80, 60, 50, 6), { closed: true, fill: r === 1 && k === 1 ? C.pink : C.paper2, w: 2.5, seed: 3050 + r * 3 + k, b });
+        I.stroke(ctx, P.rrect(5350, 690, 420, 120, 26), { closed: true, fill: C.tang, w: 4, seed: 3070, b });
+        for (let k = 0; k < 5; k++) I.stroke(ctx, P.rrect(5375 + k * 76, 708, 60, 46, 6), { closed: true, fill: k === 2 ? C.yellow : C.paper, w: 2.5, seed: 3071 + k, b });
+        for (const x of [5440, 5680]) I.circle(ctx, x, 815, 30, { fill: C.ink, w: 3, seed: 3080 + x, b });
+        I.stroke(ctx, [[6260, 838], [6260, 640], [6560, 640], [6560, 838]], { closed: true, fill: C.paper2, w: 4, seed: 3090, b });
+        I.stroke(ctx, [[6230, 645], [6410, 520], [6590, 645]], { closed: true, fill: C.grass, w: 4, seed: 3091, b });
+        I.stroke(ctx, [[6370, 838], [6370, 740], [6450, 740], [6450, 838]], { closed: true, fill: C.tang, w: 3, seed: 3092, b });
+        I.dot(ctx, 6400, 700, 12, C.yellow);
+        I.stroke(ctx, [[7020, 838], [7060, 690], [7540, 690], [7580, 838]], { closed: true, fill: C.paper3, w: 4, seed: 3100, b });
+        I.stroke(ctx, I.ring(7300, 690, 240, 40, 40), { closed: true, fill: C.grassSoft, w: 3, seed: 3101, b });
+        for (const x of [7000, 7600]) {
+          I.stroke(ctx, [[x, 838], [x, 480]], { w: 6, seed: 3102 + x, b });
+          I.stroke(ctx, [[x - 40, 470], [x + 40, 470], [x + 40, 500], [x - 40, 500]], { closed: true, fill: C.yellow, w: 3, seed: 3104 + x, b });
+        }
+        for (let i = 0; i < 40; i++) I.dot(ctx, 7080 + I.hash(i, 4) * 440, 650 + I.hash(i, 5) * 30, 7, [C.pink, C.yellow, C.cobalt][i % 3], 0.8);
+        I.stroke(ctx, P.rrect(1760, 300, 1260, 760, 30), { closed: true, fill: C.paper2, w: 5, seed: 3110, b });
+        I.stroke(ctx, [[1840, 360], [2370, 340], [2380, 1000], [1850, 1010]], { closed: true, fill: C.white, w: 4, seed: 3111, b });
+        I.stroke(ctx, [[2400, 340], [2940, 360], [2930, 1010], [2390, 1000]], { closed: true, fill: C.white, w: 4, seed: 3112, b });
+        I.stroke(ctx, [[2385, 330], [2385, 1012]], { w: 7, seed: 3113, b });
+        const left = ['1', '1', '4', '·', '2', '1', '6', '·', 'W'];
+        left.forEach((c, i) => {
+          const y = 400 + i * 66;
+          I.stroke(ctx, [[1870, y + 30], [2350, y + 28]], { w: 2, color: C.paper3, seed: 3120 + i, b });
+          P.chip(ctx, 1910, y, 22, c, { seed: 3130 + i, b });
+          I.stroke(ctx, [[1950, y + 4], [2000 + I.hash(i, 6) * 120, y - 2], [2150 + I.hash(i, 7) * 150, y + 6]], { w: 3, color: C.grey, seed: 3140 + i, b, amp: 3 });
+        });
+        SENT.forEach((c, i) => {
+          const y = 400 + i * 66;
+          I.stroke(ctx, [[2420, y + 30], [2900, y + 32]], { w: 2, color: C.paper3, seed: 3150 + i, b });
+          P.chip(ctx, 2460, y, 22, c, { seed: 3160 + i, b });
+          I.stroke(ctx, [[2500, y + 4], [2560 + I.hash(i, 8) * 120, y - 2], [2700 + I.hash(i, 9) * 150, y + 6]], { w: 3, color: C.grey, seed: 3170 + i, b, amp: 3 });
+        });
+        I.stroke(ctx, [[2420, 400 + 4 * 66 + 30], [2900, 400 + 4 * 66 + 32]], { w: 2, color: C.paper3, seed: 3180, b });
+        const spin = t * 2.2;
+        I.circle(ctx, HUB[0], HUB[1], 150, { fill: C.paper2, w: 6, seed: 3190, b });
+        for (let k = 0; k < 8; k++) {
+          const a = spin + (k / 8) * I.TAU;
+          I.stroke(ctx, [[HUB[0] + Math.cos(a) * 40, HUB[1] + Math.sin(a) * 40], [HUB[0] + Math.cos(a) * 140, HUB[1] + Math.sin(a) * 140]], { w: 4, color: [C.pink, C.yellow, C.grass, C.sky][k % 4], seed: 3200 + k, b });
+        }
+        I.circle(ctx, HUB[0], HUB[1], 40, { fill: C.cobalt, w: 4, seed: 3210, b });
+      }
+      function headOf(pts, f) {
+        const q = partial(pts, f);
+        return q[q.length - 1];
+      }
+      function worldScene(ctx, t, b) {
+        const fUp = I.ramp(t, 4.2, 5.4, E.io2), fHub = I.ramp(t, 6.0, 6.6, E.io2);
+        const head = t < 6.0 ? headOf(UP, fUp) : HUB;
+        const camX = I.key(t, [[4.2, 520], [5.4, 2380, E.io2], [6.0, 2700], [6.6, 3400], [8.0, 5560, E.io2]]);
+        const camY = I.key(t, [[4.2, 820], [5.0, 520], [6.6, 560], [8.0, 600]]);
+        const sc = I.key(t, [[4.2, 2.4], [4.7, 1.25, E.out3], [5.4, 1.1], [6.6, 0.95], [8.0, 0.42, E.io2]]);
+        I.paper(ctx);
+        ctx.save();
+        ctx.translate(960, 540);
+        ctx.scale(sc, sc);
+        ctx.translate(-camX, -camY);
+        world(ctx, t, b);
+        I.stroke(ctx, partial(UP, fUp), { w: 9, color: C.cobalt, seed: 3300, b, amp: 3 });
+        if (t >= 6.0) I.stroke(ctx, partial(TO_HUB, fHub), { w: 9, color: C.cobalt, seed: 3301, b, amp: 3 });
+        OUT.forEach((o, i) => {
+          const f = I.ramp(t, 6.55 + i * 0.12, 7.6 + i * 0.12, E.io2);
+          if (f > 0) I.stroke(ctx, partial(o.pts, f), { w: 9, color: o.col, seed: 3310 + i, b, amp: 3 });
+          if (f > 0 && f < 1) P.chip(ctx, ...headOf(o.pts, f), 26, '6', { seed: 3320 + i, b });
+          if (f >= 1) {
+            const p = o.pts[o.pts.length - 1], u = I.ramp(t, 7.6 + i * 0.12, 8.0 + i * 0.12, E.out2);
+            I.circle(ctx, p[0], p[1], 30 + u * 70, { w: 6 * (1 - u) + 0.5, color: o.col, seed: 3330 + i, b, alpha: 1 - u });
+          }
+        });
+        if (t < 6.0) {
+          const landed = I.ramp(t, 5.4, 5.75, E.out2);
+          const p = t < 5.4 ? head : [I.lerp(head[0], 2460, landed), I.lerp(head[1], 400 + 4 * 66, landed)];
+          P.chip(ctx, p[0], p[1], 22 + (1 - landed) * 8, '6', { seed: 3340, b });
+          if (landed > 0) I.stroke(ctx, [[2500, 668], [2500 + 330 * I.ramp(t, 5.6, 5.95, E.out2), 662]], { w: 3, color: C.grey, seed: 3341, b, amp: 3 });
+        } else {
+          P.chip(ctx, 2460, 400 + 4 * 66, 22, '6', { seed: 3340, b });
+          I.stroke(ctx, [[2500, 668], [2830, 662]], { w: 3, color: C.grey, seed: 3341, b, amp: 3 });
+          if (t < 6.6) P.chip(ctx, ...headOf(TO_HUB, fHub), 26, '6', { seed: 3342, b });
+        }
+        ctx.restore();
+      }
+      const AFTER = { screen: 'score', score: '147/4', over: '19.1 · need 10 off 5', chips: ['·', '1', 'W', '6'], progress: 0.96 };
+      const inserts = [
+        { fn: P.vDesk, st: (u) => ({ look: 1, react: I.ramp(u, 0.15, 0.5), phone: { ...AFTER, flash: 1 - I.ramp(u, 0, 0.6) } }) },
+        { fn: P.vBus, st: (u) => ({ react: I.ramp(u, 0.1, 0.7), phone: { ...AFTER, flash: 1 - I.ramp(u, 0, 0.6) } }) },
+        { fn: P.vPorch, st: (u) => ({ react: I.ramp(u, 0.1, 0.5), phone: { ...AFTER, flash: 1 - I.ramp(u, 0, 0.6) } }) },
+        { fn: P.vStand, st: (u) => ({ cheer: 0.9, react: I.ramp(u, 0, 0.5) }) },
+      ];
+      const tl = I.scene('s4', 29, 11, (ctx, t, b) => {
+        if (t < 1.0) {
+          I.paper(ctx);
+          const ch = I.key(t, [[0, 1], [0.7, 1], [1.0, 0.1]]);
+          P.pressBox(ctx, t, b, { cheer: ch, mood: 'cheer', look: [0.4, -0.4] });
+          return;
+        }
+        if (t < 4.2) {
+          I.paper(ctx);
+          for (let i = 0; i < 5; i++) I.stroke(ctx, [[0, 180 + i * 190], [1920, 170 + i * 190]], { w: 2, color: C.paper3, seed: 3400 + i, b });
+          const z = I.ramp(t, 2.4, 3.0, E.io3);
+          const cx = 960, cy = I.lerp(560, 1150, z), w = I.lerp(380, 900, z);
+          const pressAmt = I.key(t, [[1.3, 0], [1.45, 1, E.out3], [1.75, 0, E.out2]]);
+          const after = t >= 1.5;
+          P.phone(ctx, cx, cy, w, { screen: 'pad', score: after ? '147/4' : '141/4', over: after ? '19.1' : '19.0', press: '6', pressAmt, queue: [], bars: 4, b, seed: 3410 });
+          const g = geom(cx, cy, w);
+          SENT.forEach((c, i) => P.chip(ctx, g.sx + 12 * g.u + i * 13 * g.u, g.sy + 70 * g.u, 5.5 * g.u, c, { seed: 3420 + i, b, alpha: 0.4 }));
+          const slot = [g.sx + 12 * g.u + 4 * 13 * g.u, g.sy + 70 * g.u];
+          const key6 = [g.sx + 61 * g.u, g.sy + 149.5 * g.u];
+          if (t >= 1.5) {
+            const f = I.ramp(t, 1.5, 2.2, E.io2);
+            const lift = I.ramp(t, 3.6, 4.2, E.in3);
+            let x = I.lerp(key6[0], slot[0], f), y = I.lerp(key6[1], slot[1], f) - Math.sin(f * Math.PI) * 60 * g.u * 0.25;
+            const r = I.lerp(9 * g.u, 5.5 * g.u, f) * (1 + Math.sin(I.ramp(t, 1.5, 1.7) * Math.PI) * 0.25);
+            if (lift > 0) {
+              const ty = y - lift * 1400;
+              I.stroke(ctx, [[x, y], [x + 10, (y + ty) / 2], [x, ty]], { w: 0.9 * g.u + 2, color: C.cobalt, seed: 3430, b, amp: 3 });
+              y = ty;
+            }
+            const ring = I.ramp(t, 3.0, 3.6, E.out2);
+            if (ring > 0 && ring < 1) I.circle(ctx, slot[0], slot[1], r * (1.2 + ring * 1.4), { w: 4 * (1 - ring) + 1, color: C.cobalt, seed: 3431, b, alpha: 1 - ring });
+            P.chip(ctx, x, y, r, '6', { seed: 3432, b });
+          }
+          if (t < 2.4) {
+            const th = I.key(t, [[1.0, [1500, 1250]], [1.32, [key6[0] + 40, key6[1] + 70], E.out3], [1.45, [key6[0] + 25, key6[1] + 45]], [1.9, [1450, 1250], E.in2]]);
+            I.tube(ctx, [[1800, 1300], [th[0] + 120, th[1] + 120], th], 70, C.skin, { seed: 3440, b, amp: 2 });
+            I.stroke(ctx, P.rrect(th[0] - 18, th[1] - 20, 36, 30, 10), { closed: true, fill: C.paper, w: 2, seed: 3441, b, alpha: 0.7 });
+          }
+          return;
+        }
+        if (t < 8.0) return worldScene(ctx, t, b);
+        const i = Math.min(3, Math.floor((t - 8.0) / 0.75)), lt = t - 8.0 - i * 0.75, u = lt / 0.75;
+        const sh = inserts[i];
+        ctx.save();
+        const k = 1.04 - 0.04 * u;
+        ctx.translate(960, 540);
+        ctx.scale(k, k);
+        ctx.translate(-960, -540);
+        const pp = I.paper;
+        I.paper = (_, col) => {
+          ctx.fillStyle = col || C.paper;
+          ctx.fillRect(-200, -200, 2320, 1480);
+        };
+        sh.fn(ctx, lt + 3, b, sh.st(u));
+        I.paper = pp;
+        ctx.restore();
+      });
+      window.__timelines['s4'] = tl;
+    })();
+  </script>
+</template>

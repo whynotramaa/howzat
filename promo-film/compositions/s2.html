@@ -1,0 +1,42 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s2-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s2" data-width="1920" data-height="1080">
+    <canvas id="s2-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, P = PEOPLE;
+      const phone = { screen: 'score', score: '141/4', over: '19.0 · need 16', chips: ['4', '·', '1', 'W'], progress: 0.95 };
+      const shots = [
+        { d: 1.75, fn: P.vStand, st: (u) => ({ cheer: 0.2, react: I.ramp(u, 0.45, 0.9) * 0.6, pan: u * 60 }), push: [1.06, 1.0], ox: -40 },
+        { d: 1.75, fn: P.vDesk, st: (u) => ({ look: I.ramp(u, 0.2, 0.55), phone: { ...phone, lit: I.ramp(u, 0.1, 0.3) } }), push: [1.0, 1.05], ox: 30 },
+        { d: 1.75, fn: P.vBus, st: (u) => ({ phone: { ...phone, lit: 1 } }), push: [1.04, 1.0], ox: 40 },
+        { d: 1.75, fn: P.vPorch, st: (u) => ({ react: I.ramp(u, 0.5, 0.9) * 0.3, phone: { ...phone, lit: I.ramp(u, 0.15, 0.4) } }), push: [1.0, 1.05], ox: -30 },
+      ];
+      const tl = I.scene('s2', 8, 7, (ctx, t, b) => {
+        let s0 = 0, i = 0;
+        while (i < shots.length - 1 && t >= s0 + shots[i].d) s0 += shots[i++].d;
+        const sh = shots[i], lt = t - s0, u = I.clamp(lt / sh.d, 0, 1);
+        const k = I.lerp(sh.push[0], sh.push[1], I.E.io2(u)), ox = sh.ox * (u - 0.5);
+        I.paper(ctx);
+        ctx.save();
+        ctx.translate(960 + ox, 540);
+        ctx.scale(k, k);
+        ctx.translate(-960, -540);
+        const draw = sh.fn;
+        const pp = I.paper;
+        I.paper = (_, col) => {
+          ctx.fillStyle = col || I.C.paper;
+          ctx.fillRect(-200, -200, 2320, 1480);
+        };
+        draw(ctx, lt, b, sh.st(u));
+        I.paper = pp;
+        ctx.restore();
+      });
+      window.__timelines['s2'] = tl;
+    })();
+  </script>
+</template>

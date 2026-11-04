@@ -1,8 +1,8 @@
 import { useState, type CSSProperties } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { MatchDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { EmptyState, PageHeader, SectionHeading } from '@/components/ui/Card';
 import { MatchCard, type MatchSide } from '@/components/ui/MatchCard';
 import { Scene } from '@/components/ui/Sketch';
@@ -10,6 +10,7 @@ import { stageLabel } from '@/lib/pdf/sources';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
+import { Input, Select } from '@/components/ui/Input';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { useTournament } from '@/features/organizer/queries';
 import { useFixtures, useGenerateFixtures, usePreviewFixtures } from './queries';
@@ -23,10 +24,25 @@ export function FixturesPage() {
   const generate = useGenerateFixtures(tournamentId);
 
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
 
   const matches = fixtures.data?.items ?? [];
   const hasFixtures = matches.length > 0;
   const started = matches.some((match) => match.status !== 'SCHEDULED');
+  const filtered = matches.filter((match) => {
+    const term = search.trim().toLowerCase();
+    const found =
+      `${match.team1?.name ?? ''} ${match.team2?.name ?? ''} ${match.team1?.shortName ?? ''} ${match.team2?.shortName ?? ''}`
+        .toLowerCase()
+        .includes(term);
+    const state = ['LIVE', 'INNINGS_BREAK'].includes(match.status)
+      ? 'live'
+      : ['COMPLETED', 'ABANDONED'].includes(match.status)
+        ? 'finished'
+        : 'upcoming';
+    return found && (filter === 'all' || filter === state);
+  });
 
   async function handleGenerate(regenerate: boolean) {
     await generate.mutateAsync(regenerate);
@@ -35,13 +51,12 @@ export function FixturesPage() {
   }
 
   if (tournament.isPending) return <SkeletonCard rows={4} />;
-  if (tournament.error) return <ErrorText error={tournament.error} />;
+  if (tournament.error)
+    return <ErrorText error={tournament.error} onRetry={() => void tournament.refetch()} />;
   if (!tournament.data) return null;
 
-  const done = matches.filter((match) => match.status === 'COMPLETED').length;
-
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-7">
       <PageHeader
         back={<BackLink to={`/tournaments/${tournamentId}`}>{tournament.data.name}</BackLink>}
         eyebrow={
@@ -53,11 +68,6 @@ export function FixturesPage() {
           <>
             The <em>fixtures</em>
           </>
-        }
-        description={
-          hasFixtures
-            ? `${done} of ${matches.length} played. Set up a match to toss and pick the XIs, or open the public page to follow along.`
-            : 'Howzat pairs every team so nobody plays twice in a round. Preview the draw first, then lock it in.'
         }
         art={<Scene name="fixtures" />}
         actions={
@@ -104,16 +114,22 @@ export function FixturesPage() {
           <SectionHeading
             eyebrow="Preview"
             title={`${preview.data.totalMatches} matches in the draw`}
-            description="Nothing is saved yet. Generate when the pairings look right."
             action={
-              <Button size="sm" isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
+              <Button
+                size="sm"
+                isLoading={generate.isPending}
+                onClick={() => void handleGenerate(false)}
+              >
                 Lock it in
               </Button>
             }
           />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {preview.data.rounds.map((round) => (
-              <div key={round.round} className="rounded-[var(--radius-xl)] border border-line bg-raised p-4">
+              <div
+                key={round.round}
+                className="rounded-[var(--radius-xl)] border border-line bg-raised p-4"
+              >
                 <p className="eyebrow">Round {round.round}</p>
                 <ul className="mt-3 flex flex-col gap-2">
                   {round.matches.map((match) => (
@@ -122,12 +138,20 @@ export function FixturesPage() {
                       className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-[0.8125rem]"
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <TeamMark shortName={match.home.shortName} color={match.home.primaryColor} size="sm" />
+                        <TeamMark
+                          shortName={match.home.shortName}
+                          color={match.home.primaryColor}
+                          size="sm"
+                        />
                         <span className="truncate font-medium">{match.home.name}</span>
                       </span>
-                      <span className="font-serif text-muted italic">v</span>
+                      <span className="font-sans text-muted italic">v</span>
                       <span className="flex min-w-0 flex-row-reverse items-center gap-2 text-right">
-                        <TeamMark shortName={match.away.shortName} color={match.away.primaryColor} size="sm" />
+                        <TeamMark
+                          shortName={match.away.shortName}
+                          color={match.away.primaryColor}
+                          size="sm"
+                        />
                         <span className="truncate font-medium">{match.away.name}</span>
                       </span>
                     </li>
@@ -155,16 +179,57 @@ export function FixturesPage() {
       {fixtures.isPending ? (
         <SkeletonCard rows={3} />
       ) : fixtures.error ? (
-        <ErrorText error={fixtures.error} />
+        <ErrorText error={fixtures.error} onRetry={() => void fixtures.refetch()} />
       ) : hasFixtures ? (
-        <RoundList matches={matches} />
+        <>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <Input
+              label="Find a team"
+              type="search"
+              placeholder="Team name"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <Select
+              label="Status"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+            >
+              <option value="all">All matches</option>
+              <option value="live">Live</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="finished">Results</option>
+            </Select>
+          </div>
+          {filtered.length ? (
+            <RoundList matches={filtered} />
+          ) : (
+            <div className="rounded-lg border border-line bg-raised p-6">
+              <p className="text-sm">No matching fixtures.</p>
+              <button
+                type="button"
+                className="mt-2 min-h-11 text-sm font-medium underline"
+                onClick={() => {
+                  setSearch('');
+                  setFilter('all');
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+        </>
       ) : !preview.data ? (
         <EmptyState
           scene="fixtures"
           title="No fixtures yet"
           description="Generate once every squad is full. You can preview the draw before anything is saved."
           action={
-            <Button size="sm" isLoading={generate.isPending} onClick={() => void handleGenerate(false)}>
+            <Button
+              size="sm"
+              isLoading={generate.isPending}
+              onClick={() => void handleGenerate(false)}
+            >
               Generate fixtures
             </Button>
           }
@@ -211,7 +276,9 @@ function RoundList({ matches }: { matches: MatchDto[] }) {
         return (
           <section key={round} className="flex flex-col gap-4">
             <div className="flex items-baseline justify-between gap-4 border-b border-line pb-3">
-              <h2 className="serif text-[1.875rem]">{isPlayoff ? 'Playoffs' : `Round ${round}`}</h2>
+              <h2 className="display text-[1.875rem]">
+                {isPlayoff ? 'Playoffs' : `Round ${round}`}
+              </h2>
               <span className="tabular text-xs text-muted">
                 {finished}/{inRound.length} played
               </span>
@@ -285,11 +352,13 @@ function FixtureCard({ match, index }: { match: MatchDto; index: number }) {
             variant="quiet"
             matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
           />
-          <Link to={`/matches/${match.id}`}>
-            <Button size="sm" variant={match.status === 'SCHEDULED' || live ? 'primary' : 'secondary'}>
-              {primaryLabel}
-            </Button>
-          </Link>
+          <ButtonLink
+            to={live ? `/matches/${match.id}/score` : `/matches/${match.id}`}
+            size="sm"
+            variant={match.status === 'SCHEDULED' || live ? 'primary' : 'secondary'}
+          >
+            {primaryLabel}
+          </ButtonLink>
         </>
       }
     />

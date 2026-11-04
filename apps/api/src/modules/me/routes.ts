@@ -149,7 +149,7 @@ meRouter.get(
         toTournamentDto(tournament, {
           registeredTeams: tournament.teams.length,
           eligibleTeams: tournament.teams.filter(
-            (team) => team._count.players === tournament.playersPerTeam,
+            (team) => team._count.players >= tournament.playersPerTeam,
           ).length,
         }),
       ),
@@ -181,7 +181,7 @@ function toDashboardMatch(
       ? match.team1
       : match.team2 && myTeamIds.has(match.team2.id)
         ? match.team2
-        : null;
+        : (match.team1 ?? match.team2);
 
   const other =
     mine && match.team1?.id === mine.id ? match.team2 : mine ? match.team1 : match.team2;

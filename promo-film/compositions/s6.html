@@ -1,0 +1,116 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s6-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s6" data-width="1920" data-height="1080">
+    <canvas id="s6-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, Wd = WORLD, P = PEOPLE, C = I.C, E = I.E;
+      const TEAMS = [
+        { id: 'sky', col: C.sky, pts: [8, 10, 12] },
+        { id: 'red', col: C.red, pts: [10, 10, 10] },
+        { id: 'grass', col: C.grass, pts: [10, 10, 10] },
+        { id: 'pink', col: C.pink, pts: [8, 8, 8] },
+        { id: 'yellow', col: C.yellow, pts: [6, 6, 6] },
+        { id: 'tang', col: C.tang, pts: [4, 4, 4] },
+      ];
+      const ORDERS = [['red', 'grass', 'sky', 'pink', 'yellow', 'tang'], ['red', 'sky', 'grass', 'pink', 'yellow', 'tang'], ['sky', 'red', 'grass', 'pink', 'yellow', 'tang']];
+      const STEPS = [1.35, 2.15];
+      const ROW_Y = (i) => 250 + i * 112;
+      function rowIndex(id, t) {
+        let y = ORDERS[0].indexOf(id);
+        STEPS.forEach((st, k) => {
+          const from = ORDERS[k].indexOf(id), to = ORDERS[k + 1].indexOf(id);
+          y += (to - from) * I.E.spring(I.clamp((t - st) / 0.55, 0, 1.6), 0.62, 11);
+        });
+        return y;
+      }
+      const ptsAt = (tm, t) => tm.pts[t < STEPS[0] ? 0 : t < STEPS[1] ? 1 : 2];
+      function crest(ctx, x, y, r, col, seed, b) {
+        I.circle(ctx, x, y, r, { fill: col, w: 4, seed, b });
+        I.stroke(ctx, [[x - r * 0.6, y + r * 0.45], [x + r * 0.6, y - r * 0.45]], { w: r * 0.28, color: C.paper, seed: seed + 1, b, amp: 1 });
+      }
+      const SEMI = [[1640, 330], [1640, 520], [1640, 700], [1640, 890]];
+      const SF = [[2050, 425], [2050, 795]], FIN = [2450, 610], TROPHY = [2780, 700];
+      const tl = I.scene('s6', 51, 7, (ctx, t, b) => {
+        I.paper(ctx);
+        const camX = I.key(t, [[0, 960], [2.7, 960], [3.7, 1820, E.io2], [5.0, 2050], [6.4, 2560, E.io2]]);
+        const sc = I.key(t, [[0, 1], [3.7, 0.92, E.io2], [5.0, 0.95], [6.4, 1.55, E.io2], [7, 1.6]]);
+        const camY = I.key(t, [[0, 560], [5.0, 600], [6.4, 560, E.io2]]);
+        ctx.save();
+        ctx.translate(960, 540);
+        ctx.scale(sc, sc);
+        ctx.translate(-camX, -camY);
+        TEAMS.forEach((tm, k) => {
+          const fall = I.ramp(t, 0.0 + k * 0.08, 0.6 + k * 0.08, E.in2);
+          const ri = rowIndex(tm.id, t), y = ROW_Y(ri);
+          if (fall < 1) {
+            const x = 300 + k * 170, y0 = -200 + fall * (y + 200);
+            I.stroke(ctx, [[x, y0 - 260], [x + 8, y0 - 130], [x, y0]], { w: 8, color: tm.col, seed: 5000 + k, b, amp: 4 });
+            return;
+          }
+          const grow = I.ramp(t, 0.6 + k * 0.08, 1.1 + k * 0.08, E.out3);
+          I.stroke(ctx, [[220, y - 44], [220 + 1060 * grow, y - 44], [220 + 1060 * grow, y + 44], [220, y + 44]], { closed: true, fill: k % 2 ? C.paper2 : C.white, w: 3, seed: 5010 + k, b, amp: 1 });
+          I.stroke(ctx, [[220, y + 44], [220 + 1060 * grow, y + 44]], { w: 6, color: tm.col, seed: 5020 + k, b, amp: 1 });
+          if (grow > 0.2) {
+            crest(ctx, 290, y, 30, tm.col, 5030 + k * 3, b);
+            const p = ptsAt(tm, t);
+            I.stroke(ctx, [[360, y], [360 + p * 52 * grow, y]], { w: 18, color: tm.col, seed: 5050 + k, b, amp: 2 });
+            I.text(ctx, String(p), 1220, y + 18, { size: 54, alpha: grow });
+          }
+        });
+        STEPS.forEach((st, k) => {
+          const u = (t - (st - 0.45)) / 0.45;
+          if (u <= 0 || u > 1.3) return;
+          const y = ROW_Y(ORDERS[k].indexOf('sky')), x = 360 + TEAMS[0].pts[k] * 52;
+          if (u <= 1) P.chip(ctx, x + 60, I.lerp(-80, y, I.E.in3(u)), 26, 'W', { fill: C.cobalt, seed: 5060 + k, b });
+          else Wd.burst2(ctx, x + 60, y, (u - 1) / 0.3, [C.cobalt, C.sky], 5070 + k, b, { r: 90, n: 12, w: 4, drop: 10 });
+        });
+        if (t > 2.9) {
+          const top4 = ORDERS[2].slice(0, 4), seeds = [0, 3, 1, 2];
+          seeds.forEach((ri, k) => {
+            const id = top4[ri], tm = TEAMS.find((x) => x.id === id), y = ROW_Y(ri);
+            const f = I.ramp(t, 2.95 + k * 0.1, 3.75 + k * 0.1, E.io2);
+            const pts = [];
+            for (let i = 0; i <= 24; i++) pts.push(I.path([[1280, y], [1460, y], [1520, SEMI[k][1]], [SEMI[k][0], SEMI[k][1]]], (i / 24) * f));
+            I.stroke(ctx, pts, { w: 8, color: tm.col, seed: 5100 + k, b, amp: 3 });
+            if (f >= 1) crest(ctx, SEMI[k][0] + 26, SEMI[k][1], 24, tm.col, 5110 + k * 3, b);
+            const win = k === 0 || k === 2;
+            const f2 = I.ramp(t, 3.9 + (k >> 1) * 0.2, 4.5 + (k >> 1) * 0.2, E.io2);
+            const target = SF[k >> 1];
+            const seg = [[SEMI[k][0] + 50, SEMI[k][1]], [target[0] - 120, SEMI[k][1]], [target[0] - 120, target[1]], target];
+            const pp = [];
+            for (let i = 0; i <= 20; i++) pp.push(I.path(seg, (i / 20) * (win ? f2 : Math.min(f2, 0.45))));
+            if (f2 > 0) I.stroke(ctx, pp, { w: 8, color: tm.col, seed: 5120 + k, b, amp: 3, alpha: win ? 1 : 0.4 });
+            if (win && f2 >= 1) {
+              crest(ctx, target[0] + 26, target[1], 28, tm.col, 5130 + k, b);
+              const f3 = I.ramp(t, 4.7, 5.3, E.io2), champ = k === 0;
+              const s3 = [[target[0] + 56, target[1]], [FIN[0] - 120, target[1]], [FIN[0] - 120, FIN[1]], FIN];
+              const p3 = [];
+              for (let i = 0; i <= 20; i++) p3.push(I.path(s3, (i / 20) * (champ ? f3 : Math.min(f3, 0.5))));
+              if (f3 > 0) I.stroke(ctx, p3, { w: 9, color: tm.col, seed: 5140 + k, b, amp: 3, alpha: champ ? 1 : 0.4 });
+              if (champ && f3 >= 1) {
+                const f4 = I.ramp(t, 5.3, 5.7, E.io2);
+                I.stroke(ctx, [FIN, [I.lerp(FIN[0], TROPHY[0] - 120, f4), I.lerp(FIN[1], TROPHY[1] - 60, f4)]], { w: 9, color: tm.col, seed: 5150, b, amp: 3 });
+              }
+            }
+          });
+        }
+        if (t > 4.9) {
+          const pop = I.E.spring(I.clamp((t - 5.3) / 0.8, 0, 1.6), 0.5, 12);
+          if (pop > 0.01) {
+            Wd.trophy(ctx, TROPHY[0], TROPHY[1] + 120, 210 * pop, t * 2.4, b, { ribbon: C.sky });
+            Wd.burst2(ctx, TROPHY[0], TROPHY[1] - 100, (t - 5.55) / 1.3, [C.pink, C.yellow, C.sky, C.cobalt, C.tang], 5160, b, { r: 360, n: 22, w: 7, drop: 120 });
+          }
+        }
+        ctx.restore();
+      });
+      const cv = document.getElementById('s6-cv');
+      tl.fromTo(cv, { x: 0, filter: 'blur(0px)' }, { x: -380, filter: 'blur(18px)', duration: 0.22, ease: 'power3.in' }, 6.78);
+      window.__timelines['s6'] = tl;
+    })();
+  </script>
+</template>

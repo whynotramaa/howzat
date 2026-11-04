@@ -46,10 +46,14 @@ export function PlayerProfilePage() {
           </>
         }
         title={data.user.name}
-        description={describe(data)}
         art={
           <div className="grid place-items-center">
-            <PlayerAvatar seed={data.user.username} name={data.user.name} size="xl" className="!size-36" />
+            <PlayerAvatar
+              seed={data.user.username}
+              name={data.user.name}
+              size="xl"
+              className="!size-36"
+            />
           </div>
         }
       />
@@ -57,16 +61,31 @@ export function PlayerProfilePage() {
       <StatStrip
         items={[
           { label: 'Matches', value: career.matches, hint: 'In any squad' },
-          { label: 'Runs', value: career.batting.runs, hint: career.batting.average ? `Average ${career.batting.average}` : 'No average yet' },
-          { label: 'Wickets', value: career.bowling.wickets, hint: career.bowling.bestFigures ? `Best ${career.bowling.bestFigures}` : 'No figures yet' },
-          { label: 'Scored', value: data.matchesScored, hint: `${data.tournamentsOrganized} organised`, tone: 'accent' },
+          {
+            label: 'Runs',
+            value: career.batting.runs,
+            hint: career.batting.average ? `Average ${career.batting.average}` : 'No average yet',
+          },
+          {
+            label: 'Wickets',
+            value: career.bowling.wickets,
+            hint: career.bowling.bestFigures
+              ? `Best ${career.bowling.bestFigures}`
+              : 'No figures yet',
+          },
+          {
+            label: 'Scored',
+            value: data.matchesScored,
+            hint: `${data.tournamentsOrganized} organised`,
+            tone: 'accent',
+          },
         ]}
       />
 
       {hasPlayed ? (
         <>
           <section>
-            <SectionHeading eyebrow="Career" title="The numbers" description="Every ball faced, bowled and caught across all tournaments." />
+            <SectionHeading eyebrow="Career" title="The numbers" />
             <div className="mt-6 grid gap-4 lg:grid-cols-3">
               <BattingCard batting={career.batting} />
               <BowlingCard bowling={career.bowling} />
@@ -111,7 +130,12 @@ function BattingCard({ batting }: { batting: CareerStatsDto['batting'] }) {
 
 function BowlingCard({ bowling }: { bowling: CareerStatsDto['bowling'] }) {
   return (
-    <StatCard title="Bowling" headline={bowling.wickets} headlineLabel="wickets" ink="var(--ink-red)">
+    <StatCard
+      title="Bowling"
+      headline={bowling.wickets}
+      headlineLabel="wickets"
+      ink="var(--ink-red)"
+    >
       <LeaderRow label="Innings" value={bowling.innings} />
       <LeaderRow label="Overs" value={bowling.oversBowled} />
       <LeaderRow label="Runs conceded" value={bowling.runsConceded} />
@@ -127,7 +151,12 @@ function BowlingCard({ bowling }: { bowling: CareerStatsDto['bowling'] }) {
 
 function FieldingCard({ fielding }: { fielding: CareerStatsDto['fielding'] }) {
   return (
-    <StatCard title="Fielding" headline={fielding.dismissals} headlineLabel="dismissals" ink="var(--ink-green)">
+    <StatCard
+      title="Fielding"
+      headline={fielding.dismissals}
+      headlineLabel="dismissals"
+      ink="var(--ink-green)"
+    >
       <LeaderRow label="Catches" value={fielding.catches} />
       <LeaderRow label="Run outs" value={fielding.runOuts} />
       <LeaderRow label="Stumpings" value={fielding.stumpings} />
@@ -152,13 +181,15 @@ function StatCard({
     <section className="relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5 pl-6">
       <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ background: ink }} />
       <div>
-        <h3 className="serif text-[1.625rem]">{title}</h3>
+        <h3 className="display text-[1.625rem]">{title}</h3>
         <p className="mt-3 flex items-baseline gap-2">
           <span className="score-figure tabular text-[2.75rem] leading-none">{headline}</span>
           <span className="text-xs text-muted">{headlineLabel}</span>
         </p>
       </div>
-      <div className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4 [&_span]:text-[0.8125rem]">{children}</div>
+      <div className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4 [&_span]:text-[0.8125rem]">
+        {children}
+      </div>
     </section>
   );
 }
@@ -181,9 +212,11 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
             >
               <div className="min-w-0">
                 <p className="eyebrow truncate">{match.tournamentName}</p>
-                <p className="serif mt-2 truncate text-[1.375rem]">
+                <p className="display mt-2 truncate text-[1.375rem]">
                   {match.teamName}
-                  {match.opponentName ? <span className="text-muted"> v {match.opponentName}</span> : null}
+                  {match.opponentName ? (
+                    <span className="text-muted"> v {match.opponentName}</span>
+                  ) : null}
                 </p>
               </div>
               <dl className="grid grid-cols-3 gap-3 border-t border-dashed border-line pt-4">
@@ -197,7 +230,11 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
                   value={match.bowled ? `${match.wickets}/${match.runsConceded}` : '—'}
                   note={match.bowled ? `${match.oversBowled} overs` : 'Did not bowl'}
                 />
-                <Figure label="Field" value={dismissals > 0 ? String(dismissals) : '—'} note="Dismissals" />
+                <Figure
+                  label="Field"
+                  value={dismissals > 0 ? String(dismissals) : '—'}
+                  note="Dismissals"
+                />
               </dl>
             </li>
           );
@@ -215,14 +252,4 @@ function Figure({ label, value, note }: { label: string; value: string; note: st
       <dd className="mt-1 truncate text-[0.6875rem] text-muted">{note}</dd>
     </div>
   );
-}
-
-function describe(data: PlayerProfileDto): string {
-  const { career } = data;
-  if (career.matches === 0) return 'Yet to walk out. Matches played in any squad build this page automatically.';
-  const parts = [`${career.matches} ${career.matches === 1 ? 'match' : 'matches'} played`];
-  if (career.batting.runs > 0) parts.push(`${career.batting.runs} runs`);
-  if (career.bowling.wickets > 0) parts.push(`${career.bowling.wickets} wickets`);
-  if (career.fielding.dismissals > 0) parts.push(`${career.fielding.dismissals} dismissals in the field`);
-  return `${parts.join(', ')}.`;
 }

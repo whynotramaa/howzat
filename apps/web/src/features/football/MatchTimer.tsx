@@ -144,7 +144,7 @@ function PeriodPips({
           <span
             key={period}
             className={cn(
-              'h-[3px] rounded-full transition-all duration-[var(--dur)] ease-[var(--ease)]',
+              'h-[3px] rounded-full transition-[background-color] duration-[var(--dur)] ease-[var(--ease)]',
               period === current && status !== 'FINISHED'
                 ? 'w-5 bg-[var(--text-primary)]'
                 : done

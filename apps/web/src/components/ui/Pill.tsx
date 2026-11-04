@@ -25,7 +25,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2.5',
+        'inline-flex min-h-6 shrink-0 items-center gap-1.5',
         'text-[0.6875rem] leading-none font-semibold tracking-[0.08em] uppercase',
         tones[tone],
         className,
@@ -98,7 +98,11 @@ export function TeamMark({
   return (
     <span
       aria-hidden
-      className={cn('relative inline-grid shrink-0 place-items-center', CREST_SIZES[size], className)}
+      className={cn(
+        'relative inline-grid shrink-0 place-items-center',
+        CREST_SIZES[size],
+        className,
+      )}
     >
       <svg viewBox="0 0 48 48" className="absolute inset-0 size-full overflow-visible">
         <defs>
@@ -122,7 +126,7 @@ export function TeamMark({
       </svg>
       <span
         className={cn(
-          'relative leading-none font-bold tracking-[0.03em]',
+          'relative max-w-[68%] text-[0.85em] leading-none font-bold tracking-normal',
           shapeIndex !== 1 && '-translate-y-[6%]',
           shortName.length > 3 && 'text-[0.8em]',
         )}

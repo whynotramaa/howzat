@@ -89,7 +89,9 @@ export function QuickMatchSheet({ open, onClose }: { open: boolean; onClose: () 
               )}
             >
               <SportGlyph sport={option} className="size-10" />
-              <span className="serif text-[1.5rem]">{option === 'CRICKET' ? 'Cricket' : 'Football'}</span>
+              <span className="display text-[1.5rem]">
+                {option === 'CRICKET' ? 'Cricket' : 'Football'}
+              </span>
             </button>
           ))}
         </div>
@@ -175,7 +177,7 @@ function SideFields({
         <TeamMark shortName={side.shortName || '?'} color={side.primaryColor} size="lg" />
         <div className="min-w-0">
           <p className="eyebrow">{label}</p>
-          <p className="serif mt-1 truncate text-[1.375rem]">{side.name.trim() || placeholder}</p>
+          <p className="display mt-1 truncate text-[1.375rem]">{side.name.trim() || placeholder}</p>
         </div>
       </div>
 

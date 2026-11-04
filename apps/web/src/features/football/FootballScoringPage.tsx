@@ -10,7 +10,7 @@ import {
   type TeamLineup,
   type TeamRef,
 } from '@howzat/shared';
-import { BackLink } from '@/components/ui/BackLink';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
@@ -23,7 +23,8 @@ import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 import { MatchTimer } from './MatchTimer';
 import { IncidentTimeline } from './IncidentTimeline';
-import { IncidentFlash, type FlashPayload } from './IncidentFlash';
+import { useOnline } from '@/lib/useOnline';
+import { toast } from '@/components/ui/Toast';
 import { useMatchClock } from './useMatchClock';
 import {
   useClockCommand,
@@ -38,7 +39,8 @@ type Pending = { kind: 'GOAL' } | { kind: 'CARD' } | { kind: 'SAVE' } | { kind: 
 
 export function FootballScoringPage() {
   const { matchId = '' } = useParams();
-  const { data, isPending, error } = useFootballState(matchId);
+  const online = useOnline();
+  const { data, isPending, error, refetch } = useFootballState(matchId);
   const { data: squads } = useFootballSquads(matchId);
 
   const clockCommand = useClockCommand(matchId);
@@ -49,7 +51,6 @@ export function FootballScoringPage() {
 
   const [assisted, setAssisted] = useState(false);
   const [pending, setPending] = useState<Pending>(null);
-  const [flash, setFlash] = useState<FlashPayload | null>(null);
 
   if (isPending) {
     return (
@@ -60,7 +61,7 @@ export function FootballScoringPage() {
     );
   }
 
-  if (error && !data) return <ErrorText error={error} />;
+  if (error && !data) return <ErrorText error={error} onRetry={() => void refetch()} />;
   if (!data) return null;
 
   const { snapshot, state } = data;
@@ -68,7 +69,7 @@ export function FootballScoringPage() {
     watch.clock?.status === 'FINISHED' ||
     data.status === 'COMPLETED' ||
     data.status === 'ABANDONED';
-  const canRecord = Boolean(watch.clock) && !finished;
+  const canRecord = Boolean(watch.clock) && !finished && online;
   const busy = recordEvent.isPending;
 
   async function submit(
@@ -78,6 +79,10 @@ export function FootballScoringPage() {
     assistPlayerId: string | null,
     playerOffId: string | null = null,
   ) {
+    if (!online) {
+      toast('Reconnect to record football events.', 'error');
+      throw new Error('Offline');
+    }
     await recordEvent.mutateAsync({
       clientEventId: crypto.randomUUID(),
       kind,
@@ -87,56 +92,63 @@ export function FootballScoringPage() {
       playerOffId,
     });
 
-    const side = teamId === data!.home.team.id ? data!.home : data!.away;
-    const named =
-      [...data!.home.squad, ...data!.away.squad].find((entry) => entry.id === playerId)?.name ??
-      squadRosterName(squads, playerId);
-
-    setFlash({
-      kind,
-      teamShort: side.team.shortName,
-      teamColor: side.team.primaryColor,
-      playerName: named,
-      minuteLabel: watch.readNow().minuteLabel,
-    });
+    toast('Event recorded');
 
     setPending(null);
   }
 
   return (
     <div className={cn('flex flex-col gap-4', assisted && 'assist-mode')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="serif min-w-0 truncate text-[2rem] leading-none sm:text-[2.75rem]">
-          {data.home.team.name} <span className="text-muted italic">v</span> {data.away.team.name}
-        </h1>
-        <button
-          type="button"
-          aria-pressed={assisted}
-          onClick={() => setAssisted(!assisted)}
-          className="h-10 rounded-full border border-line-strong px-4 text-sm text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
-        >
-          Assist{' '}
-          <span className={assisted ? 'text-accent' : 'text-muted'}>{assisted ? 'on' : 'off'}</span>
-        </button>
-      </div>
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            to={`/matches/${matchId}`}
+            aria-label="Back to match"
+            className="grid size-11 shrink-0 place-items-center rounded-full border border-line-strong text-secondary"
+          >
+            ←
+          </Link>
+          <h1 className="text-base font-semibold whitespace-nowrap sm:text-xl">
+            {data.home.team.shortName} <span className="mx-1 text-muted">v</span>{' '}
+            {data.away.team.shortName}
+          </h1>
+        </div>
+        <Disclosure className="relative shrink-0">
+          <summary className="flex min-h-11 cursor-pointer items-center rounded-md border border-line-strong px-4 text-sm font-medium">
+            Match tools
+          </summary>
+          <div className="absolute right-0 top-full z-40 mt-2 flex w-64 flex-wrap gap-2 rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-[var(--shadow-md)]">
+            <button
+              type="button"
+              aria-pressed={assisted}
+              onClick={() => setAssisted(!assisted)}
+              className="min-h-11 rounded-md border border-line-strong px-4 text-sm"
+            >
+              Assist {assisted ? 'on' : 'off'}
+            </button>
+            {snapshot ? (
+              <ShareLink
+                slug={snapshot.publicSlug}
+                matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
+                label="Share live"
+              />
+            ) : null}
+          </div>
+        </Disclosure>
+      </header>
       {assisted ? (
         <p className="assist-note">
-          Start the clock when play begins. Tap Goal, Save, Card or Substitution to record an
-          incident. End the period at the whistle; full time saves the result.
+          Start the clock. Record events. End the period at the whistle.
         </p>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <BackLink to={`/matches/${matchId}`}>Back to the match</BackLink>
-
-        {snapshot ? (
-          <ShareLink
-            slug={snapshot.publicSlug}
-            matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
-            label="Share live"
-          />
-        ) : null}
-      </div>
-
+      {!online ? (
+        <p
+          role="status"
+          className="rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm"
+        >
+          Offline. Reconnect to record events.
+        </p>
+      ) : null}
       <Scoreline
         home={data.home.team}
         away={data.away.team}
@@ -146,12 +158,12 @@ export function FootballScoringPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <Card className="overflow-hidden">
+        <Card className="football-console overflow-hidden">
           <ClockBar
             clock={watch.clock}
             commands={watch.commands}
             isRunning={watch.isRunning}
-            isPending={watch.isPending}
+            isPending={watch.isPending || !online}
             onCommand={watch.run}
             error={clockCommand.error}
           />
@@ -233,21 +245,16 @@ export function FootballScoringPage() {
           {recordEvent.error ? <ErrorText error={recordEvent.error} /> : null}
           {undoEvent.error ? <ErrorText error={undoEvent.error} /> : null}
 
-          <Card className="flex min-h-0 flex-1 flex-col">
+          <Card className="football-log flex min-h-0 flex-1 flex-col">
             <CardHeader className="flex items-center justify-between gap-3">
               <div>
                 <p className="eyebrow">Match log</p>
-                <p className="mt-1.5 text-[0.8125rem] text-muted">
-                  {state.incidents.length === 0
-                    ? 'Nothing recorded yet'
-                    : `${state.incidents.length} incident${state.incidents.length === 1 ? '' : 's'}`}
-                </p>
               </div>
 
               <Button
                 size="sm"
                 variant="quiet"
-                disabled={state.incidents.length === 0 || undoEvent.isPending}
+                disabled={!online || state.incidents.length === 0 || undoEvent.isPending}
                 isLoading={undoEvent.isPending}
                 onClick={() => void undoEvent.mutateAsync(undefined)}
               >
@@ -309,21 +316,7 @@ export function FootballScoringPage() {
         onClose={() => setPending(null)}
         onSubmit={submit}
       />
-
-      <IncidentFlash payload={flash} />
     </div>
-  );
-}
-
-function squadRosterName(
-  squads: { home: FootballSquadSide; away: FootballSquadSide } | undefined,
-  playerId: string | null,
-): string | null {
-  if (!squads || !playerId) return null;
-
-  return (
-    [...squads.home.players, ...squads.away.players].find((player) => player.id === playerId)
-      ?.name ?? null
   );
 }
 
@@ -341,7 +334,7 @@ function Scoreline({
   resultText: string | null;
 }) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="football-scoreline overflow-hidden">
       <div
         aria-hidden
         className="h-[2px]"
@@ -350,7 +343,7 @@ function Scoreline({
         }}
       />
 
-      <CardBody className="flex items-center justify-between gap-4 py-5">
+      <CardBody className="flex items-center justify-between gap-4 py-4">
         <TeamScore team={home} align="left" />
 
         <div className="flex shrink-0 flex-col items-center gap-2">
@@ -387,8 +380,7 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
       <TeamMark shortName={team.shortName} color={team.primaryColor} size="lg" />
 
       <div className="min-w-0 max-w-full">
-        <p className="serif truncate text-[1.125rem] text-primary sm:text-[1.5rem]">{team.name}</p>
-        <p className="mono mt-0.5 text-[0.6875rem] text-muted">{team.shortName}</p>
+        <p className="break-words text-sm font-semibold text-primary sm:text-base">{team.name}</p>
       </div>
     </div>
   );
@@ -403,12 +395,11 @@ function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void
       disabled={disabled}
       onClick={onPress}
       className="w-full"
-      faceClassName="h-[7rem] gap-1.5 text-white"
+      faceClassName="h-24 gap-1.5 text-white"
       ariaLabel="Record a goal"
     >
       <SportMark sport="FOOTBALL" className="size-7 opacity-95" />
       <span className="text-[1.5rem] leading-none font-semibold tracking-[-0.01em]">Goal</span>
-      <span className="text-[0.75rem] text-white/75">Name the scorer</span>
     </PushButton>
   );
 }
@@ -425,12 +416,7 @@ function MinorKey({
   onPress: () => void;
 }) {
   return (
-    <button
-      type="button"
-      className="console-key h-[4.75rem] w-full"
-      disabled={disabled}
-      onClick={onPress}
-    >
+    <button type="button" className="console-key h-16 w-full" disabled={disabled} onClick={onPress}>
       <span aria-hidden className="flex items-center">
         {glyph}
       </span>
@@ -467,7 +453,7 @@ function ClockBar({
   const rest = commands.slice(1);
 
   return (
-    <div className="px-5 py-6 sm:px-8 sm:py-7">
+    <div className="px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex items-center justify-between gap-5 sm:gap-8">
         <MatchTimer clock={clock} size="lg" className="min-w-0 flex-1" />
 
@@ -510,7 +496,7 @@ function ClockBar({
       </div>
 
       {rest.length > 0 ? (
-        <div className="mt-6 flex flex-wrap gap-2 border-t border-line pt-5">
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
           {rest.map((command) => (
             <Button
               key={command}
@@ -621,13 +607,6 @@ function SubstitutionSheet({
       footer={
         <>
           <Button
-            disabled={!ready}
-            isLoading={isPending}
-            onClick={() => void onSubmit('SUBSTITUTION', teamId!, onId, null, offId).then(reset)}
-          >
-            Make the change
-          </Button>
-          <Button
             variant="quiet"
             onClick={() => {
               reset();
@@ -635,6 +614,17 @@ function SubstitutionSheet({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            disabled={!ready}
+            isLoading={isPending}
+            onClick={() =>
+              void onSubmit('SUBSTITUTION', teamId!, onId, null, offId)
+                .then(reset)
+                .catch(() => undefined)
+            }
+          >
+            Make the change
           </Button>
         </>
       }
@@ -783,13 +773,6 @@ function SaveSheet({
       footer={
         <>
           <Button
-            disabled={!teamId}
-            isLoading={isPending}
-            onClick={() => void onSubmit('SAVE', teamId!, playerId, null).then(reset)}
-          >
-            Record save
-          </Button>
-          <Button
             variant="quiet"
             onClick={() => {
               reset();
@@ -797,6 +780,17 @@ function SaveSheet({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            disabled={!teamId}
+            isLoading={isPending}
+            onClick={() =>
+              void onSubmit('SAVE', teamId!, playerId, null)
+                .then(reset)
+                .catch(() => undefined)
+            }
+          >
+            Record save
           </Button>
         </>
       }
@@ -870,9 +864,17 @@ function GoalSheet({
       }}
       size="lg"
       title="Goal"
-      description="Side and scorer."
       footer={
         <>
+          <Button
+            variant="quiet"
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             disabled={!teamId}
             isLoading={isPending}
@@ -882,19 +884,12 @@ function GoalSheet({
                 teamId!,
                 scorerId,
                 isOwnGoal ? null : assistId,
-              ).then(reset)
+              )
+                .then(reset)
+                .catch(() => undefined)
             }
           >
             Record goal
-          </Button>
-          <Button
-            variant="quiet"
-            onClick={() => {
-              reset();
-              onClose();
-            }}
-          >
-            Cancel
           </Button>
         </>
       }
@@ -924,10 +919,7 @@ function GoalSheet({
                 }}
                 className="size-4 accent-[var(--text-primary)]"
               />
-              <span className="text-sm text-primary">
-                Own goal
-                <span className="ml-2 text-[0.8125rem] text-muted">put in by the other side</span>
-              </span>
+              <span className="text-sm text-primary">Own goal</span>
             </label>
 
             {playerSide ? (
@@ -1002,13 +994,6 @@ function CardSheet({
       footer={
         <>
           <Button
-            disabled={!teamId}
-            isLoading={isPending}
-            onClick={() => void onSubmit(kind, teamId!, playerId, null).then(reset)}
-          >
-            Record {FOOTBALL_EVENT_LABELS[kind].toLowerCase()}
-          </Button>
-          <Button
             variant="quiet"
             onClick={() => {
               reset();
@@ -1016,6 +1001,17 @@ function CardSheet({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            disabled={!teamId}
+            isLoading={isPending}
+            onClick={() =>
+              void onSubmit(kind, teamId!, playerId, null)
+                .then(reset)
+                .catch(() => undefined)
+            }
+          >
+            Record {FOOTBALL_EVENT_LABELS[kind].toLowerCase()}
           </Button>
         </>
       }
@@ -1043,7 +1039,7 @@ function CardSheet({
                 aria-pressed={kind === option}
                 className={cn(
                   'flex items-center justify-center gap-2.5 rounded-[var(--radius-sm)] border py-3.5',
-                  'text-sm font-medium transition-all duration-[var(--dur-fast)]',
+                  'text-sm font-medium transition-colors duration-[var(--dur-fast)]',
                   kind === option
                     ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                     : 'border-line bg-raised text-primary hover:bg-hover',
@@ -1100,14 +1096,16 @@ function TeamChoice({
             aria-pressed={value === team.id}
             className={cn(
               'flex items-center gap-3 rounded-[var(--radius-sm)] border px-3.5 py-3',
-              'transition-all duration-[var(--dur-fast)]',
+              'transition-colors duration-[var(--dur-fast)]',
               value === team.id
                 ? 'border-[var(--text-primary)] bg-accent-soft'
                 : 'border-line bg-raised hover:bg-hover',
             )}
           >
             <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />
-            <span className="min-w-0 truncate text-sm font-medium text-primary">{team.name}</span>
+            <span className="min-w-0 break-words text-sm font-medium text-primary">
+              {team.name}
+            </span>
           </button>
         ))}
       </div>
@@ -1146,7 +1144,7 @@ function PlayerChoice({
             aria-pressed={value === player.id}
             className={cn(
               'flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5',
-              'text-[0.8125rem] transition-all duration-[var(--dur-fast)]',
+              'text-[0.8125rem] transition-colors duration-[var(--dur-fast)]',
               value === player.id
                 ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
                 : 'border-line bg-raised text-primary hover:bg-hover',
@@ -1166,7 +1164,7 @@ function PlayerChoice({
             onClick={() => onChange(null)}
             aria-pressed={value === null}
             className={cn(
-              'rounded-full border border-dashed px-3.5 py-2 text-[0.8125rem] transition-all',
+              'rounded-full border border-dashed px-3.5 py-2 text-[0.8125rem] transition-colors',
               value === null
                 ? 'border-line-strong bg-sunken text-secondary'
                 : 'border-line text-muted hover:bg-hover',

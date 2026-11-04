@@ -27,7 +27,7 @@ export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   );
 }
 
-export function ErrorText({ error }: { error: unknown }) {
+export function ErrorText({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   if (!error) return null;
 
   const message =
@@ -51,6 +51,15 @@ export function ErrorText({ error }: { error: unknown }) {
       )}
     >
       <p className="font-medium">{message}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-2 min-h-11 rounded-md border border-line-strong bg-raised px-4 text-sm font-medium"
+        >
+          Retry
+        </button>
+      ) : null}
       {details ? (
         <ul className="mt-2 flex flex-col gap-1 text-secondary">
           {details.map((detail, index) => (

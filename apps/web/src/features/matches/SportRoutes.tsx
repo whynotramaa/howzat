@@ -25,10 +25,10 @@ const ScoringPage = lazy(() => import('./ScoringPage').then((m) => ({ default: m
 
 export function MatchRoute() {
   const { matchId = '' } = useParams();
-  const { data, isPending, error } = useMatch(matchId);
+  const { data, isPending, error, refetch } = useMatch(matchId);
 
   if (isPending) return <SkeletonCard rows={4} />;
-  if (error) return <ErrorText error={error} />;
+  if (error) return <ErrorText error={error} onRetry={() => void refetch()} />;
   if (!data) return null;
 
   return (
@@ -40,10 +40,10 @@ export function MatchRoute() {
 
 export function ScoringRoute() {
   const { matchId = '' } = useParams();
-  const { data, isPending, error } = useMatch(matchId);
+  const { data, isPending, error, refetch } = useMatch(matchId);
 
   if (isPending) return <SkeletonCard rows={6} />;
-  if (error) return <ErrorText error={error} />;
+  if (error) return <ErrorText error={error} onRetry={() => void refetch()} />;
   if (!data) return null;
 
   return (

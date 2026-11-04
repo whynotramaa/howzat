@@ -39,7 +39,7 @@ export function MatchScorersCard({
   return (
     <Card>
       <CardHeader className="border-0 px-6 pt-6 pb-0">
-        <h2 className="serif text-[1.875rem] text-primary">Scorers</h2>
+        <h2 className="display text-[1.875rem] text-primary">Scorers</h2>
         <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
           Anyone you add here can score this match from their phone.
         </p>

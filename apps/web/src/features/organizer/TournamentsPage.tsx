@@ -37,28 +37,22 @@ const SPORTS: Array<{ value: Sport; label: string }> = [
 ];
 
 export function TournamentsPage() {
-  const { data, isPending, error } = useTournaments();
+  const { data, isPending, error, refetch } = useTournaments();
   const [params, setParams] = useSearchParams();
   const [quickMatch, setQuickMatch] = useState(false);
   const creating = params.get('new') === '1';
   const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
 
   const items = data?.items ?? [];
-  const live = items.filter((tournament) => tournament.status !== 'COMPLETED').length;
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-7">
       <PageHeader
         eyebrow="Organiser"
         title={
           <>
             Your <em>tournaments</em>
           </>
-        }
-        description={
-          items.length > 0
-            ? `${items.length} on the books, ${live} still in play. Open one to fill squads, draw fixtures and hand out the scorer's pen.`
-            : 'Set up a league, invite the squads, and the fixtures write themselves. Need just one game? Start a quick match.'
         }
         actions={
           <>
@@ -71,7 +65,7 @@ export function TournamentsPage() {
         art={<Scene name="trophy" />}
       />
 
-      {error ? <ErrorText error={error} /> : null}
+      {error ? <ErrorText error={error} onRetry={() => void refetch()} /> : null}
 
       {isPending ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -88,13 +82,13 @@ export function TournamentsPage() {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="grid h-full min-h-56 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-center text-secondary transition-colors hover:border-primary hover:text-primary"
+              className="grid h-full min-h-48 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-center text-secondary transition-colors hover:border-primary hover:text-primary"
             >
               <span className="grid size-11 place-items-center rounded-full border border-current text-xl leading-none">
                 +
               </span>
-              <span className="serif text-[1.5rem]">Another one</span>
-              <span className="text-xs text-muted">League, knockout or both</span>
+              <span className="display text-[1.5rem]">New tournament</span>
+              <span className="text-xs text-muted">League or league with playoffs</span>
             </button>
           </li>
         </ul>
@@ -126,24 +120,35 @@ function TournamentCard({ tournament, index }: { tournament: TournamentDto; inde
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
   const ready = registered === tournament.teamsCount && eligible === registered;
-  const state = ready ? 'Ready' : registered < tournament.teamsCount ? 'Registering' : 'Squads short';
+  const state =
+    tournament.status === 'COMPLETED'
+      ? 'Completed'
+      : tournament.status === 'IN_PROGRESS'
+        ? 'In progress'
+        : ready
+          ? 'Ready'
+          : registered < tournament.teamsCount
+            ? 'Registering'
+            : 'Squads short';
   const slots = Math.min(tournament.teamsCount, 16);
 
   return (
     <li className="reveal" style={{ '--delay': `${index * 60}ms` } as CSSProperties}>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="card-lift flex h-full min-h-56 flex-col rounded-[var(--radius-xl)] border border-line bg-raised p-5"
+        className="flex h-full min-h-48 flex-col border-t border-line-strong py-5"
       >
         <div className="flex items-start justify-between gap-3">
           <span className="grid size-14 place-items-center rounded-[var(--radius-lg)] bg-sunken">
             <SportGlyph sport={tournament.sport} className="size-10" />
           </span>
-          <Pill tone={ready ? 'success' : registered < tournament.teamsCount ? 'neutral' : 'warning'}>
+          <Pill
+            tone={ready ? 'success' : registered < tournament.teamsCount ? 'neutral' : 'warning'}
+          >
             {state}
           </Pill>
         </div>
-        <h2 className="serif mt-5 line-clamp-2 text-[1.75rem] text-primary">{tournament.name}</h2>
+        <h2 className="display mt-5 line-clamp-2 text-[1.75rem] text-primary">{tournament.name}</h2>
         <p className="mt-2 text-xs text-muted">
           {FORMAT_LABELS[tournament.format]}
           {tournament.doubleRoundRobin ? ', home and away' : ''} ·{' '}
@@ -151,7 +156,7 @@ function TournamentCard({ tournament, index }: { tournament: TournamentDto; inde
             ? `${tournament.playersPerTeam} a side, ${tournament.periods} × ${tournament.periodMinutes} min`
             : `${tournament.oversPerInnings} overs a side`}
         </p>
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-dashed border-line pt-4">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
           <span className="flex flex-wrap gap-1">
             {Array.from({ length: slots }, (_, slot) => (
               <span
@@ -244,7 +249,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
                 )}
               >
                 <SportGlyph sport={option.value} className="size-10" />
-                <span className="serif text-[1.5rem] font-normal">{option.label}</span>
+                <span className="display text-[1.5rem] font-normal">{option.label}</span>
               </button>
             ))}
           </div>

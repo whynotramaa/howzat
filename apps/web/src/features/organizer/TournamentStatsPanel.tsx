@@ -30,15 +30,23 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
 
   return (
     <section className="flex flex-col gap-5">
-      <SectionHeading
-        eyebrow="Leaders"
-        title="Caps and ledgers"
-        description="The orange cap goes to the top run scorer, the purple cap to the leading wicket taker."
-      />
+      <SectionHeading eyebrow="Leaders" title="Caps and ledgers" />
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <CapCard label="Orange cap" unit="runs" player={orangeCap} value={orangeCap?.runs} ink="var(--ink-amber)" />
-        <CapCard label="Purple cap" unit="wickets" player={purpleCap} value={purpleCap?.wickets} ink="var(--ink-violet)" />
+        <CapCard
+          label="Orange cap"
+          unit="runs"
+          player={orangeCap}
+          value={orangeCap?.runs}
+          ink="var(--ink-amber)"
+        />
+        <CapCard
+          label="Purple cap"
+          unit="wickets"
+          player={purpleCap}
+          value={purpleCap?.wickets}
+          ink="var(--ink-violet)"
+        />
       </div>
 
       <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
@@ -66,7 +74,12 @@ function CricketStatsPanel({ stats }: { stats: TournamentStatsDto }) {
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-3">
                     <span className="relative shrink-0">
-                      <PlayerAvatar seed={player.playerId} name={player.playerName} size="sm" color={player.team.primaryColor} />
+                      <PlayerAvatar
+                        seed={player.playerId}
+                        name={player.playerName}
+                        size="sm"
+                        color={player.team.primaryColor}
+                      />
                       <TeamMark
                         shortName={player.team.shortName}
                         color={player.team.primaryColor}
@@ -115,9 +128,14 @@ function CapCard({
     <div className="relative flex items-center gap-4 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5">
       <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: ink }} />
       {player ? (
-        <PlayerAvatar seed={player.playerId} name={player.playerName} size="lg" color={player.team.primaryColor} />
+        <PlayerAvatar
+          seed={player.playerId}
+          name={player.playerName}
+          size="lg"
+          color={player.team.primaryColor}
+        />
       ) : (
-        <span className="grid size-16 shrink-0 place-items-center rounded-full border border-dashed border-line-strong font-serif text-xl text-muted">
+        <span className="grid size-16 shrink-0 place-items-center rounded-full border border-dashed border-line-strong font-sans text-xl text-muted">
           ?
         </span>
       )}
@@ -125,8 +143,12 @@ function CapCard({
         <p className="eyebrow" style={{ color: ink }}>
           {label}
         </p>
-        <p className="mt-1.5 truncate text-[0.9375rem] font-semibold">{player ? player.playerName : 'Up for grabs'}</p>
-        <p className="truncate text-xs text-muted">{player ? player.team.name : 'Nobody has scored yet'}</p>
+        <p className="mt-1.5 truncate text-[0.9375rem] font-semibold">
+          {player ? player.playerName : 'Up for grabs'}
+        </p>
+        <p className="truncate text-xs text-muted">
+          {player ? player.team.name : 'Nobody has scored yet'}
+        </p>
       </div>
       {player ? (
         <p className="shrink-0 text-right">

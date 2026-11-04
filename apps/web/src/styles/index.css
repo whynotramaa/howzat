@@ -3,6 +3,30 @@
 @import './scoring.css';
 
 @font-face {
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Gilroy-400.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Gilroy-500.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Gilroy-700.woff') format('woff');
+}
+
+@font-face {
   font-family: 'Behind The Nineties';
   font-style: normal;
   font-weight: 400;
@@ -67,10 +91,10 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
 
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Gilroy', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Behind The Nineties', 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
   --font-book: 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
-  --font-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   --font-hand: 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
   --color-cta: var(--cta);
 }
@@ -87,8 +111,8 @@ body {
   background: var(--surface);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -107,7 +131,8 @@ body {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: none;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 * {
@@ -158,6 +183,18 @@ textarea {
 button:not(:disabled),
 select {
   cursor: pointer;
+}
+
+.display {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.display em {
+  font-family: var(--font-serif);
+  font-weight: 400;
 }
 
 .serif {
@@ -250,8 +287,8 @@ table {
 }
 
 .score-figure {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 700;
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.01em;
   line-height: 0.9;
@@ -512,8 +549,7 @@ table {
 }
 
 .reveal {
-  animation: reveal var(--dur-slow) var(--ease) both;
-  animation-delay: var(--delay, 0ms);
+  opacity: 1;
 }
 
 @keyframes sheet-in {
@@ -792,9 +828,9 @@ table {
 }
 
 .hero-title {
-  font-family: var(--font-serif);
-  font-size: clamp(3.25rem, 8.6vw, 8rem);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: clamp(3.75rem, 8vw, 7.5rem);
+  font-weight: 700;
   line-height: 0.92;
   letter-spacing: -0.02em;
 }
@@ -803,18 +839,6 @@ table {
   box-shadow:
     0 0 0 2px var(--surface-raised),
     0 0 0 3px var(--ring, var(--line-strong));
-}
-
-.app-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  height: 100dvh;
-  width: 248px;
-  flex-direction: column;
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  color: var(--text-primary);
-  z-index: 45;
 }
 
 .app-topbar {
@@ -923,8 +947,10 @@ table {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
 
   .squiggle::after,
@@ -981,6 +1007,298 @@ table {
 }
 
 .sketch-label {
-  font-family: var(--font-book);
+  font-family: var(--font-sans);
   fill: var(--text-secondary);
+}
+
+/* Gilroy leads the interface; serif is reserved for brand and editorial accents. */
+button,
+input,
+select,
+textarea,
+label,
+.eyebrow,
+.button,
+.mono,
+table {
+  font-family: var(--font-sans);
+}
+.button {
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    transform 100ms var(--ease);
+}
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+.masthead-nav a {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+}
+.scoreboard {
+  border-top: 2px solid var(--text-primary);
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+}
+.scoreboard > div:first-child,
+.scoreboard > div:nth-child(2) {
+  padding-inline: 0;
+}
+.scoreboard > div:first-child p:first-child {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+}
+.scoreboard .board-stat dd {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 500;
+}
+.crease-card,
+.score-panel {
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.crease-name {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.crease-stat {
+  font-family: var(--font-sans);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.crease-stat > span {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.rpo-col:focus .rpo-tip,
+.rpo-col:focus-within .rpo-tip {
+  opacity: 1;
+}
+.scoring-console .roll-strip {
+  transition: none;
+}
+.scoring-console .scoreboard > div:first-child {
+  padding-top: 12px;
+  gap: 8px;
+}
+.scoring-console .scoreboard > div:first-child > div {
+  gap: 8px;
+}
+.scoring-console .scoreboard > div:first-child p:first-child {
+  font-size: 18px;
+}
+.scoring-console .scoreboard > div:first-child > span {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.scoring-console .scoreboard > div:nth-child(2) {
+  padding-top: 10px;
+  padding-bottom: 16px;
+}
+.scoring-console .pad {
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent;
+}
+.scoring-console .pad-key {
+  border-radius: 3px;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 500;
+}
+.scoring-console .pad-key[data-tone='six'] {
+  background: var(--text-primary);
+}
+.scoring-console .pad-key[data-tone='quiet'],
+.scoring-console .pad-key[data-tone='wicket'],
+.scoring-console .pad-seg .pad-key {
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.scoring-console .pad-seg {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0 0 8px;
+  background: transparent;
+}
+.stat-strip {
+  gap: 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+.stat-tile {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.stat-tile + .stat-tile {
+  border-left: 1px solid var(--line);
+}
+.stat-tile .score-figure {
+  font-size: 38px;
+}
+.page-header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+.section-title {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.home-hero .hero-title {
+  font-size: clamp(3.25rem, 7vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+.home-hero .home-actions > a:nth-child(2) {
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  padding-inline: 8px;
+}
+.home-hero .home-art button {
+  font-family: var(--font-sans);
+  font-size: 22px;
+}
+.home-hero .home-art svg {
+  max-height: 340px;
+}
+.football-scoreline {
+  border: 0;
+  border-top: 2px solid var(--text-primary);
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+}
+.match-ledger .eyebrow {
+  letter-spacing: 0.08em;
+}
+@media (max-width: 639px) {
+  .crease-heading {
+    display: flex;
+  }
+  .crease-heading > span:first-child {
+    width: 100%;
+  }
+  .crease-heading > span:not(:first-child) {
+    display: none;
+  }
+  .crease-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    font-size: 13px;
+  }
+  .scoreboard > div:nth-child(2) {
+    gap: 12px;
+  }
+  .scoreboard > div:nth-child(2) > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .scoreboard .board-stat {
+    align-items: flex-start;
+  }
+  .scoreboard > div:nth-child(2) > dl {
+    flex-direction: column;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .scoreboard > div:first-child p:first-child {
+    font-size: 18px;
+  }
+  .masthead > a .serif {
+    font-size: 26px;
+  }
+  .stat-tile:nth-child(3) {
+    border-left: 0;
+  }
+  .stat-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .page-header {
+    padding-bottom: 20px;
+  }
+  .page-actions,
+  .home-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+  .page-actions > a,
+  .page-actions > button,
+  .home-actions > a {
+    width: 100%;
+  }
+  .home-hero .home-art {
+    display: none;
+  }
+  .home-hero .hero-title {
+    font-size: clamp(2.75rem, 11vw, 4rem);
+  }
+  .match-side {
+    gap: 10px;
+  }
+  .match-side > span:nth-child(2) {
+    font-size: 18px;
+  }
+}
+@media (max-width: 359px) {
+  .scoring-console .scoreboard .score-figure {
+    font-size: 2.25rem;
+  }
+  .scoring-console .scoreboard .mono.text-lg {
+    font-size: 0.875rem;
+  }
+}
+
+.scoring-workspace header h1 {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 700;
+}
+.football-scoreline p {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 500;
+}
+.football-console,
+.football-log {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.football-log {
+  border-top: 1px solid var(--line-strong);
+}
+.football-log .eyebrow {
+  font-weight: 500;
+}
+summary {
+  font-family: var(--font-sans);
 }

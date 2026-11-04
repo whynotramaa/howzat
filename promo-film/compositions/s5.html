@@ -1,0 +1,178 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; }
+    #s5-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="s5" data-width="1920" data-height="1080">
+    <canvas id="s5-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, Wd = WORLD, P = PEOPLE, K = CAST, C = I.C, E = I.E, V = I.V;
+      const CITY = Wd.city({ seed: 23, clear: 60 });
+      const ST = Wd.stadium({ ex: 62, ez: 68, kind: 'cricket', seed: 7 });
+      const MAST = [0, 0, 0], MH = 150;
+      function mast(D, ctx, c, b, hit) {
+        const legs = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+        D.add(I.depth(c, [0, 70, 0]), () => {
+          legs.forEach(([x, z], i) => I.line3(ctx, c, [[x * 7, 0, z * 7], [x * 1.2, MH, z * 1.2]], { ww: 0.9, seed: 4000 + i, b, wmin: 1.5, wmax: 8 }));
+          for (let h = 10; h < MH - 10; h += 16) {
+            const s0 = 7 - (h / MH) * 5.8, s1 = 7 - ((h + 16) / MH) * 5.8;
+            for (let k = 0; k < 4; k++) {
+              const [x0, z0] = legs[k], [x1, z1] = legs[(k + 1) % 4];
+              I.line3(ctx, c, [[x0 * s0, h, z0 * s0], [x1 * s1, h + 16, z1 * s1]], { ww: 0.35, seed: 4010 + h + k, b, wmin: 0.8, wmax: 4, alpha: 0.8 });
+            }
+          }
+          const dc = [3, 112, -3], pts = [];
+          for (let k = 0; k <= 24; k++) {
+            const a = (k / 24) * I.TAU;
+            pts.push([dc[0] + Math.cos(a) * 0.5, dc[1] + Math.sin(a) * 9, dc[2] - Math.cos(a) * 9]);
+          }
+          I.line3(ctx, c, pts, { ww: 0.6, seed: 4050, b, wmin: 1.5, fill: hit ? C.paper3 : C.white });
+          I.disc3(ctx, c, [0, MH + 3, 0], 2.2, { fill: C.red, seed: 4051, b, min: 2 });
+        }, 1);
+      }
+      function bolt(ctx, c, b, t) {
+        if (t > 0.34 || (t > 0.08 && t < 0.13)) return;
+        const top = I.proj(c, [0, MH + 3, 0]);
+        if (!top) return;
+        const pts = [[top[0] + 380, -40]];
+        for (let i = 1; i < 9; i++) {
+          const u = i / 9;
+          pts.push([I.lerp(top[0] + 380, top[0], u) + (I.hash(i, 77) - 0.5) * 140, I.lerp(-40, top[1], u)]);
+        }
+        pts.push([top[0], top[1]]);
+        I.tube(ctx, pts, 12, C.yellow, { seed: 4060, b, amp: 3, outline: 3 });
+      }
+      const stormTint = (ctx, a) => {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#4a5468';
+        ctx.fillRect(0, 0, 1920, 1080);
+        ctx.globalAlpha = 1;
+      };
+      const geom = (cx, cy, w) => {
+        const h = w * 2.05, x0 = cx - w / 2, y0 = cy - h / 2;
+        return { sx: x0 + 0.06 * w, sy: y0 + 0.08 * w, u: (0.88 * w) / 100 };
+      };
+      const keyPos = (g, i) => [g.sx + 6 * g.u + (i % 4) * 22.5 * g.u + 10 * g.u, g.sy + 112 * g.u + Math.floor(i / 4) * 26 * g.u + 11.5 * g.u];
+      function phoneScene(ctx, t, b) {
+        I.paper(ctx, '#e3e1db');
+        for (let i = 0; i < 5; i++) I.stroke(ctx, [[0, 180 + i * 190], [1920, 170 + i * 190]], { w: 2, color: C.paper3, seed: 4100 + i, b });
+        Wd.rain(ctx, t, 0.35, { ang: 0.3 });
+        const cx = 960, cy = 610, w = 470, g = geom(cx, cy, w);
+        const bars = Math.round(I.key(t, [[5.2, 4], [5.5, 0, E.lin], [7.0, 0], [7.35, 4, E.lin]]));
+        const taps = [['1', 5.75], ['4', 6.35]];
+        let press = null, pressAmt = 0;
+        for (const [k, tt] of taps) {
+          const a = I.key(t, [[tt - 0.12, 0], [tt, 1, E.out3], [tt + 0.25, 0, E.out2]]);
+          if (a > 0) {
+            press = k;
+            pressAmt = a;
+          }
+        }
+        const score = t < 5.75 ? '149/4' : t < 6.35 ? '150/4' : '154/4', over = t < 5.75 ? '19.2' : t < 6.35 ? '19.3' : '19.4';
+        P.phone(ctx, cx, cy, w, { screen: 'pad', score, over, press, pressAmt, queue: [], bars, b, seed: 4110 });
+        taps.forEach(([k, tt], i) => {
+          if (t < tt) return;
+          const from = keyPos(g, Number(k)), slot = [g.sx + 12 * g.u + i * 13 * g.u, g.sy + 70 * g.u];
+          const f = I.ramp(t, tt, tt + 0.5, E.io2), go = I.ramp(t, 7.45 + i * 0.35, 7.95 + i * 0.35, E.in3);
+          let x = I.lerp(from[0], slot[0], f), y = I.lerp(from[1], slot[1], f) - Math.sin(f * Math.PI) * 30;
+          if (f >= 1 && go <= 0) {
+            const dash = [];
+            const rr = 8 * g.u;
+            for (let s = 0; s < 12; s += 2) {
+              const a0 = (s / 12) * I.TAU + t * 3, a1 = ((s + 1) / 12) * I.TAU + t * 3;
+              I.stroke(ctx, [[x + Math.cos(a0) * rr, y + Math.sin(a0) * rr], [x + Math.cos((a0 + a1) / 2) * rr, y + Math.sin((a0 + a1) / 2) * rr], [x + Math.cos(a1) * rr, y + Math.sin(a1) * rr]], { w: 3, color: C.cobalt, seed: 4120 + s + i * 20, b, amp: 0.5 });
+            }
+          }
+          if (go > 0) {
+            const ty = y - go * 1300;
+            I.stroke(ctx, [[x, y], [x + 8, (y + ty) / 2], [x, ty]], { w: 7, color: C.cobalt, seed: 4140 + i, b, amp: 3 });
+            y = ty;
+          }
+          P.chip(ctx, x, y, 5.5 * g.u, k, { seed: 4150 + i, b });
+        });
+        const th = I.key(t, [[5.2, [1600, 1300]], [5.65, [keyPos(g, 1)[0] + 25, keyPos(g, 1)[1] + 40], E.out3], [5.8, [keyPos(g, 1)[0] + 20, keyPos(g, 1)[1] + 30]], [6.2, [keyPos(g, 4)[0] + 25, keyPos(g, 4)[1] + 40], E.io2], [6.4, [keyPos(g, 4)[0] + 20, keyPos(g, 4)[1] + 30]], [7.0, [1600, 1300], E.in2]]);
+        if (t < 7.0) {
+          I.tube(ctx, [[1850, 1350], [th[0] + 130, th[1] + 130], th], 60, C.skin, { seed: 4160, b, amp: 2 });
+          I.stroke(ctx, P.rrect(th[0] - 16, th[1] - 18, 32, 27, 9), { closed: true, fill: C.paper, w: 2, seed: 4161, b, alpha: 0.7 });
+        }
+      }
+      const fireworks = [[9.45, [-20, 70, -10], C.pink], [9.7, [25, 82, 20], C.yellow], [9.95, [0, 95, 40], C.cobalt], [10.2, [-35, 78, 30], C.sky], [10.4, [30, 90, -20], C.tang]];
+      const tl = I.scene('s5', 40, 11, (ctx, t, b) => {
+        if (t < 2.4) {
+          I.paper(ctx, '#e6e4de');
+          const k = I.ramp(t, 0, 2.4, E.lin);
+          const c = I.cam(V.lerp([-95, 70, -150], [-60, 105, -95], k), [0, 95, 0], 52, -0.03);
+          const D = I.List();
+          const hit = t > 0.12;
+          CITY.draw(D, ctx, c, t, b, { tvs: (n) => (hit ? (I.hash(n, b) < 0.5 ? '#b9b9b9' : '#6f6f6f') : [C.sky, C.grass, C.pink][n % 3]) });
+          mast(D, ctx, c, b, hit);
+          D.flush();
+          if (hit && t < 1.2) Wd.burst3(ctx, c, [0, MH + 3, 0], (t - 0.12) / 1.0, C.yellow, 61, b, { r: 18, n: 16, ww: 0.6, drop: 10, col2: C.ink });
+          stormTint(ctx, 0.14);
+          Wd.rain(ctx, t, 1);
+          bolt(ctx, c, b, t);
+          return;
+        }
+        if (t < 4.6) {
+          const lt = t - 2.4, linked = lt > 1.25;
+          const thread = I.ramp(lt, 0.8, 1.25, E.io2);
+          const st = {
+            rain: 1, frown: linked ? 0 : 1, react: linked ? I.ramp(lt, 1.3, 1.8) * 0.6 : 0,
+            phone: linked ? { screen: 'score', score: '149/4', over: '19.2 · need 8 off 4', chips: ['1', 'W', '6', '2'], flash: 1 - I.ramp(lt, 1.25, 1.9), progress: 0.97 } : { screen: 'buffer', spin: lt * 1.3 },
+          };
+          ctx.save();
+          const pp = I.paper;
+          I.paper = (_, col) => {
+            ctx.fillStyle = col || C.paper;
+            ctx.fillRect(-200, -200, 2320, 1480);
+          };
+          P.vBus(ctx, lt + 5, b, st);
+          I.paper = pp;
+          if (thread > 0 && thread < 1) {
+            const pts = [];
+            for (let i = 0; i <= 30; i++) {
+              const u = (i / 30) * thread;
+              pts.push([I.lerp(240, 1030, u) + Math.sin(u * 14) * 30, I.lerp(170, 700, u * u)]);
+            }
+            I.stroke(ctx, pts, { w: 7, color: C.cobalt, seed: 4200, b, amp: 3 });
+          }
+          ctx.restore();
+          return;
+        }
+        if (t < 5.2) {
+          I.paper(ctx);
+          P.pressBox(ctx, t, b, { storm: 1, mood: 'frown', look: [0.2, 0.7] });
+          return;
+        }
+        if (t < 8.4) return phoneScene(ctx, t, b);
+        if (t < 9.4) {
+          const lt = t - 8.4;
+          const score = lt < 0.3 ? '150/4' : lt < 0.6 ? '154/4' : '158/4', over = lt < 0.3 ? '19.3' : lt < 0.6 ? '19.4' : '19.5 · won';
+          const chips = lt < 0.3 ? ['W', '6', '2', '1'] : lt < 0.6 ? ['6', '2', '1', '4'] : ['2', '1', '4', '4'];
+          const flash = Math.max(1 - I.ramp(lt, 0, 0.25), 1 - I.ramp(lt, 0.3, 0.55), 1 - I.ramp(lt, 0.6, 0.95));
+          const pp = I.paper;
+          I.paper = (_, col) => {
+            ctx.fillStyle = col || C.paper;
+            ctx.fillRect(-200, -200, 2320, 1480);
+          };
+          P.vBus(ctx, lt + 9, b, { rain: 0.4, react: I.ramp(lt, 0.6, 1.0), phone: { screen: 'score', score, over, chips, flash, progress: 1 } });
+          I.paper = pp;
+          return;
+        }
+        I.paper(ctx);
+        const k = I.ramp(t, 9.4, 11, E.out2);
+        const ang = 2.2 + k * 0.35;
+        const c = I.cam([Math.cos(ang) * 190, 95 - k * 10, Math.sin(ang) * 190], [0, 30, 0], 50);
+        const D = I.List();
+        ST.draw(D, ctx, c, t, b, { lights: 1, cheer: 1, board: ['158/4', 'won by 6 wickets'], boardA: 5.5 });
+        D.flush();
+        for (const [ft, p, col] of fireworks) Wd.burst3(ctx, c, p, (t - ft) / 1.4, col, Math.round(ft * 10), b, { r: 26, n: 22, ww: 0.7, drop: 12, col2: C.ink });
+        stormTint(ctx, 0.08 * (1 - k));
+        Wd.rain(ctx, t, 0.5 * (1 - k));
+      });
+      window.__timelines['s5'] = tl;
+    })();
+  </script>
+</template>

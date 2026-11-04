@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { clockStatusLabel, type FootballSnapshot } from '@howzat/shared';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { EmptyState } from '@/components/ui/Card';
@@ -21,7 +21,10 @@ type View = 'live' | 'lineups' | 'timeline';
 
 export function LiveFootballPage({ slug }: { slug: string }) {
   const { snapshot, connection, viewers, error, isLoading, notStarted } = useLiveFootball(slug);
-  const [view, setView] = useState<View>('live');
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('view');
+  const view: View = requested === 'lineups' || requested === 'timeline' ? requested : 'live';
+  const setView = (next: View) => setParams({ view: next }, { replace: true });
 
   const matchLabel = snapshot ? `${snapshot.home.short} v ${snapshot.away.short}` : undefined;
 
@@ -42,9 +45,9 @@ export function LiveFootballPage({ slug }: { slug: string }) {
     >
       <SketchDefs />
       <header className="live-stage-bar sticky top-0 z-30 border-b border-line">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-5 sm:px-8">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-2 px-3 sm:gap-4 sm:px-8">
           <Link to="/" className="shrink-0 transition-opacity hover:opacity-70">
-            <Wordmark size="sm" />
+            <Wordmark size="sm" className="max-sm:[&>span]:hidden" />
           </Link>
 
           {snapshot ? (
@@ -58,7 +61,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             </div>
           ) : null}
 
-          <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-4">
             {viewers > 0 ? (
               <span className="mono hidden text-[0.6875rem] text-muted sm:block">
                 {viewers} watching
@@ -80,7 +83,20 @@ export function LiveFootballPage({ slug }: { slug: string }) {
             <Skeleton className="h-40" />
           </div>
         ) : error && !snapshot ? (
-          <EmptyState scene="goal" title="This match could not be loaded" description={error} />
+          <EmptyState
+            scene="goal"
+            title="This match could not be loaded"
+            description={error}
+            action={
+              <button
+                type="button"
+                className="min-h-11 rounded-md border border-line-strong px-5 text-sm font-medium"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
+            }
+          />
         ) : notStarted ? (
           <EmptyState
             scene="goal"
@@ -128,9 +144,12 @@ export function LiveFootballPage({ slug }: { slug: string }) {
       <footer className="relative z-10 border-t border-line">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-7 sm:px-8">
           <p className="text-[0.8125rem] text-muted">
-            Scored minute by minute on <span className="text-primary">Howzat</span>.
+            Scored on <span className="text-primary">Howzat</span>.
           </p>
-          <Link to="/" className="text-[0.8125rem] text-primary underline decoration-line-strong underline-offset-4 transition-opacity hover:opacity-70">
+          <Link
+            to="/"
+            className="text-[0.8125rem] text-primary underline decoration-line-strong underline-offset-4 transition-opacity hover:opacity-70"
+          >
             Run your own tournament →
           </Link>
         </div>
@@ -143,7 +162,7 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
   const finished = snapshot.status === 'COMPLETED' || snapshot.status === 'ABANDONED';
 
   return (
-    <section className="reveal paper-grain rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-8 sm:px-10 sm:py-10">
+    <section className="reveal rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-8 sm:px-10 sm:py-10">
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="eyebrow">{snapshot.tournamentName}</p>
         {snapshot.status === 'LIVE' ? (
@@ -185,7 +204,9 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
       {snapshot.resultText || finished ? (
         <div className="mt-8 flex flex-col items-center gap-5 border-t border-dashed border-line pt-6 text-center">
           {snapshot.resultText ? (
-            <p className="serif max-w-[34ch] text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">{snapshot.resultText}</p>
+            <p className="display max-w-[34ch] text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">
+              {snapshot.resultText}
+            </p>
           ) : null}
 
           {finished ? (
@@ -211,13 +232,16 @@ function TeamBlock({ side, align }: { side: FootballSnapshot['home']; align: 'le
       <TeamMark shortName={side.short} color={side.color} size="xl" className="max-sm:!size-14" />
 
       <div className="min-w-0">
-        <p className="serif line-clamp-2 text-[clamp(1.125rem,2.6vw,2.25rem)] text-primary">
+        <p className="display line-clamp-2 text-[clamp(1.125rem,2.6vw,2.25rem)] text-primary">
           {side.name}
         </p>
 
         {side.yellowCards > 0 || side.redCards > 0 ? (
           <div
-            className={cn('mt-2 flex items-center justify-center gap-2', align === 'right' ? 'md:justify-end' : 'md:justify-start')}
+            className={cn(
+              'mt-2 flex items-center justify-center gap-2',
+              align === 'right' ? 'md:justify-end' : 'md:justify-start',
+            )}
           >
             {side.yellowCards > 0 ? <CardTally tone="yellow" count={side.yellowCards} /> : null}
             {side.redCards > 0 ? <CardTally tone="red" count={side.redCards} /> : null}
@@ -249,8 +273,7 @@ function LiveView({ snapshot }: { snapshot: FootballSnapshot }) {
       <Pitch home={snapshot.lineups.home} away={snapshot.lineups.away} />
 
       <div className="rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-5 sm:px-7">
-        <p className="eyebrow">Latest</p>
-        <h2 className="serif mt-2 mb-3 text-[1.625rem]">What just happened</h2>
+        <h2 className="mb-3 text-base font-semibold">Timeline</h2>
         <IncidentTimeline
           incidents={snapshot.incidents.slice(0, 8)}
           homeTeamId={snapshot.home.teamId}

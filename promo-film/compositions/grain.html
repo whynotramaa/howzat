@@ -1,0 +1,102 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; pointer-events: none; }
+    #grain-cv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  </style>
+  <div id="root" data-composition-id="grain" data-width="1920" data-height="1080">
+    <canvas id="grain-cv" width="1920" height="1080"></canvas>
+  </div>
+  <script>
+    (function () {
+      const I = INK, E = I.E;
+      const cv = document.getElementById('grain-cv');
+      const gl = cv.getContext('webgl', { premultipliedAlpha: true, preserveDrawingBuffer: true, alpha: true });
+      const FS = `
+        precision highp float;
+        uniform vec2 uRes;
+        uniform float uB, uFlash, uInk, uFreeze, uSeed;
+        float h(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+        float n(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(h(i), h(i + vec2(1.0, 0.0)), u.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), u.x), u.y); }
+        float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * n(p); p *= 2.03; a *= 0.5; } return s; }
+        vec4 over(vec4 src, vec4 dst) { return src + dst * (1.0 - src.a); }
+        void main() {
+          vec2 uv = gl_FragCoord.xy / uRes;
+          vec2 q = uv - 0.5; q.x *= uRes.x / uRes.y;
+          float g = h(gl_FragCoord.xy + uB * 17.13);
+          float fib = n(gl_FragCoord.xy * vec2(0.08, 0.9) + uB * 3.1);
+          float a = (g - 0.5) * 0.06 + (fib - 0.5) * 0.03;
+          vec3 ink = vec3(0.098, 0.098, 0.09);
+          vec4 col = a > 0.0 ? vec4(vec3(1.0) * a, a) : vec4(ink * -a, -a);
+          float vig = smoothstep(0.42, 1.05, length(q));
+          float va = vig * (0.07 + 0.26 * uFreeze);
+          col = over(vec4(ink * va, va), col);
+          if (uInk > 0.0) {
+            float m = fbm(uv * vec2(3.4, 2.0) + uSeed);
+            float th = uInk * 1.3 - 0.15;
+            float cover = 1.0 - smoothstep(th - 0.015, th, m);
+            float rim = (1.0 - smoothstep(th - 0.05, th - 0.015, m)) * (1.0 - cover);
+            vec4 inkc = vec4(ink * cover, cover);
+            col = over(inkc, col);
+            col = over(vec4(vec3(0.145, 0.341, 0.839) * rim * 0.9, rim * 0.9), col);
+          }
+          col = over(vec4(vec3(1.0) * uFlash, uFlash), col);
+          gl_FragColor = col;
+        }`;
+      const VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
+      let prog = null, U = {};
+      if (gl) {
+        const sh = (type, src) => {
+          const s = gl.createShader(type);
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          return s;
+        };
+        prog = gl.createProgram();
+        gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+        gl.linkProgram(prog);
+        gl.useProgram(prog);
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        const loc = gl.getAttribLocation(prog, 'p');
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        for (const k of ['uRes', 'uB', 'uFlash', 'uInk', 'uFreeze', 'uSeed']) U[k] = gl.getUniformLocation(prog, k);
+      }
+      const flash = (t) =>
+        Math.max(
+          I.key(t, [[18.88, 0], [18.9, 0.55, E.lin], [18.99, 0, E.out2]]),
+          I.key(t, [[39.98, 0], [40.0, 0.95, E.lin], [40.07, 0.25], [40.12, 0.85], [40.6, 0, E.out2]]),
+        );
+      const wipes = [[14.6, 15.0, 15.4, 3.0], [50.75, 51.0, 51.3, 9.0]];
+      function render(t) {
+        if (!gl || !prog) return;
+        let ink = 0, seed = 0;
+        for (const [a, m, z, s] of wipes) {
+          if (t >= a && t <= z) {
+            ink = t < m ? E.in2((t - a) / (m - a)) : 1 - E.out2((t - m) / (z - m));
+            seed = s;
+          }
+        }
+        const freeze = I.ramp(t, 18.9, 19.25) * (1 - I.ramp(t, 23.15, 23.5));
+        gl.viewport(0, 0, 1920, 1080);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform2f(U.uRes, 1920, 1080);
+        gl.uniform1f(U.uB, I.boil(t) % 997);
+        gl.uniform1f(U.uFlash, flash(t));
+        gl.uniform1f(U.uInk, ink);
+        gl.uniform1f(U.uFreeze, freeze);
+        gl.uniform1f(U.uSeed, seed);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+      window.addEventListener('hf-seek', (e) => render(e.detail.time));
+      render(0);
+      const tl = gsap.timeline({ paused: true });
+      tl.to({}, { duration: 75 }, 0);
+      window.__timelines['grain'] = tl;
+    })();
+  </script>
+</template>

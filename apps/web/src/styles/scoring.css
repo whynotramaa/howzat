@@ -39,7 +39,7 @@
 }
 
 .board-stat dd {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 1.75rem;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -145,7 +145,7 @@
 }
 
 .pad-key:active:not(:disabled) {
-  transform: scale(0.93);
+  transform: scale(0.98);
   transition-duration: 60ms;
 }
 
@@ -159,9 +159,9 @@
   border-color: var(--text-primary);
   background: var(--surface-raised);
   color: var(--text-primary);
-  font-family: var(--font-serif);
-  font-size: 1.5em;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .pad-key[data-tone='six'] {
@@ -526,7 +526,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .moment {
+  .moment,
+  .key-ripple {
     display: none;
   }
 

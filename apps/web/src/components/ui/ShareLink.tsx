@@ -61,7 +61,8 @@ export function ShareLink({
       variant={variant}
       onClick={() => void handleShare()}
       aria-live="polite"
-      className={cn(copied && 'text-accent')}
+      aria-label={copied ? 'Link copied' : label}
+      className={cn('max-[360px]:w-11 max-[360px]:px-0', copied && 'text-accent')}
     >
       <span aria-hidden>
         <svg
@@ -75,7 +76,7 @@ export function ShareLink({
           <path d={copied ? 'm4 10 4 4 8-8' : 'M7 7h10v10H7zM3 12V3h9'} />
         </svg>
       </span>
-      {copied ? 'Copied' : label}
+      <span className="max-[360px]:sr-only">{copied ? 'Copied' : label}</span>
     </Button>
   );
 }

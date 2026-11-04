@@ -26,7 +26,12 @@ export function StandingsTable({
   const isFootball = sport === 'FOOTBALL';
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised">
+    <div
+      role="region"
+      aria-label="Standings"
+      tabIndex={0}
+      className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-raised"
+    >
       <Table className="min-w-[30rem]">
         <thead>
           <tr className="border-b border-line-strong">

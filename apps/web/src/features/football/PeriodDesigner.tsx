@@ -51,7 +51,7 @@ export function PeriodDesigner({
                 aria-pressed={active}
                 className={cn(
                   'flex flex-col items-start gap-1 rounded-[var(--radius-sm)] border px-3.5 py-3 text-left',
-                  'transition-all duration-[var(--dur-fast)] ease-[var(--ease)]',
+                  'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                   active
                     ? 'border-[var(--text-primary)] bg-accent-soft'
                     : 'border-line bg-raised hover:border-line-strong hover:bg-hover',
@@ -111,7 +111,7 @@ function PeriodBar({ periods, periodMinutes }: { periods: number; periodMinutes:
             key={index}
             className={cn(
               'relative flex-1 rounded-[var(--radius-xs)] bg-[var(--text-primary)]',
-              'transition-all duration-[var(--dur)] ease-[var(--ease)]',
+              'transition-colors duration-[var(--dur)] ease-[var(--ease)]',
             )}
             style={{ opacity: 1 - index * 0.14 }}
           >
@@ -209,7 +209,7 @@ function StepButton({
       onClick={onClick}
       className={cn(
         'mono grid size-12 shrink-0 place-items-center rounded-[var(--radius-sm)] border border-line-strong',
-        'bg-raised text-lg text-primary transition-all duration-[var(--dur-fast)]',
+        'bg-raised text-lg text-primary transition-colors duration-[var(--dur-fast)]',
         'hover:border-[var(--accent-line)] hover:bg-hover active:translate-y-px',
         'disabled:pointer-events-none disabled:opacity-35',
       )}

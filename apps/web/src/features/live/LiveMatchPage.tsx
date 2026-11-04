@@ -4,7 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { BallSummary, FallOfWicket, MatchSnapshot } from '@howzat/shared';
 import { apiFetch } from '@/lib/api';
-import { Skeleton } from '@/components/ui/Feedback';
+import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { EmptyState } from '@/components/ui/Card';
 import { SketchDefs } from '@/components/ui/Sketch';
 import { TeamMark } from '@/components/ui/Pill';
@@ -39,12 +39,11 @@ const VIEWS = [
 
 export function LiveMatchPage() {
   const { slug = '' } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { snapshot, connection, viewers, error, isLoading, notStarted } = useLiveMatch(slug);
   const requested = searchParams.get('view');
-  const [view, setView] = useState<View>(
-    VIEWS.some((item) => item.value === requested) ? (requested as View) : 'live',
-  );
+  const view: View = VIEWS.some((item) => item.value === requested) ? (requested as View) : 'live';
+  const setView = (next: View) => setSearchParams({ view: next }, { replace: true });
   const condensed = useCondensedHeader();
   const moment = useMoment(snapshot?.lastEventSeq ?? 0, snapshot?.recentBalls ?? EMPTY_BALLS);
 
@@ -61,16 +60,22 @@ export function LiveMatchPage() {
       <SketchDefs />
 
       <header className="app-topbar border-b border-line">
-        <div className="mx-auto flex h-14 w-full max-w-[64rem] items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="shrink-0 transition-opacity hover:opacity-70">
-            <Wordmark size="sm" />
+        <div className="mx-auto flex h-14 w-full max-w-[64rem] items-center gap-2 px-3 sm:gap-4 sm:px-6">
+          <Link
+            to="/"
+            className={cn(
+              'shrink-0 transition-opacity hover:opacity-70',
+              condensed && 'max-sm:hidden',
+            )}
+          >
+            <Wordmark size="sm" className="max-sm:[&>span]:hidden" />
           </Link>
 
           {snapshot ? (
             <div
               aria-hidden={!condensed}
               data-shown={condensed}
-              className="live-condensed hidden min-w-0 items-center gap-3 sm:flex"
+              className="live-condensed flex min-w-0 items-center gap-2"
             >
               <span aria-hidden className="h-5 w-px bg-line" />
               <TeamMark
@@ -91,7 +96,7 @@ export function LiveMatchPage() {
             {viewers > 0 ? (
               <span
                 title={`${viewers} watching now`}
-                className="flex items-center gap-1.5 text-xs text-muted"
+                className="hidden items-center gap-1.5 text-xs text-muted sm:flex"
               >
                 <EyeIcon />
                 <span key={viewers} className="figure-in tabular text-secondary">
@@ -115,27 +120,31 @@ export function LiveMatchPage() {
             <Skeleton className="h-40" />
           </div>
         ) : error && !snapshot ? (
-          <EmptyState scene="scorebook" title="This match could not be loaded" description={error} />
+          <EmptyState
+            scene="scorebook"
+            title="This match could not be loaded"
+            description={error}
+            action={
+              <button
+                type="button"
+                className="min-h-11 rounded-md border border-line-strong px-5 text-sm font-medium"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
+            }
+          />
         ) : notStarted ? (
           <NotStarted />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
-            <header className="reveal grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 py-2 sm:gap-6 sm:py-4">
-              <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
-                <TeamMark shortName={snapshot.batting.short} color={snapshot.batting.color} size="lg" />
-                <h1 className="serif line-clamp-2 text-[clamp(1.375rem,3.6vw,2.75rem)]">{snapshot.batting.name}</h1>
-              </div>
-              <span
-                aria-hidden
-                className="grid size-10 place-items-center rounded-full border border-line-strong bg-surface font-serif text-[1.25rem] leading-none text-secondary italic sm:size-12"
-              >
-                v
-              </span>
-              <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:flex-row-reverse sm:text-right">
-                <TeamMark shortName={snapshot.bowling.short} color={snapshot.bowling.color} size="lg" />
-                <p className="serif line-clamp-2 text-[clamp(1.375rem,3.6vw,2.75rem)]">{snapshot.bowling.name}</p>
-              </div>
-            </header>
+            <div className="flex flex-wrap items-center justify-between gap-2 py-1">
+              <h1 className="text-base font-semibold">
+                {snapshot.batting.short} <span className="mx-1 font-normal text-muted">v</span>{' '}
+                {snapshot.bowling.short}
+              </h1>
+              <span className="text-xs text-secondary">Innings {snapshot.inningsNumber}</span>
+            </div>
             <Board snapshot={snapshot} slug={slug} />
             <InningsInsight
               balls={snapshot.batting.balls}
@@ -182,7 +191,7 @@ function NotStarted() {
     <EmptyState
       scene="stumps"
       title="Not started yet"
-      description="Keep this page open. The score updates live from the very first ball."
+      description="Updates begin with the first ball."
     />
   );
 }
@@ -242,17 +251,6 @@ function Board({ snapshot, slug }: { snapshot: MatchSnapshot; slug: string }) {
             <span
               className="chase-fill"
               style={{ width: `${Math.min(100, (batting.runs / Math.max(1, target)) * 100)}%` }}
-            />
-            <span
-              aria-hidden
-              className="chase-marker"
-              style={{
-                left: `${
-                  batting.balls + required.balls > 0
-                    ? (batting.balls / (batting.balls + required.balls)) * 100
-                    : 0
-                }%`,
-              }}
             />
           </div>
 
@@ -439,20 +437,14 @@ interface ScorecardResponse {
 }
 
 function ScorecardView({ slug }: { slug: string }) {
-  const { data, isPending, error } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     queryKey: ['public', 'scorecard', slug],
     queryFn: () => apiFetch<ScorecardResponse>(`/public/matches/${slug}/scorecard`),
     staleTime: 10_000,
   });
 
   if (isPending) return <Skeleton className="h-96" />;
-  if (error) {
-    return (
-      <p role="alert" className="text-sm text-alert">
-        Scorecard unavailable.
-      </p>
-    );
-  }
+  if (error) return <ErrorText error={error} onRetry={() => void refetch()} />;
   if (!data || data.innings.length === 0) {
     return <p className="text-sm text-muted">No innings yet</p>;
   }
@@ -491,7 +483,12 @@ function ScorecardView({ slug }: { slug: string }) {
               </p>
             </div>
 
-            <div className="overflow-x-auto">
+            <div
+              role="region"
+              aria-label="Batting scorecard"
+              tabIndex={0}
+              className="overflow-x-auto"
+            >
               <Table density="compact" className="min-w-[32rem]">
                 <thead>
                   <tr className="border-b border-line-strong">
@@ -559,7 +556,12 @@ function ScorecardView({ slug }: { slug: string }) {
               </span>
             </div>
 
-            <div className="overflow-x-auto border-t border-line">
+            <div
+              role="region"
+              aria-label="Bowling scorecard"
+              tabIndex={0}
+              className="overflow-x-auto border-t border-line"
+            >
               <Table density="compact" className="min-w-[30rem]">
                 <thead>
                   <tr className="border-b border-line-strong">
@@ -650,7 +652,12 @@ function CommentaryView({ snapshot }: { snapshot: MatchSnapshot }) {
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className={cn('text-[0.8125rem] font-semibold', ball.isWicket && 'text-[var(--wicket)]')}>
+                <p
+                  className={cn(
+                    'text-[0.8125rem] font-semibold',
+                    ball.isWicket && 'text-[var(--wicket)]',
+                  )}
+                >
                   {eventLabel(ball)}
                 </p>
                 <p

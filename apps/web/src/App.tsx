@@ -1,11 +1,13 @@
 import { Toaster, toast } from '@/components/ui/Toast';
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { HomePage } from '@/features/home/HomePage';
 import { AppShell } from '@/components/AppShell';
 import { RequireAuth } from '@/components/RequireAuth';
+import { EmptyState } from '@/components/ui/Card';
+import { ButtonLink } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Feedback';
 import { ApiError } from '@/lib/api';
 
@@ -116,7 +118,18 @@ export function App() {
                 <Route path="/players/:username" element={<PlayerProfilePage />} />
               </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route
+                path="*"
+                element={
+                  <main className="mx-auto max-w-2xl px-5 py-16">
+                    <EmptyState
+                      title="Page not found"
+                      description="Check the link or return to your matches."
+                      action={<ButtonLink to="/dashboard">Open dashboard</ButtonLink>}
+                    />
+                  </main>
+                }
+              />
             </Routes>
           </Suspense>
         </AuthProvider>
