@@ -56,8 +56,8 @@ export function LiveMatchPage() {
       <MomentOverlay moment={moment} />
       <SketchDefs />
 
-      <header className="app-topbar">
-        <div className="app-masthead ink-zone gap-2 sm:gap-4">
+      <header className="app-topbar border-b border-line">
+        <div className="mx-auto flex h-14 w-full max-w-[64rem] items-center gap-2 px-3 sm:gap-4 sm:px-6">
           <Link
             to="/"
             className={cn(
@@ -65,7 +65,7 @@ export function LiveMatchPage() {
               condensed && 'max-sm:hidden',
             )}
           >
-            <Wordmark size="sm" tone="inverse" className="max-sm:[&>span]:hidden" />
+            <Wordmark size="sm" className="max-sm:[&>span]:hidden" />
           </Link>
 
           {snapshot ? (
@@ -105,7 +105,7 @@ export function LiveMatchPage() {
             {snapshot ? (
               <ShareLink slug={slug} variant="quiet" matchLabel={matchLabel} label="Share" />
             ) : null}
-            <ThemeToggle tone="inverse" />
+            <ThemeToggle />
           </div>
         </div>
       </header>

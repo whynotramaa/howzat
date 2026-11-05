@@ -108,7 +108,7 @@ export function ScoringPage() {
   return (
     <Shell>
       <div className={assisted ? 'assist-mode' : ''}>
-        <header className="ink-zone flex items-center justify-between gap-3 rounded-[var(--radius-xl)] bg-[var(--ink-zone)] p-2.5">
+        <header className="flex items-center justify-between gap-3 pb-3">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               to={`/matches/${matchId}`}

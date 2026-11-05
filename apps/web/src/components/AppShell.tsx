@@ -17,7 +17,7 @@ function NavIcon({ d }: { d: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -65,49 +65,61 @@ export function AppShell() {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="app-topbar">
-        <div className="app-masthead ink-zone">
+      <header className="app-topbar border-b border-line">
+        <div className="masthead mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-3 px-5 sm:h-16 sm:px-8 lg:px-10">
           <Link to="/dashboard" aria-label="Howzat home" className="shrink-0">
-            <Wordmark size="sm" tone="inverse" />
+            <Wordmark size="sm" />
           </Link>
           {!scoring ? (
-            <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            <nav
+              aria-label="Main"
+              className="masthead-nav hidden h-full items-center gap-10 md:flex"
+            >
               {items.map((item) => (
-                <NavLink key={item.to} to={item.to} className="masthead-link">
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex h-full items-center border-b-2 pt-0.5 text-[1.375rem]',
+                      isActive
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted hover:text-primary',
+                    )
+                  }
+                >
                   {item.label}
                 </NavLink>
               ))}
             </nav>
           ) : (
-            <span className="hidden font-sans text-sm text-[var(--ink-zone-muted)] sm:inline">
-              {section}
-            </span>
+            <span className="hidden font-sans text-xl text-muted sm:inline">{section}</span>
           )}
           <div className="flex items-center gap-1">
             {!online ? (
-              <span className="hidden text-xs text-[var(--warning)] sm:inline">Offline</span>
+              <span className="hidden text-xs text-warning sm:inline">Offline</span>
             ) : null}
-            <ThemeToggle tone="inverse" />
+            <ThemeToggle />
             <NotificationBell />
             <Disclosure className="relative">
               <summary
                 aria-label="Account menu"
-                className="grid size-11 cursor-pointer list-none place-items-center rounded-full transition-colors hover:bg-white/10"
+                className="grid size-11 cursor-pointer list-none place-items-center rounded-full hover:bg-hover"
               >
                 <PlayerAvatar seed={user?.username ?? ''} name={user?.name ?? ''} size="sm" />
               </summary>
-              <div className="sheet-in absolute right-0 z-50 mt-2 w-56 rounded-[var(--radius-lg)] border border-line bg-raised p-2 text-[var(--text-primary)] shadow-[var(--shadow-lg)]">
+              <div className="absolute right-0 z-50 mt-2 w-56 border border-line bg-raised p-2 shadow-[var(--shadow-md)]">
                 <p className="px-3 py-2 text-lg">{user?.name}</p>
                 <Link
                   to={`/players/${user?.username ?? ''}`}
-                  className="block min-h-11 rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors hover:bg-hover"
+                  className="block min-h-11 px-3 py-2 text-sm"
                 >
                   Profile
                 </Link>
                 <button
                   type="button"
                   onClick={() => void logout()}
-                  className="min-h-11 w-full rounded-[var(--radius-md)] px-3 text-left text-sm text-alert transition-colors hover:bg-hover"
+                  className="min-h-11 w-full px-3 text-left text-sm text-alert hover:bg-hover"
                 >
                   Sign out
                 </button>
@@ -120,19 +132,31 @@ export function AppShell() {
         <main
           id="main-content"
           className={cn(
-            'app-enter mx-auto w-full max-w-[1240px]',
+            'mx-auto w-full max-w-[1240px]',
             scoring
               ? 'scoring-workspace px-4 pt-4 pb-8 sm:px-8'
-              : 'px-5 pt-7 pb-32 sm:px-8 lg:py-9 lg:px-10',
+              : 'px-5 pt-7 pb-28 sm:px-8 lg:py-9 lg:px-10',
           )}
         >
           <Outlet />
         </main>
       </div>
       {!scoring ? (
-        <nav aria-label="Main mobile" className="app-tabbar md:hidden">
+        <nav
+          aria-label="Main mobile"
+          className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        >
           {items.map((item) => (
-            <NavLink key={item.to} to={item.to} className="app-tabbar-item">
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  'grid h-16 flex-1 place-content-center justify-items-center gap-1 text-[0.6875rem] font-medium',
+                  isActive ? 'text-primary' : 'text-muted',
+                )
+              }
+            >
               {() => (
                 <>
                   <NavIcon d={item.icon} />

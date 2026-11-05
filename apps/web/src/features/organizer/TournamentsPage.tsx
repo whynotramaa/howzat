@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   DEFAULT_OVERS_PER_INNINGS,
@@ -82,12 +82,12 @@ export function TournamentsPage() {
             .map((section) => (
               <section key={section.title} aria-label={section.title}>
                 <div className="mb-4 flex items-center gap-2.5">
-                  <h2 className="section-title">{section.title}</h2>
+                  <h2 className="text-base font-bold">{section.title}</h2>
                   <span className="tournament-section-count tabular">{section.items.length}</span>
                 </div>
                 <ul className="grid gap-4 md:grid-cols-2">
-                  {section.items.map((tournament) => (
-                    <TournamentCard key={tournament.id} tournament={tournament} />
+                  {section.items.map((tournament, index) => (
+                    <TournamentCard key={tournament.id} tournament={tournament} index={index} />
                   ))}
                 </ul>
               </section>
@@ -117,7 +117,7 @@ export function TournamentsPage() {
   );
 }
 
-function TournamentCard({ tournament }: { tournament: TournamentDto }) {
+function TournamentCard({ tournament, index }: { tournament: TournamentDto; index: number }) {
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
   const ready = registered === tournament.teamsCount && eligible === registered;
@@ -142,16 +142,15 @@ function TournamentCard({ tournament }: { tournament: TournamentDto }) {
         : 'warning';
 
   return (
-    <li>
+    <li className="reveal" style={{ '--delay': `${index * 60}ms` } as CSSProperties}>
       <Link
         to={`/tournaments/${tournament.id}`}
         aria-labelledby={`tournament-${tournament.id}`}
-        data-sport={tournament.sport}
-        className="tournament-card card-lift group flex h-full min-w-0 flex-col"
+        className="tournament-card group flex h-full min-w-0 flex-col"
       >
         <div className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2 text-xs text-secondary">
-            <span className="tournament-sport-icon grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-raised">
+            <span className="tournament-sport-icon grid size-8 shrink-0 place-items-center rounded-md bg-sunken">
               <SportGlyph sport={tournament.sport} className="size-6" />
             </span>
             {tournament.sport === 'FOOTBALL' ? 'Football' : 'Cricket'}

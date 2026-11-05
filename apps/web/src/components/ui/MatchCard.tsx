@@ -71,8 +71,7 @@ export function MatchCard({
     <article
       style={style}
       className={cn(
-        'match-ledger relative flex min-w-0 flex-col',
-        to && 'card-lift',
+        'match-ledger relative flex min-w-0 flex-col border-t border-line-strong py-5',
         className,
       )}
     >

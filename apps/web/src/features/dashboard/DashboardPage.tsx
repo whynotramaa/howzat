@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type {
@@ -96,14 +96,14 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <div className="mt-4 grid gap-3">
-                  {matches.map((match) => (
-                    <DashboardMatch key={match.id} match={match} />
+                  {matches.map((match, index) => (
+                    <DashboardMatch key={match.id} match={match} index={index} />
                   ))}
                 </div>
               )}
             </section>
 
-            <aside className="dashboard-secondary flex min-w-0 flex-col gap-8 rounded-[var(--radius-2xl)] bg-[var(--tint-lilac)] p-6">
+            <aside className="dashboard-secondary flex min-w-0 flex-col gap-8 xl:border-l xl:border-line xl:pl-6">
               <SideList
                 title="Your tournaments"
                 description=""
@@ -142,7 +142,7 @@ export function DashboardPage() {
   );
 }
 
-function DashboardMatch({ match }: { match: DashboardMatchDto }) {
+function DashboardMatch({ match, index }: { match: DashboardMatchDto; index: number }) {
   const live = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const finished = match.status === 'COMPLETED' || match.status === 'ABANDONED';
   const { data: snapshot } = useQuery({
@@ -176,6 +176,8 @@ function DashboardMatch({ match }: { match: DashboardMatchDto }) {
 
   return (
     <MatchCard
+      className="reveal"
+      style={{ '--delay': `${index * 60}ms` } as CSSProperties}
       eyebrow={`${match.tournament.name} · ${stageLabel(match.stage, match.round)}`}
       status={match.status}
       home={side(match.myTeam)}
@@ -247,9 +249,9 @@ function TournamentRow({ tournament }: { tournament: TournamentDto }) {
     <li>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="row-link flex items-center gap-3 border-b border-line py-3"
+        className="flex items-center gap-3 border-b border-line py-3"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-raised">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-sunken">
           <SportGlyph sport={tournament.sport} className="size-6" />
         </span>
         <span className="min-w-0 flex-1">

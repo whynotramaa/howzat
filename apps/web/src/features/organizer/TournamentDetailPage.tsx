@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { TeamDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
@@ -199,12 +199,8 @@ export function TournamentDetailPage() {
             <li
               key={step.label}
               className={cn(
-                'card-lift flex items-center gap-4 rounded-[var(--radius-xl)] border p-4',
-                step.done
-                  ? 'border-transparent bg-[var(--tint-mint)]'
-                  : index === current
-                    ? 'border-transparent bg-[var(--tint-lilac)]'
-                    : 'border-line bg-raised',
+                'flex items-center gap-4 rounded-[var(--radius-xl)] border bg-raised p-4',
+                index === current ? 'border-primary' : 'border-line',
               )}
             >
               <span
@@ -273,14 +269,16 @@ export function TournamentDetailPage() {
         ) : teams.data && teams.data.items.length > 0 ? (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {teams.data.items.map((team, index) => (
-              <li key={team.id} className="relative">
+              <li
+                key={team.id}
+                className="reveal relative"
+                style={{ '--delay': `${index * 50}ms` } as CSSProperties}
+              >
                 <Link
                   to={`/teams/${team.id}`}
-                  className="team-tile card-lift flex h-full flex-col items-center rounded-[var(--radius-xl)] border border-line bg-raised px-4 pt-6 pb-4 text-center"
+                  className="card-lift flex h-full flex-col items-center rounded-[var(--radius-xl)] border border-line bg-raised px-4 pt-6 pb-4 text-center"
                 >
-                  <span className="team-tile-mark inline-flex">
-                    <TeamMark shortName={team.shortName} color={team.primaryColor} size="xl" />
-                  </span>
+                  <TeamMark shortName={team.shortName} color={team.primaryColor} size="xl" />
                   <span className="mt-4 break-words text-[0.9375rem] font-semibold text-primary">
                     {team.name}
                   </span>
@@ -337,7 +335,7 @@ export function TournamentDetailPage() {
                       <button
                         type="button"
                         onClick={() => setAdding(true)}
-                        className="card-lift grid h-full min-h-44 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-muted transition-colors hover:border-primary hover:text-primary"
+                        className="grid h-full min-h-44 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-muted transition-colors hover:border-primary hover:text-primary"
                       >
                         <span className="grid size-12 place-items-center rounded-full border border-dashed border-current text-xl leading-none">
                           +

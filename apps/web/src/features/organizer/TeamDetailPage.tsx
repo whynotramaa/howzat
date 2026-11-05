@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PLAYER_ROLES, type PlayerDto, type PlayerRole, type Sport } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
@@ -156,7 +156,8 @@ function PlayerRow({
 
   return (
     <li
-      className="card-lift relative flex items-center gap-3.5 rounded-[var(--radius-xl)] border border-line bg-raised p-3.5"
+      className="reveal card-lift relative flex items-center gap-3.5 rounded-[var(--radius-xl)] border border-line bg-raised p-3.5"
+      style={{ '--delay': `${index * 40}ms` } as CSSProperties}
     >
       <span className="relative shrink-0">
         <PlayerAvatar
@@ -405,7 +406,7 @@ function UserSearchField({
           {items.map((user) => (
             <li
               key={user.id}
-              className="card-lift flex items-center gap-3 rounded-[var(--radius-lg)] border border-line bg-raised px-3 py-2"
+              className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-line px-3 py-2"
             >
               <PlayerAvatar seed={user.username} name={user.name} size="sm" />
               <span className="min-w-0 flex-1">
@@ -466,7 +467,7 @@ function BulkAddCard({
   }
 
   return (
-    <section className="rounded-[var(--radius-xl)] bg-[var(--tint-peach)] p-5">
+    <section className="rounded-[var(--radius-xl)] border border-dashed border-line-strong bg-surface p-5">
       <h2 className="display text-[1.625rem]">Paste a list</h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
