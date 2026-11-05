@@ -117,35 +117,38 @@
 }
 
 .pad-key {
+  --key-edge: var(--line-strong);
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
+  box-shadow: 0 4px 0 var(--key-edge);
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 110ms var(--ease),
+    transform 120ms var(--ease),
+    box-shadow 120ms var(--ease),
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
 }
 
 .pad-key:hover:not(:disabled) {
-  border-color: var(--line-strong);
   background: var(--surface-hover);
 }
 
 .pad-key:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--key-edge);
   transition-duration: 60ms;
 }
 
@@ -154,10 +157,9 @@
   cursor: not-allowed;
 }
 
-.pad-key[data-tone='four'],
-.pad-key[data-tone='six'] {
-  border-color: var(--text-primary);
-  background: var(--surface-raised);
+.pad-key[data-tone='four'] {
+  --key-edge: var(--accent-line);
+  background: var(--accent-soft);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 1.25rem;
@@ -165,35 +167,37 @@
 }
 
 .pad-key[data-tone='six'] {
+  --key-edge: var(--text-secondary);
   background: var(--text-primary);
   color: var(--surface);
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .pad-key[data-tone='four']:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--text-primary);
 }
 
 .pad-key[data-tone='six']:hover:not(:disabled) {
   background: var(--text-secondary);
-  border-color: var(--text-secondary);
 }
 
 .pad-key[data-tone='wicket'] {
-  border-color: var(--wicket);
-  background: transparent;
-  color: var(--wicket);
+  --key-edge: #8f2c1f;
+  background: var(--wicket);
+  color: #ffffff;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
 
 .pad-key[data-tone='wicket']:hover:not(:disabled) {
-  background: var(--live-soft);
-  border-color: var(--wicket);
+  background: #d94d36;
 }
 
 .pad-key[data-tone='quiet'] {
   background: transparent;
+  box-shadow: none;
 }
 
 .pad-key[data-armed='true'] {
@@ -249,8 +253,14 @@
 .pad-seg .pad-key {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
   font-family: var(--font-sans);
   font-weight: 500;
+}
+
+.pad-seg .pad-key:active:not(:disabled) {
+  box-shadow: none;
+  transform: none;
 }
 
 .pad-seg .pad-key:hover:not(:disabled) {
