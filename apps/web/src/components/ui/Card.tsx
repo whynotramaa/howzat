@@ -51,14 +51,16 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn('page-header reveal', className)}>
+    <header className={cn('page-header ink-zone', className)}>
       {back ? <div className="-ml-0.5 mb-4">{back}</div> : null}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 flex-1">
           {eyebrow ? (
-            <div className="eyebrow flex flex-wrap items-center gap-x-2.5 gap-y-1">{eyebrow}</div>
+            <div className="eyebrow kicker flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              {eyebrow}
+            </div>
           ) : null}
-          <h1 className="display mt-2 max-w-[32ch] text-primary">{title}</h1>
+          <h1 className="display max-w-[18ch] text-primary">{title}</h1>
           {description ? (
             <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-secondary">
               {description}

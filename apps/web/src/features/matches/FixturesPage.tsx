@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { MatchDto } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
@@ -284,8 +284,8 @@ function RoundList({ matches }: { matches: MatchDto[] }) {
               </span>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {inRound.map((match, index) => (
-                <FixtureCard key={match.id} match={match} index={index} />
+              {inRound.map((match) => (
+                <FixtureCard key={match.id} match={match} />
               ))}
             </div>
           </section>
@@ -295,7 +295,7 @@ function RoundList({ matches }: { matches: MatchDto[] }) {
   );
 }
 
-function FixtureCard({ match, index }: { match: MatchDto; index: number }) {
+function FixtureCard({ match }: { match: MatchDto }) {
   const live = match.status === 'LIVE' || match.status === 'INNINGS_BREAK';
   const primaryLabel = match.status === 'SCHEDULED' ? 'Set up' : live ? 'Score' : 'Details';
   const side = (team: MatchDto['team1']): MatchSide | null =>
@@ -310,8 +310,6 @@ function FixtureCard({ match, index }: { match: MatchDto; index: number }) {
 
   return (
     <MatchCard
-      className="reveal"
-      style={{ '--delay': `${index * 50}ms` } as CSSProperties}
       eyebrow={stageLabel(match.stage, match.round)}
       status={match.status}
       home={side(match.team1)}
