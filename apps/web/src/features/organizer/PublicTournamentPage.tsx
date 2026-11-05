@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { StandingsRowDto, TournamentMatchDto, TournamentReportDto } from '@howzat/shared';
@@ -32,12 +31,12 @@ export function PublicTournamentPage() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      <header className="app-topbar border-b border-line">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
-          <Link to="/">
-            <Wordmark size="sm" />
+      <header className="app-topbar">
+        <div className="app-masthead ink-zone">
+          <Link to="/" aria-label="Howzat home">
+            <Wordmark size="sm" tone="inverse" />
           </Link>
-          <ThemeToggle />
+          <ThemeToggle tone="inverse" />
         </div>
       </header>
       <SketchDefs />
@@ -287,8 +286,8 @@ function MatchBand({
         </p>
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {matches.map((match, index) => (
-            <PublicMatchCard key={match.id} match={match} index={index} isFootball={isFootball} />
+          {matches.map((match) => (
+            <PublicMatchCard key={match.id} match={match} isFootball={isFootball} />
           ))}
         </div>
       )}
@@ -298,11 +297,9 @@ function MatchBand({
 
 function PublicMatchCard({
   match,
-  index,
   isFootball,
 }: {
   match: TournamentMatchDto;
-  index: number;
   isFootball: boolean;
 }) {
   const isCompleted = match.status === 'COMPLETED' || match.status === 'ABANDONED';
@@ -323,8 +320,6 @@ function PublicMatchCard({
 
   return (
     <MatchCard
-      className="reveal"
-      style={{ '--delay': `${index * 50}ms` } as CSSProperties}
       eyebrow={stageLabel(match.stage, match.round)}
       status={match.status}
       home={side(match.team1, match.score?.team1)}

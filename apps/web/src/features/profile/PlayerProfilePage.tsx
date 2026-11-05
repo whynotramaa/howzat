@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { CareerStatsDto, PlayerProfileDto } from '@howzat/shared';
@@ -178,7 +178,7 @@ function StatCard({
   children: ReactNode;
 }) {
   return (
-    <section className="relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5 pl-6">
+    <section className="card-lift relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5 pl-6">
       <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ background: ink }} />
       <div>
         <h3 className="display text-[1.625rem]">{title}</h3>
@@ -201,14 +201,13 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
     <section>
       <SectionHeading eyebrow="Form guide" title="Recent matches" />
       <ul className="mt-6 grid gap-3 md:grid-cols-2">
-        {matches.map((match, index) => {
+        {matches.map((match) => {
           const dismissals = match.catches + match.runOuts + match.stumpings;
 
           return (
             <li
               key={match.matchId}
-              className="reveal flex flex-col gap-4 rounded-[var(--radius-xl)] border border-line bg-raised p-5"
-              style={{ '--delay': `${index * 50}ms` } as CSSProperties}
+              className="card-lift flex flex-col gap-4 rounded-[var(--radius-xl)] border border-line bg-raised p-5"
             >
               <div className="min-w-0">
                 <p className="eyebrow truncate">{match.tournamentName}</p>

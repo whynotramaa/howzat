@@ -433,8 +433,8 @@ export function LoginPage() {
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-dvh bg-surface lg:grid-cols-[1.05fr_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col self-start p-4 lg:flex">
-        <figure className="relative flex-1 overflow-hidden rounded-[var(--radius-lg)]">
+      <aside className="ink-zone sticky top-0 m-4 hidden h-[calc(100dvh-2rem)] flex-col self-start rounded-[var(--radius-2xl)] p-4 lg:flex">
+        <figure className="relative flex-1 overflow-hidden rounded-[var(--radius-xl)]">
           <img
             src="/login-trophy-backdrop.png"
             alt="Players lifting the trophy on the night of the final"
@@ -479,7 +479,7 @@ function FormHeading({
   return (
     <div>
       <p className="eyebrow">{eyebrow}</p>
-      <h1 className="display mt-5 text-[clamp(2.25rem,5vw,3.25rem)] text-primary">{title}</h1>
+      <h1 className="serif mt-5 text-[clamp(2.75rem,5vw,3.75rem)] text-primary">{title}</h1>
       {lead ? <p className="mt-3 text-sm text-secondary">{lead}</p> : null}
     </div>
   );
