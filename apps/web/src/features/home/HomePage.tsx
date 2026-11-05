@@ -1,676 +1,420 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ButtonLink } from '@/components/ui/Button';
 import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { BrandIcon } from '@/components/ui/BrandIcon';
+import { BallChip } from '@/components/ui/Score';
+import { TeamMark } from '@/components/ui/Pill';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { Label, SketchDefs, Stroke, delayed } from '@/components/ui/Sketch';
+import './home.css';
 
-const STEPS = [
-  {
-    n: '01',
-    title: 'Set up the tournament',
-    body: 'Add teams. Pick a format. Draw fixtures.',
-    art: <FixturesSketch />,
-  },
-  {
-    n: '02',
-    title: 'Score from the boundary',
-    body: 'Record balls or goals. Undo a mistake in one tap.',
-    art: <PadSketch />,
-  },
-  {
-    n: '03',
-    title: 'Share one link',
-    body: 'One live link. No spectator sign-up.',
-    art: <ShareSketch />,
-  },
-];
-
-const INDEX = [
+const QUESTIONS = [
+  ['Do spectators need an account?', 'No. Share the match link and anyone can follow the game.'],
   [
-    'Offline cricket scoring',
-    'Balls queue on the phone and sync in order when the connection returns.',
+    'Can I score cricket offline?',
+    'Deliveries save on your phone and sync in order when the connection returns.',
   ],
   [
-    'Public live pages',
-    'A clean scoreboard, commentary and scorecard for every match, open to anyone with the link.',
+    'Which sports are supported?',
+    'Cricket and football, with fixtures, live scores, standings and PDF scorecards.',
   ],
-  ['Points table', 'Standings and net run rate update the moment a result is recorded.'],
-  [
-    'Cricket and football',
-    'Ball by ball for cricket. Goals, cards, substitutions and a match clock for football.',
-  ],
-  [
-    'Rain rules',
-    'Revise targets with Duckworth-Lewis-Stern mid-match. The chase updates for everyone.',
-  ],
-  [
-    'Scorecards to keep',
-    'Download match and tournament scorecards as PDF when the last ball is bowled.',
-  ],
-];
-
-const SPORTS = [
-  {
-    name: 'Cricket',
-    title: 'Ball by ball.',
-    art: <OverSketch />,
-    points: [
-      'Runs, extras and wickets.',
-      'Automatic strike and over changes.',
-      'DLS targets for rain interruptions.',
-      'Standings with net run rate.',
-    ],
-  },
-  {
-    name: 'Football',
-    title: 'Minute by minute.',
-    art: <TimelineSketch />,
-    points: [
-      'Match clock with stoppage time.',
-      'Goals, cards and substitutions.',
-      'Substitution limits checked.',
-      'Flexible periods and team sizes.',
-    ],
-  },
 ];
 
 export function HomePage() {
   const { user } = useAuth();
-  const home = user ? '/dashboard' : '/login?mode=register&next=tournament';
-
+  const destination = user ? '/dashboard' : '/login?mode=register&next=tournament';
   return (
-    <div className="min-h-dvh bg-surface text-primary">
-      <SketchDefs />
-
-      <header className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-6 px-6 sm:px-10">
-        <Link to="/" aria-label="Howzat home">
-          <Wordmark size="sm" />
-        </Link>
-        <nav className="masthead-nav hidden items-center gap-9 text-lg text-secondary md:flex">
-          <a href="#sports" className="transition-colors hover:text-primary">
-            Cricket and football
-          </a>
-          <a href="#how" className="transition-colors hover:text-primary">
-            How it works
-          </a>
-          <a href="#index" className="transition-colors hover:text-primary">
-            What's included
-          </a>
-        </nav>
-        <div className="flex items-center gap-4">
-          <ThemeToggle />
-          {user ? null : (
-            <Link
-              to="/login"
-              className="hidden text-sm text-secondary transition-colors hover:text-primary sm:inline"
-            >
-              Sign in
+    <div className="landing">
+      <a className="skip-link" href="#landing-main">
+        Skip to content
+      </a>
+      <div className="landing-header-shell">
+        <header className="landing-nav">
+          <Link to="/" aria-label="Howzat home">
+            <Wordmark tone="inverse" />
+          </Link>
+          <nav aria-label="Homepage">
+            <a href="#the-game">The game</a>
+            <a href="#features">The toolkit</a>
+            <a href="#how">How it works</a>
+          </nav>
+          <div className="landing-nav-actions">
+            <ThemeToggle tone="inverse" />
+            <Link to={user ? '/dashboard' : '/login'} className="landing-signin">
+              {user ? 'Dashboard' : 'Sign in'} <span aria-hidden>↗</span>
             </Link>
-          )}
-          <ButtonLink to={home} size="sm">
-            {user ? 'Dashboard' : 'Get started'}
-          </ButtonLink>
-        </div>
-      </header>
-
-      <section className="home-hero mx-auto grid max-w-[1200px] items-center gap-10 border-y border-line-strong px-6 py-10 sm:px-10 sm:py-16 lg:grid-cols-[1.4fr_1fr] lg:gap-12">
-        <div>
-          <p className="eyebrow">The local game, live</p>
-          <h1 className="hero-title mt-6">
-            Your game.
-            <br />
-            <span className="text-secondary">On the record.</span>
-          </h1>
-
-          <div className="home-actions mt-8 flex flex-wrap gap-3">
-            <ButtonLink to={home} size="lg">
-              {user ? 'Open dashboard' : 'Start a tournament'}
-            </ButtonLink>
-            <ButtonLink to="#how" reloadDocument size="lg" variant="secondary">
-              How it works
-            </ButtonLink>
           </div>
-        </div>
-        <div className="home-art px-2 py-4 sm:px-4">
-          <HeroStage />
-        </div>
-      </section>
-
-      <section
-        id="sports"
-        className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-12 sm:px-10 lg:py-16"
-      >
-        <SectionTitle eyebrow="Two sports">
-          One scorebook, <em>two</em> games.
-        </SectionTitle>
-        <div className="mt-10 grid border-t border-line md:grid-cols-2">
-          {SPORTS.map((sport, index) => (
-            <ScrollReveal
-              key={sport.name}
-              index={index}
-              step={160}
-              className="flex flex-col border-line pt-7 md:odd:pr-12 md:even:border-l md:even:pl-12 max-md:not-first:mt-16 max-md:not-first:border-t"
-            >
-              <p className="eyebrow">{sport.name}</p>
-              <h3 className="display mt-4 text-[1.625rem] leading-none">{sport.title}</h3>
-              <div className="mt-6 h-32">{sport.art}</div>
-              <ul className="mt-6 border-t border-line">
-                {sport.points.map((point) => (
-                  <li
-                    key={point}
-                    className="border-b border-line py-4 text-[0.9375rem] leading-relaxed text-secondary"
-                  >
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </ScrollReveal>
-          ))}
-        </div>
-      </section>
-
-      <section id="how" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-14 sm:px-10 lg:py-20">
-        <SectionTitle eyebrow="How it works">
-          Set up. Score. <em>Share.</em>
-        </SectionTitle>
-        <ol className="mt-10 grid gap-y-10 md:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <ScrollReveal
-              as="li"
-              key={step.n}
-              index={index}
-              step={140}
-              className="flex flex-col border-line md:px-8 md:first:pl-0 md:last:pr-0 md:not-first:border-l"
-            >
-              <div className="h-40">{step.art}</div>
-              <span className="tabular mt-10 text-sm text-muted">{step.n}</span>
-              <h3 className="display mt-3 text-xl">{step.title}</h3>
-              <p className="mt-4 text-[0.9375rem] leading-relaxed text-secondary">{step.body}</p>
-            </ScrollReveal>
-          ))}
-        </ol>
-      </section>
-
-      <section className="border-y border-line bg-raised">
-        <div className="mx-auto grid max-w-[1200px] items-center gap-16 px-6 py-24 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:py-32">
-          <div>
-            <p className="eyebrow">No signal at the ground</p>
-            <h2 className="display mt-6 text-[clamp(1.75rem,3vw,2.5rem)]">
-              Cricket scoring, <em>offline</em>.
-            </h2>
-            <p className="mt-6 max-w-md text-[0.9375rem] leading-relaxed text-secondary">
-              Cricket deliveries save on your phone and sync when the signal returns.
-            </p>
-          </div>
-          <ScrollReveal>
-            <OfflineSketch />
-          </ScrollReveal>
-        </div>
-      </section>
-
-      <section
-        id="index"
-        className="mx-auto max-w-[1200px] scroll-mt-8 px-6 py-14 sm:px-10 lg:py-20"
-      >
-        <SectionTitle eyebrow="What's included">The match-day essentials.</SectionTitle>
-        <dl className="mt-10 grid border-t border-line md:grid-cols-2">
-          {INDEX.map(([title, body], index) => (
-            <div
-              key={title}
-              className="grid grid-cols-[3rem_1fr] gap-x-4 border-b border-line py-8 md:odd:pr-10 md:even:border-l md:even:pl-10"
-            >
-              <span className="tabular pt-1 text-sm text-muted">
-                {String(index + 1).padStart(2, '0')}
+        </header>
+      </div>
+      <main id="landing-main">
+        <div className="landing-hero-shell">
+          <section className="landing-hero" aria-labelledby="landing-title">
+            <div className="landing-hero-copy">
+              <span className="landing-kicker">
+                <span />
+                For the love of the local game
               </span>
-              <div>
-                <dt className="display text-lg">{title}</dt>
-                <dd className="mt-2 text-[0.9375rem] leading-relaxed text-secondary">{body}</dd>
+              <h1 id="landing-title" className="landing-title">
+                Your game.
+                <br />
+                <span>On the record.</span>
+              </h1>
+              <p className="landing-hero-note">Cricket. Football. Every moment counts.</p>
+              <div className="landing-actions">
+                <Link to={destination} className="landing-button landing-button-purple">
+                  {user ? 'Open dashboard' : 'Start a tournament'} <span aria-hidden>↗</span>
+                </Link>
+                <a href="#the-game" className="landing-text-link">
+                  Take a look <span aria-hidden>↓</span>
+                </a>
+              </div>
+              <div className="landing-hero-tags">
+                <span>Free to play</span>
+                <span>Made for matchday</span>
               </div>
             </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-col items-start gap-10 px-6 py-14 sm:px-10 lg:py-20">
-          <h2 className="display max-w-[16ch] text-[clamp(2rem,4vw,3rem)] leading-[0.95]">
-            Your next match deserves a <em>proper</em> scoreboard.
-          </h2>
-          <div className="flex flex-wrap items-center gap-6">
-            <ButtonLink to={home} size="lg">
-              {user ? 'Open dashboard' : 'Create your tournament'}
-            </ButtonLink>
-            <span className="text-sm text-muted">
-              Free to set up. Spectators never need an account.
-            </span>
-          </div>
+            <HeroArtwork />
+          </section>
+          <ul className="landing-capabilities">
+            <li>
+              <BrandIcon kind="cricket" />
+              Cricket & football
+            </li>
+            <li>
+              <BrandIcon kind="link" />
+              One link for every fan
+            </li>
+            <li>
+              <BrandIcon kind="bolt" />
+              Offline cricket scoring
+            </li>
+          </ul>
         </div>
-      </section>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-6 py-10 text-sm text-muted sm:px-10">
-          <Wordmark size="sm" />
-          <div className="flex items-center gap-8">
-            <Link to="/engineering" className="hover:text-primary">
-              Engineering
-            </Link>
-            <Link to="/login" className="hover:text-primary">
-              Sign in
-            </Link>
+        <section
+          id="the-game"
+          className="landing-section landing-demo-section"
+          aria-labelledby="demo-title"
+        >
+          <div className="landing-section-copy">
+            <span className="landing-label">Front row. From anywhere.</span>
+            <h2 id="demo-title">
+              A proper view
+              <br />
+              of the game.
+            </h2>
+            <p>Live scores. The players at the crease. Every ball, on one link.</p>
+            <a href="#features" className="landing-text-link">
+              Meet your matchday toolkit <span aria-hidden>↗</span>
+            </a>
           </div>
+          <MatchPreview />
+        </section>
+
+        <section
+          id="features"
+          className="landing-section landing-features"
+          aria-labelledby="features-title"
+        >
+          <div className="landing-section-heading">
+            <span className="landing-label">Small effort. Big matchday.</span>
+            <h2 id="features-title">
+              Everything around
+              <br />
+              the game, sorted.
+            </h2>
+          </div>
+          <div className="landing-feature-grid">
+            <article className="landing-feature landing-feature-fixtures">
+              <div className="landing-feature-top">
+                <span className="landing-number">01 / ORGANISE</span>
+                <BrandIcon kind="trophy" />
+              </div>
+              <h3>Fixtures to finals.</h3>
+              <p>Teams, schedules and standings. Together.</p>
+              <div className="fixture-preview" aria-label="Example tournament fixtures">
+                <div className="fixture-preview-head">
+                  <span>Sunday League</span>
+                  <span>Fixtures</span>
+                </div>
+                {[
+                  ['Riverside', 'Parkside', 'SAT 10:00'],
+                  ['North End', 'Westfield', 'SAT 14:00'],
+                  ['Riverside', 'North End', 'SUN 10:00'],
+                ].map(([a, b, time]) => (
+                  <div className="fixture-preview-row" key={`${a}-${b}`}>
+                    <span className="fixture-preview-time">{time}</span>
+                    <strong>
+                      {a}
+                      <span>v</span>
+                      {b}
+                    </strong>
+                    <span aria-hidden>↗</span>
+                  </div>
+                ))}
+              </div>
+              <div className="landing-feature-foot">
+                <span>Leagues & playoffs</span>
+                <span aria-hidden>↗</span>
+              </div>
+            </article>
+            <article className="landing-feature landing-feature-share">
+              <BrandIcon kind="link" />
+              <span className="landing-number">02 / FOLLOW</span>
+              <h3>
+                One link.
+                <br />
+                Everyone’s in.
+              </h3>
+              <p>No spectator sign-up.</p>
+              <div className="share-preview" aria-hidden>
+                <span>howzat / matchday</span>
+                <span>↗</span>
+              </div>
+            </article>
+            <article className="landing-feature landing-feature-offline">
+              <BrandIcon kind="bolt" />
+              <span className="landing-number">03 / KEEP SCORING</span>
+              <h3>The signal can wait.</h3>
+              <p>Cricket balls save locally. Sync comes next.</p>
+              <span className="offline-preview">
+                <span aria-hidden>✓</span> Saved on your phone
+              </span>
+            </article>
+          </div>
+          <ul className="landing-tools">
+            <li>Live scorecards</li>
+            <li>Automatic standings</li>
+            <li>PDF exports</li>
+            <li>DLS targets</li>
+          </ul>
+        </section>
+
+        <section id="how" className="landing-how-band" aria-labelledby="how-title">
+          <div className="landing-section">
+            <div className="landing-section-heading">
+              <span className="landing-label">Less admin. More game.</span>
+              <h2 id="how-title">Three steps to the first whistle.</h2>
+            </div>
+            <ol className="landing-steps">
+              {[
+                ['Pick your game', 'Add teams. Choose your format.'],
+                ['Make it count', 'Record balls, goals and big moments.'],
+                ['Bring everyone along', 'Share the live link. That’s it.'],
+              ].map(([title, body], i) => (
+                <li key={title}>
+                  <span className="landing-step-number">0{i + 1}</span>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section className="landing-section landing-faq" aria-labelledby="faq-title">
+          <div>
+            <span className="landing-label">Before the toss</span>
+            <h2 id="faq-title">A few quick answers.</h2>
+            <BrandIcon kind="football" className="landing-faq-icon" />
+          </div>
+          <div className="landing-questions">
+            {QUESTIONS.map(([q, a]) => (
+              <details key={q}>
+                <summary>
+                  {q}
+                  <span aria-hidden>+</span>
+                </summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+        <section className="landing-finale" aria-labelledby="finale-title">
+          <BrandIcon kind="trophy" />
+          <h2 id="finale-title">
+            Good games deserve
+            <br />
+            <span>a proper record.</span>
+          </h2>
+          <Link to={destination} className="landing-button landing-button-ink">
+            {user ? 'Open dashboard' : 'Start your tournament'} <span aria-hidden>↗</span>
+          </Link>
+        </section>
+      </main>
+      <footer className="landing-footer">
+        <Link to="/" aria-label="Howzat home">
+          <Wordmark />
+        </Link>
+        <span>For the game. For everyone.</span>
+        <div>
+          <Link to="/engineering">Under the hood</Link>
+          <Link to={user ? '/dashboard' : '/login'}>
+            {user ? 'Dashboard' : 'Sign in'} <span aria-hidden>↗</span>
+          </Link>
         </div>
       </footer>
     </div>
   );
 }
 
-function SectionTitle({ eyebrow, children }: { eyebrow: string; children: ReactNode }) {
-  return (
-    <div>
-      <p className="eyebrow">{eyebrow}</p>
-      <h2 className="home-section-title display mt-4 max-w-[28ch]">{children}</h2>
-    </div>
-  );
-}
-
-function HeroStage() {
+function MatchPreview() {
   const [sport, setSport] = useState<'cricket' | 'football'>('cricket');
+  const cricket = sport === 'cricket';
   return (
-    <div className="flex flex-col items-center gap-6">
-      {sport === 'cricket' ? <HeroSketch key="cricket" /> : <GoalSketch key="football" />}
-      <div className="flex gap-6 font-sans text-xl" role="group" aria-label="Choose a sport">
-        {(['cricket', 'football'] as const).map((name) => (
-          <button
-            key={name}
-            type="button"
-            aria-pressed={sport === name}
-            onClick={() => {
-              setSport(name);
-            }}
-            className={
-              sport === name
-                ? 'min-h-11 border-b border-primary px-1 text-primary capitalize'
-                : 'min-h-11 border-b border-transparent px-1 text-muted capitalize transition-colors hover:text-primary'
-            }
-          >
-            {name}
-          </button>
-        ))}
+    <div className="landing-match-preview">
+      <div className="landing-preview-top">
+        <div role="group" aria-label="Preview sport">
+          {(['cricket', 'football'] as const).map((s) => (
+            <button type="button" key={s} aria-pressed={sport === s} onClick={() => setSport(s)}>
+              {s}
+            </button>
+          ))}
+        </div>
+        <span>Example match</span>
+      </div>
+      <div className="landing-demo-match">
+        <div className="landing-demo-league">
+          <span>Sunday League</span>
+          <span className="landing-demo-live">
+            <span />
+            {cricket ? '17.2 overs' : '64′'}
+          </span>
+        </div>
+        <div className="landing-demo-team">
+          <TeamMark shortName={cricket ? 'RCC' : 'RFC'} color="#7a5bc7" size="md" />
+          <span>Riverside {cricket ? 'CC' : 'FC'}</span>
+          <strong>{cricket ? '146/3' : '2'}</strong>
+        </div>
+        <div className="landing-demo-team landing-demo-opponent">
+          <TeamMark shortName={cricket ? 'PCC' : 'PFC'} color="#d17c52" size="md" />
+          <span>Parkside {cricket ? 'CC' : 'FC'}</span>
+          <span>{cricket ? 'Yet to bat' : '1'}</span>
+        </div>
+        {cricket ? (
+          <>
+            <div className="landing-demo-batters">
+              <div>
+                <span>
+                  A. Sharma <span className="landing-demo-striker">●</span>
+                </span>
+                <strong>
+                  62 <span>(41)</span>
+                </strong>
+              </div>
+              <div>
+                <span>R. Patel</span>
+                <strong>
+                  28 <span>(19)</span>
+                </strong>
+              </div>
+            </div>
+            <div className="landing-demo-over">
+              <span>This over</span>
+              {['1', '0', '4', '1', '6', '2'].map((display, i) => (
+                <BallChip key={i} display={display} size="sm" />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="landing-demo-goals">
+            <div>
+              <span className="tabular">52′</span>
+              <strong>A. Morgan</strong>
+              <span>Goal</span>
+            </div>
+            <div>
+              <span className="tabular">64′</span>
+              <strong>S. Carter</strong>
+              <span>Goal</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="landing-preview-caption">
+        <span aria-hidden>↗</span> A view for every fan.
       </div>
     </div>
   );
 }
 
-const CURL = 'M70 330C150 316 226 150 384 214';
-
-function GoalSketch() {
+function HeroArtwork() {
   return (
-    <svg
-      viewBox="0 0 440 380"
-      role="img"
-      aria-label="A sketch. A late shot curls into the top corner of the net."
-      className="reveal mx-auto h-auto w-full max-w-[420px] text-primary"
-    >
-      <Stroke d="M18 344c130-5 280-5 404 0" width={1.4} />
-      <Stroke d="M296 344c-1-50 0-100 2-146 38-3 80-3 118 0 2 46 2 96 1 146" delay={200} />
-      <Stroke
-        d="M318 202v142M340 201v143M362 201v143M384 202v142M404 203v141M298 232c40-2 80-2 118 0M298 264c40-2 80-2 118 0M298 296c40-2 80-2 118 0"
-        width={0.9}
-        delay={600}
-      />
-      <Stroke d="M40 344c-1-20 0-40 1-58" width={1.5} delay={400} />
-      <Stroke d="M41 286c10 2 18 6 24 12-8 2-16 2-24-1" color="var(--ink-amber)" delay={700} />
-      <Stroke d={CURL} color="var(--ink-blue)" dashed delay={1000} />
-      <Label x={208} y={130} delay={1500}>
-        into the top corner
-      </Label>
-      <Label x={96} y={306} delay={1300} size={20}>
-        88'
-      </Label>
-      <Label x={250} y={300} delay={2000} size={34}>
-        goal
-      </Label>
-      <Stroke
-        d="M220 312c8-4 15 4 23 0s15 4 23 0 15 4 23 0"
-        color="var(--ink-green)"
-        width={1.6}
-        delay={2200}
-      />
-      <g transform="translate(70 330)">
-        <circle r="9" fill="var(--surface-raised)" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M0-3.6l3.4 2.5-1.3 4H-2.1l-1.3-4Z" fill="currentColor" />
-      </g>
-    </svg>
-  );
-}
-
-function OverSketch() {
-  const balls = [
-    ['1', 'currentColor'],
-    ['·', 'currentColor'],
-    ['4', 'var(--ink-blue)'],
-    ['W', 'var(--ink-red)'],
-    ['6', 'var(--ink-green)'],
-    ['2', 'currentColor'],
-  ] as const;
-  return (
-    <svg
-      viewBox="0 0 380 160"
-      role="img"
-      aria-label="A sketch of one over, six balls in a row."
-      className="h-full w-full text-primary"
-    >
-      {balls.map(([mark, color], index) => {
-        const x = 32 + index * 63;
-        return (
-          <g key={index}>
-            <Stroke
-              d={`M${x - 22} 70a22 22 0 1 0 44 0a22 22 0 1 0-44 0`}
-              color={color}
-              width={color === 'currentColor' ? 1.4 : 2}
-              delay={index * 160}
-            />
-            <Label x={x} y={78} delay={200 + index * 160} size={22}>
-              {mark}
-            </Label>
-          </g>
-        );
-      })}
-      <Stroke d="M14 128c110-4 240-4 352 0" width={1.2} dashed delay={1100} />
-      <Label x={190} y={152} delay={1300} size={16}>
-        one over, thirteen runs
-      </Label>
-    </svg>
-  );
-}
-
-function TimelineSketch() {
-  const at = (minute: number) => 20 + (minute * 320) / 90;
-  return (
-    <svg
-      viewBox="0 0 380 160"
-      role="img"
-      aria-label="A sketch of a football match timeline from kick-off to full time."
-      className="h-full w-full text-primary"
-    >
-      <Stroke d="M20 92c108-3 214-3 330 0" width={1.6} />
-      <Stroke d="M20 82v20M350 82v20" width={1.4} delay={300} />
-      <Stroke d={`M${at(45)} 84v16`} width={1.2} delay={400} />
-      <Label x={at(45)} y={126} delay={500} size={15}>
-        HT
-      </Label>
-      <Label x={20} y={126} delay={500} size={15}>
-        0'
-      </Label>
-      <Label x={350} y={126} delay={500} size={15}>
-        90+3
-      </Label>
-      {[23, 88].map((minute, index) => (
-        <g key={minute}>
-          <circle
-            cx={at(minute)}
-            cy={60}
-            r="9"
-            fill="var(--ink-green)"
-            className="sketch-fade"
-            style={delayed(800 + index * 700)}
-          />
-          <Stroke d={`M${at(minute)} 70v18`} width={1} delay={850 + index * 700} />
-          <Label x={at(minute)} y={34} delay={900 + index * 700} size={15}>
-            {`goal ${minute}'`}
-          </Label>
-        </g>
-      ))}
-      <rect
-        x={at(34) - 5}
-        y={50}
-        width="10"
-        height="14"
-        rx="1.5"
-        fill="var(--ink-amber)"
-        className="sketch-fade"
-        style={delayed(1100)}
-      />
-      <Label x={at(34)} y={126} delay={1150} size={15}>
-        34'
-      </Label>
-      <Stroke
-        d={`M${at(67) - 6} 72v-22l-5 6M${at(67) - 6} 50l5 6M${at(67) + 6} 50v22l-5-6M${at(67) + 6} 72l5-6`}
-        color="var(--ink-blue)"
-        width={1.6}
-        delay={1300}
-      />
-      <Label x={at(67)} y={126} delay={1400} size={15}>
-        sub 67'
-      </Label>
-    </svg>
-  );
-}
-
-const LOFT = 'M120 214C176 70 318 40 392 300';
-
-function HeroSketch() {
-  return (
-    <svg
-      viewBox="0 0 440 380"
-      role="img"
-      aria-label="A sketch. The batter lofts the ball over the boundary rope for six."
-      className="reveal mx-auto h-auto w-full max-w-[420px] text-primary [--delay:240ms]"
-    >
-      <Stroke d="M18 344c130-5 280-5 404 0" width={1.4} />
-      <Stroke d="M54 256c1 30 0 60-1 88M66 254c1 30 1 61 0 90M78 256c0 30 1 60 0 88" delay={200} />
-      <Stroke d="M50 250c10-2 22-2 32 0" width={1.5} delay={450} />
-      <Stroke d="M84 240c6-5 12-9 19-11" width={1.5} delay={550} />
-      <Stroke d="M112 212l18-32" width={2.2} delay={500} />
-      <Stroke d="M106 208c6-1 11 1 14 5l-32 66c-3 5-9 6-13 3-4-2-5-7-3-11Z" delay={650} />
-      <Stroke d={LOFT} color="var(--ink-blue)" dashed delay={1000} />
-      <Stroke
-        d="M318 344c8-7 16 7 24 0s16 7 24 0 16 7 24 0 16 7 24 0"
-        color="var(--ink-amber)"
-        delay={1300}
-      />
-      <Stroke d="M402 344v-52" width={1.5} delay={1500} />
-      <Stroke d="M402 292c10 1 18 5 26 11-8 3-17 3-26 0" color="var(--ink-red)" delay={1700} />
-      <Label x={250} y={40} delay={1600}>
-        over long-on
-      </Label>
-      <Label x={352} y={250} delay={2000} size={34}>
-        six
-      </Label>
-      <Stroke
-        d="M330 262c8-4 14 4 22 0s14 4 22 0"
-        color="var(--ink-red)"
-        width={1.6}
-        delay={2200}
-      />
-      <circle cx="120" cy="214" r="6.5" fill="var(--ink-red)"></circle>
-    </svg>
-  );
-}
-
-function FixturesSketch() {
-  const dots = ['var(--ink-blue)', 'var(--ink-red)', 'var(--ink-green)', 'var(--ink-amber)'];
-  return (
-    <svg viewBox="0 0 260 160" aria-hidden className="h-full w-auto text-primary">
-      {[18, 58, 98, 138].map((y, index) => (
-        <g key={y}>
-          <Stroke d={`M14 ${y}c26-1 52-1 78 0`} delay={index * 120} />
-          <circle
-            cx="22"
-            cy={y - 10}
-            r="5"
-            fill={dots[index]}
-            className="sketch-fade"
-            style={delayed(300 + index * 120)}
-          />
-        </g>
-      ))}
-      <Stroke d="M92 18c12 0 16 4 16 20s4 20 16 20M92 58h32" delay={600} />
-      <Stroke d="M92 98c12 0 16 4 16 20s4 20 16 20M92 138h32" delay={700} />
-      <Stroke d="M124 38c30-1 54-1 60 0M124 118c30 0 54 0 60 0" delay={900} />
-      <Stroke d="M184 38c14 0 18 6 18 40s4 40 18 40M184 118c18 0 26-40 36-40" delay={1100} />
-      <Stroke d="M220 78h30" delay={1300} width={2.4} />
-      <Label x={236} y={66} delay={1400} size={15}>
-        final
-      </Label>
-    </svg>
-  );
-}
-
-function PadSketch() {
-  const keys = ['0', '1', '2', '3', '4', '6', 'W', 'nb'];
-  return (
-    <svg viewBox="0 0 260 160" aria-hidden className="h-full w-auto text-primary">
-      {keys.map((key, index) => {
-        const x = 14 + (index % 4) * 60;
-        const y = 22 + Math.floor(index / 4) * 66;
-        const tone = key === '4' ? 'var(--ink-blue)' : key === 'W' ? 'var(--ink-red)' : null;
-        return (
-          <g key={key}>
-            {tone ? (
-              <rect
-                x={x}
-                y={y}
-                width="50"
-                height="52"
-                rx="8"
-                fill={tone}
-                className="sketch-fade"
-                style={delayed(600 + index * 60)}
-              />
-            ) : null}
-            <Stroke
-              d={`M${x + 8} ${y}c12-1 26-1 36 1 6 1 7 4 7 10 1 10 1 22 0 32-1 7-3 9-9 9-12 1-24 1-34 0-6 0-8-3-8-9-1-10-1-22 0-32 0-7 3-10 8-11Z`}
-              delay={index * 70}
-              width={1.4}
-            />
-            <text
-              x={x + 25}
-              y={y + 33}
-              textAnchor="middle"
-              fontSize="18"
-              fill={tone ? '#fff' : 'currentColor'}
-              className="sketch-fade"
-              style={delayed(700 + index * 60, { fontFamily: 'var(--font-sans)' })}
-            >
-              {key}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function ShareSketch() {
-  return (
-    <svg viewBox="0 0 260 160" aria-hidden className="h-full w-auto text-primary">
-      <Stroke d="M22 74c0-10 8-18 18-18h20c10 0 18 8 18 18s-8 18-18 18H48" />
-      <Stroke d="M62 86c0 10 8 18 18 18h20c10 0 18-8 18-18s-8-18-18-18H92" delay={250} />
-      <Stroke d="M128 80c24-30 50-44 80-50" color="var(--ink-blue)" delay={600} dashed />
-      <Stroke d="M128 80c28-2 52-1 80 2" color="var(--ink-blue)" delay={700} dashed />
-      <Stroke d="M128 80c24 26 50 40 80 46" color="var(--ink-blue)" delay={800} dashed />
-      {[22, 74, 122].map((y, index) => (
-        <g key={y}>
-          <Stroke
-            d={`M214 ${y - 4}c10-1 20-1 30 0 1 12 1 26 0 36-10 1-20 1-30 0-1-12-1-24 0-36Z`}
-            delay={900 + index * 150}
-            width={1.4}
-          />
-          <circle
-            cx="229"
-            cy={y + 10}
-            r="4"
-            fill="var(--ink-red)"
-            className="sketch-fade"
-            style={delayed(1300 + index * 150)}
-          />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-function OfflineSketch() {
-  const queue = [
-    'var(--ink-blue)',
-    'var(--ink-green)',
-    'var(--ink-red)',
-    'var(--ink-amber)',
-    'var(--ink-violet)',
-  ];
-  return (
-    <svg
-      viewBox="0 0 620 300"
-      role="img"
-      aria-label="A diagram. While the signal is down, balls queue on the scorer's phone. When it returns, they sync to the live page in order."
-      className="h-auto w-full text-primary"
-    >
-      <Stroke d="M20 210c60-2 120-1 170 0" />
-      <Stroke d="M190 210c50 1 160 0 230 0" dashed delay={400} />
-      <Stroke d="M420 210c60-1 120 0 180-1" delay={800} />
-      <Label x={105} y={240} delay={300}>
-        signal
-      </Label>
-      <Label x={305} y={240} delay={700}>
-        no signal, still scoring
-      </Label>
-      <Label x={510} y={240} delay={1100}>
-        back online
-      </Label>
-
-      {(
-        [
-          [86, 186, 'currentColor', 300],
-          [536, 96, 'var(--ink-green)', 2300],
-        ] as const
-      ).map(([x, y, color, delay]) => (
-        <Stroke
-          key={x}
-          d={`M${x} ${y}v-12M${x + 14} ${y}v-24M${x + 28} ${y}v-36M${x + 42} ${y}v-48`}
-          color={color}
-          width={5}
-          delay={delay}
+    <div className="landing-art">
+      <svg
+        viewBox="0 0 560 460"
+        fill="none"
+        role="img"
+        aria-label="A colourful cricket scoreboard, bat and ball"
+      >
+        <ellipse cx="310" cy="406" rx="222" ry="29" fill="#151519" />
+        <path
+          d="M111 118c0-17 14-31 31-31h305c17 0 31 14 31 31v197c0 17-14 31-31 31H142c-17 0-31-14-31-31Z"
+          fill="#504279"
+          transform="rotate(-7 294 216) translate(12 14)"
         />
-      ))}
-      <Stroke d="M190 186v-12M204 186v-24M218 186v-36M232 186v-48" width={5} dashed delay={500} />
-      <Stroke
-        d="M186 136c18 16 34 34 52 54M238 136c-18 16-34 34-52 54"
-        color="var(--ink-red)"
-        width={2.4}
-        delay={900}
-      />
-
-      <Stroke
-        d="M276 48c22-2 46-1 66 1 3 30 3 92-1 126-22 3-44 3-66 0-3-36-3-96 1-127Z"
-        delay={300}
-      />
-      {queue.map((color, index) => (
-        <circle
-          key={color}
-          cx="309"
-          cy={156 - index * 22}
-          r="8"
-          fill={color}
-          className="ink-pop"
-          style={{ '--i': index + 8 } as CSSProperties}
+        <g transform="rotate(-7 294 216)">
+          <rect x="111" y="87" width="367" height="259" rx="29" fill="#c6b5fa" />
+          <rect x="130" y="106" width="329" height="221" rx="19" fill="#b29ae9" />
+          <path d="M147 155h295" stroke="#8e70cc" strokeWidth="2" />
+          <text
+            x="149"
+            y="139"
+            fill="#392c56"
+            fontFamily="var(--font-sans)"
+            fontSize="13"
+            fontWeight="700"
+            letterSpacing="2"
+          >
+            SUNDAY LEAGUE
+          </text>
+          <rect x="372" y="119" width="68" height="24" rx="12" fill="#daf48b" />
+          <text
+            x="406"
+            y="135"
+            fill="#354122"
+            fontFamily="var(--font-sans)"
+            fontSize="11"
+            fontWeight="700"
+            textAnchor="middle"
+          >
+            LIVE
+          </text>
+          <text
+            x="149"
+            y="249"
+            fill="#2f2349"
+            fontFamily="var(--font-sans)"
+            fontSize="81"
+            fontWeight="700"
+            letterSpacing="-5"
+          >
+            146/3
+          </text>
+          <text x="214" y="293" fill="#49366c" fontFamily="var(--font-sans)" fontSize="15">
+            RIVERSIDE CC
+          </text>
+        </g>
+        <g transform="rotate(28 442 277)">
+          <rect x="427" y="84" width="24" height="123" rx="12" fill="#66528e" />
+          <path d="M431 107h16m-16 16h16m-16 16h16m-16 16h16" stroke="#a58bc8" strokeWidth="3" />
+          <rect x="403" y="187" width="72" height="224" rx="33" fill="#e7ca87" />
+          <path d="M438 206v177" stroke="#f9e5b3" strokeWidth="8" strokeLinecap="round" />
+          <path d="M458 216v160" stroke="#caab69" strokeWidth="6" strokeLinecap="round" />
+        </g>
+        <circle cx="126" cy="350" r="72" fill="#e48065" />
+        <path d="M127 278a72 72 0 0 1 0 144c31-47 28-99 0-144Z" fill="#c56754" />
+        <path d="M108 281c45 41 52 86 21 139" stroke="#f8cfb8" strokeWidth="7" />
+        <path
+          d="M98 288c41 39 47 83 18 128"
+          stroke="#f8cfb8"
+          strokeWidth="2"
+          strokeDasharray="4 6"
         />
-      ))}
-      <Label x={392} y={84} anchor="start" delay={1200} size={15}>
-        each ball saved in order
-      </Label>
-      <Stroke d="M386 80c-12 2-22 8-30 18" width={1.3} delay={1300} />
-
-      <Stroke d="M346 120c60-40 120-44 176-8" color="var(--ink-blue)" delay={1700} />
-      <Stroke d="M510 100l14 13-18 6" color="var(--ink-blue)" delay={2100} />
-      <Stroke
-        d="M530 128c18-1 38-1 56 1 2 18 2 40 0 56-18 2-38 2-56 0-2-18-2-38 0-57Z"
-        delay={2100}
-      />
-      <Stroke d="M540 150c10 6 20 10 34-6" color="var(--ink-green)" delay={2500} width={2.2} />
-    </svg>
+        <path d="m465 40 5 16 16 5-16 5-5 16-5-16-16-5 16-5Z" fill="#dcf39c" />
+        <path d="m85 190 4 12 12 4-12 4-4 12-4-12-12-4 12-4Z" fill="#d6c5ff" />
+        <circle cx="505" cy="338" r="8" fill="#e9a681" />
+      </svg>
+    </div>
   );
 }

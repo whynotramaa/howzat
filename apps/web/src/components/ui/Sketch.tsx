@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { Sport } from '@howzat/shared';
 import { cn } from '@/lib/cn';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 
 export function delayed(ms: number, extra?: Record<string, string | number>): CSSProperties {
   return { '--len': 1, '--delay': `${ms}ms`, ...extra } as CSSProperties;
@@ -194,38 +195,5 @@ const SCENES: Record<SceneName, ReactNode> = {
 };
 
 export function SportGlyph({ sport, className }: { sport: Sport; className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      aria-hidden
-      className={cn('size-12 shrink-0 text-primary', className)}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {sport === 'CRICKET' ? (
-        <>
-          <path d="M14 36c6-7 13-15 20-23l3 3c-7 8-14 15-21 21Z" />
-          <path d="M34 13l4-4" />
-          <circle cx="34" cy="34" r="5" fill="var(--ink-red)" stroke="none" />
-          <path d="M32.5 30.5c2 1 3 3 3 7" stroke="var(--surface-raised)" strokeWidth="1" />
-        </>
-      ) : (
-        <>
-          <circle cx="24" cy="24" r="13" />
-          <path
-            d="M24 17l6 4.4-2.3 7h-7.4l-2.3-7Z"
-            fill="var(--ink-green)"
-            stroke="var(--ink-green)"
-          />
-          <path
-            d="M24 17v-6M30 21.4l6-2M27.7 28.4l3.6 5M20.3 28.4l-3.6 5M18 21.4l-6-2"
-            strokeWidth="1.1"
-          />
-        </>
-      )}
-    </svg>
-  );
+  return <BrandIcon kind={sport === 'FOOTBALL' ? 'football' : 'cricket'} className={className} />;
 }

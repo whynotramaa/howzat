@@ -17,7 +17,7 @@ import { PeriodDesigner } from '@/features/football/PeriodDesigner';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, PageHeader } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
-import { Scene, SportGlyph } from '@/components/ui/Sketch';
+import { SportGlyph } from '@/components/ui/Sketch';
 import { Checkbox, Input, Select } from '@/components/ui/Input';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { Sheet } from '@/components/ui/Sheet';
@@ -44,16 +44,19 @@ export function TournamentsPage() {
   const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
 
   const items = data?.items ?? [];
+  const sections = [
+    { title: 'In progress', items: items.filter((item) => item.status === 'IN_PROGRESS') },
+    {
+      title: 'Setting up',
+      items: items.filter((item) => item.status !== 'IN_PROGRESS' && item.status !== 'COMPLETED'),
+    },
+    { title: 'Completed', items: items.filter((item) => item.status === 'COMPLETED') },
+  ];
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="tournaments-page flex flex-col gap-8">
       <PageHeader
-        eyebrow="Organiser"
-        title={
-          <>
-            Your <em>tournaments</em>
-          </>
-        }
+        title="Tournaments"
         actions={
           <>
             <Button onClick={() => setCreating(true)}>New tournament</Button>
@@ -62,37 +65,35 @@ export function TournamentsPage() {
             </Button>
           </>
         }
-        art={<Scene name="trophy" />}
       />
 
       {error ? <ErrorText error={error} onRetry={() => void refetch()} /> : null}
 
       {isPending ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="h-56" />
+        <div className="grid gap-4 md:grid-cols-2">
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-52" />
           ))}
         </div>
       ) : items.length > 0 ? (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((tournament, index) => (
-            <TournamentCard key={tournament.id} tournament={tournament} index={index} />
-          ))}
-          <li>
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className="grid h-full min-h-48 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-center text-secondary transition-colors hover:border-primary hover:text-primary"
-            >
-              <span className="grid size-11 place-items-center rounded-full border border-current text-xl leading-none">
-                +
-              </span>
-              <span className="display text-[1.5rem]">New tournament</span>
-              <span className="text-xs text-muted">League or league with playoffs</span>
-            </button>
-          </li>
-        </ul>
-      ) : (
+        <div className="flex flex-col gap-9">
+          {sections
+            .filter((section) => section.items.length > 0)
+            .map((section) => (
+              <section key={section.title} aria-label={section.title}>
+                <div className="mb-4 flex items-center gap-2.5">
+                  <h2 className="text-base font-bold">{section.title}</h2>
+                  <span className="tournament-section-count tabular">{section.items.length}</span>
+                </div>
+                <ul className="grid gap-4 md:grid-cols-2">
+                  {section.items.map((tournament, index) => (
+                    <TournamentCard key={tournament.id} tournament={tournament} index={index} />
+                  ))}
+                </ul>
+              </section>
+            ))}
+        </div>
+      ) : error ? null : (
         <EmptyState
           scene="trophy"
           title="No tournaments yet"
@@ -130,48 +131,72 @@ function TournamentCard({ tournament, index }: { tournament: TournamentDto; inde
           : registered < tournament.teamsCount
             ? 'Registering'
             : 'Squads short';
-  const slots = Math.min(tournament.teamsCount, 16);
+  const inProgress = tournament.status === 'IN_PROGRESS';
+  const completed = tournament.status === 'COMPLETED';
+  const tone = completed
+    ? 'neutral'
+    : inProgress || ready
+      ? 'success'
+      : registered < tournament.teamsCount
+        ? 'neutral'
+        : 'warning';
 
   return (
     <li className="reveal" style={{ '--delay': `${index * 60}ms` } as CSSProperties}>
       <Link
         to={`/tournaments/${tournament.id}`}
-        className="flex h-full min-h-48 flex-col border-t border-line-strong py-5"
+        aria-labelledby={`tournament-${tournament.id}`}
+        className="tournament-card group flex h-full min-w-0 flex-col"
       >
-        <div className="flex items-start justify-between gap-3">
-          <span className="grid size-14 place-items-center rounded-[var(--radius-lg)] bg-sunken">
-            <SportGlyph sport={tournament.sport} className="size-7" />
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-2 text-xs text-secondary">
+            <span className="tournament-sport-icon grid size-8 shrink-0 place-items-center rounded-md bg-sunken">
+              <SportGlyph sport={tournament.sport} className="size-6" />
+            </span>
+            {tournament.sport === 'FOOTBALL' ? 'Football' : 'Cricket'}
           </span>
           <Pill
-            tone={ready ? 'success' : registered < tournament.teamsCount ? 'neutral' : 'warning'}
+            tone={tone}
+            className={cn(
+              'tournament-status',
+              tone === 'success'
+                ? 'bg-success-soft'
+                : tone === 'warning'
+                  ? 'bg-warning-soft'
+                  : 'bg-sunken',
+            )}
           >
             {state}
           </Pill>
         </div>
-        <h2 className="display mt-5 line-clamp-2 text-[1.75rem] text-primary">{tournament.name}</h2>
-        <p className="mt-2 text-xs text-muted">
-          {FORMAT_LABELS[tournament.format]}
-          {tournament.doubleRoundRobin ? ', home and away' : ''} ·{' '}
-          {tournament.sport === 'FOOTBALL'
-            ? `${tournament.playersPerTeam} a side, ${tournament.periods} × ${tournament.periodMinutes} min`
-            : `${tournament.oversPerInnings} overs a side`}
-        </p>
-        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-          <span className="flex flex-wrap gap-1">
-            {Array.from({ length: slots }, (_, slot) => (
-              <span
-                key={slot}
-                className={cn(
-                  'size-2.5 rounded-full border',
-                  slot < Math.round((registered / tournament.teamsCount) * slots)
-                    ? 'border-[var(--ink-blue)] bg-[var(--ink-blue)]'
-                    : 'border-line-strong',
-                )}
-              />
-            ))}
-          </span>
-          <span className="tabular shrink-0 text-xs text-secondary">
-            {registered} of {tournament.teamsCount} teams
+        <div className="my-5 min-w-0">
+          <h3 id={`tournament-${tournament.id}`} className="tournament-name break-words">
+            {tournament.name}
+          </h3>
+          <p className="mt-1.5 text-xs text-muted">
+            {FORMAT_LABELS[tournament.format]}
+            {tournament.doubleRoundRobin ? ' · Home and away' : ''}
+          </p>
+        </div>
+        <div className="tournament-card-footer mt-auto flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.8125rem] text-secondary">
+            <span className="tabular">
+              <strong className="font-medium text-primary">
+                {registered}/{tournament.teamsCount}
+              </strong>{' '}
+              teams
+            </span>
+            <span>
+              {tournament.sport === 'FOOTBALL'
+                ? `${tournament.playersPerTeam} a side · ${tournament.periods} × ${tournament.periodMinutes} min`
+                : `${tournament.oversPerInnings} overs`}
+            </span>
+          </div>
+          <span
+            aria-hidden
+            className="tournament-card-arrow grid size-8 shrink-0 place-items-center rounded-full text-lg text-muted"
+          >
+            →
           </span>
         </div>
       </Link>
