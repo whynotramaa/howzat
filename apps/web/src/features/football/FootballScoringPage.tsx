@@ -17,7 +17,7 @@ import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { PushButton } from '@/components/ui/PushButton';
 import { SportMark } from '@/components/ui/SportMark';
-import { FootballAvatar } from '@/components/ui/FootballAvatar';
+import { PlayerTiles } from '@/components/ui/PlayerTiles';
 import { ShareLink } from '@/components/ui/ShareLink';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
@@ -658,13 +658,13 @@ function SubstitutionSheet({
                   : `${remaining} of ${limit} change${limit === 1 ? '' : 's'} left`}
               </p>
 
-              <PlayerChoice
+              <PlayerTiles
                 label="Coming off"
                 players={canComeOff}
                 value={offId}
                 onChange={setOffId}
               />
-              <PlayerChoice
+              <PlayerTiles
                 label="Coming on"
                 players={canComeOn}
                 value={onId}
@@ -807,7 +807,7 @@ function SaveSheet({
         />
 
         {side ? (
-          <PlayerChoice
+          <PlayerTiles
             label="Who saved it"
             players={side.squad}
             value={playerId}
@@ -923,7 +923,7 @@ function GoalSheet({
             </label>
 
             {playerSide ? (
-              <PlayerChoice
+              <PlayerTiles
                 label={isOwnGoal ? 'Put in by' : 'Scorer'}
                 players={playerSide.squad}
                 value={scorerId}
@@ -933,7 +933,7 @@ function GoalSheet({
             ) : null}
 
             {!isOwnGoal && scoringSide ? (
-              <PlayerChoice
+              <PlayerTiles
                 label="Assist"
                 players={scoringSide.squad.filter((player) => player.id !== scorerId)}
                 value={assistId}
@@ -1059,7 +1059,7 @@ function CardSheet({
         </div>
 
         {side ? (
-          <PlayerChoice
+          <PlayerTiles
             label="Player"
             players={side.squad}
             value={playerId}
@@ -1108,71 +1108,6 @@ function TeamChoice({
             </span>
           </button>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function PlayerChoice({
-  label,
-  caption,
-  players,
-  value,
-  onChange,
-  allowUnknown,
-  unknownLabel = 'Not sure',
-}: {
-  label: string;
-  caption?: string;
-  players: Choice[];
-  value: string | null;
-  onChange: (playerId: string | null) => void;
-  allowUnknown?: boolean;
-  unknownLabel?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="eyebrow">{label}</p>
-      {caption ? <p className="-mt-0.5 mb-1 text-[0.75rem] text-muted">{caption}</p> : null}
-
-      <div className="flex flex-wrap gap-1.5">
-        {players.map((player) => (
-          <button
-            key={player.id}
-            type="button"
-            onClick={() => onChange(value === player.id ? null : player.id)}
-            aria-pressed={value === player.id}
-            className={cn(
-              'flex items-center gap-2 rounded-full border py-1.5 pr-3.5 pl-1.5',
-              'text-[0.8125rem] transition-colors duration-[var(--dur-fast)]',
-              value === player.id
-                ? 'border-[var(--text-primary)] bg-accent-soft text-accent'
-                : 'border-line bg-raised text-primary hover:bg-hover',
-            )}
-          >
-            <FootballAvatar seed={player.id} name={player.name} size="xs" />
-            {player.name}
-            {player.note ? (
-              <span className="mono text-[0.6875rem] text-muted">{player.note}</span>
-            ) : null}
-          </button>
-        ))}
-
-        {allowUnknown ? (
-          <button
-            type="button"
-            onClick={() => onChange(null)}
-            aria-pressed={value === null}
-            className={cn(
-              'rounded-full border border-dashed px-3.5 py-2 text-[0.8125rem] transition-colors',
-              value === null
-                ? 'border-line-strong bg-sunken text-secondary'
-                : 'border-line text-muted hover:bg-hover',
-            )}
-          >
-            {unknownLabel}
-          </button>
-        ) : null}
       </div>
     </div>
   );

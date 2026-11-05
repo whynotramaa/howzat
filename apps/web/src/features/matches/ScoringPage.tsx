@@ -23,6 +23,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { ClockIcon, StumpsIcon, TrendIcon, TrophyIcon, UndoIcon } from '@/components/ui/Icons';
 import { PdfButton } from '@/components/ui/PdfButton';
+import { PlayerTiles } from '@/components/ui/PlayerTiles';
 import {
   BallChip,
   CreaseCard,
@@ -864,8 +865,8 @@ function Pad({
     hit?.key === key ? <span key={hit.n} aria-hidden className="key-ripple" /> : null;
 
   return (
-    <div className="pad order-2 flex flex-col gap-3 p-3 lg:sticky lg:top-16 lg:col-start-2 lg:row-span-3 lg:row-start-1">
-      <div className="flex items-center justify-between gap-3">
+    <div className="pad order-2 flex flex-col gap-4 p-4 lg:sticky lg:top-16 lg:col-start-2 lg:row-span-3 lg:row-start-1">
+      <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="shrink-0">
             <p className="eyebrow">Over {state.currentOverNumber + 1}</p>
@@ -943,7 +944,7 @@ function Pad({
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-4 gap-2">
         {RUNS.map((runs) => (
           <button
             key={runs}
@@ -973,7 +974,7 @@ function Pad({
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-3">
         <p
           role={notice.alert ? 'alert' : undefined}
           className={cn('text-[0.8125rem]', notice.alert ? 'font-medium text-live' : 'text-muted')}
@@ -1038,24 +1039,12 @@ function PickerRow({
   onPick: (playerId: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-medium">
-      {label}
-      <select
-        aria-label={label}
-        value=""
-        onChange={(event) => onPick(event.target.value)}
-        className="h-12 w-full rounded-md border border-line-strong bg-raised px-3 text-base text-primary"
-      >
-        <option value="" disabled>
-          {players.length ? 'Choose player' : 'No players available'}
-        </option>
-        {players.map((player) => (
-          <option key={player.id} value={player.id}>
-            {player.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <PlayerTiles
+      label={label}
+      players={players}
+      value={null}
+      onChange={(playerId) => playerId && onPick(playerId)}
+    />
   );
 }
 
