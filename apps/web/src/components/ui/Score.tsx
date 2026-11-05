@@ -160,7 +160,7 @@ export function Scoreboard({
   children?: ReactNode;
 }) {
   return (
-    <section className="scoreboard">
+    <section className="scoreboard ink-zone">
       <div className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-7 sm:pt-6">
         <div className="flex min-w-0 items-center gap-3">
           <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" />

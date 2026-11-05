@@ -332,18 +332,15 @@ table {
   background: var(--accent-grad);
   color: var(--on-accent);
   border: 1px solid transparent;
-  box-shadow: 0 4px 0 var(--accent-shadow);
 }
 
 .btn-primary:hover {
   background: var(--accent-grad-hover);
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--accent-shadow);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--accent-shadow);
+  transform: translateY(1px);
 }
 
 .btn-secondary {
@@ -365,20 +362,17 @@ table {
 .card-lift {
   transition:
     transform var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease),
     border-color var(--dur) var(--ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .card-lift:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--shadow-offset);
+    transform: translateY(-2px);
     border-color: var(--line-strong);
   }
 
   .card-lift:active {
-    transform: translate(0, 0);
-    box-shadow: none;
+    transform: translateY(0);
   }
 }
 
@@ -893,7 +887,7 @@ table {
   position: sticky;
   top: 0;
   z-index: 30;
-  padding: 10px 12px 0;
+  padding: 12px 12px 0;
   background: linear-gradient(var(--surface) 72%, transparent);
 }
 
@@ -902,14 +896,14 @@ table {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  max-width: 1240px;
-  height: 68px;
+  width: 100%;
+  max-width: 960px;
+  height: 56px;
   margin-inline: auto;
-  padding-inline: 22px 12px;
-  border-radius: var(--radius-2xl);
+  padding-inline: 16px 8px;
+  border-radius: var(--radius-xl);
   background: var(--ink-zone);
   color: var(--ink-zone-text);
-  box-shadow: 0 14px 30px -18px rgb(37 35 41 / 0.6);
 }
 
 .masthead-link {
@@ -944,17 +938,18 @@ table {
 
 .app-tabbar {
   position: fixed;
-  inset-inline: 12px;
+  left: 50%;
   bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 40;
   display: flex;
-  height: 68px;
-  padding: 6px;
+  width: min(calc(100% - 24px), 300px);
+  height: 56px;
+  padding: 4px;
   gap: 4px;
-  border-radius: var(--radius-2xl);
+  transform: translateX(-50%);
+  border-radius: var(--radius-xl);
   background: var(--ink-zone);
   color: var(--ink-zone-muted);
-  box-shadow: 0 16px 34px -14px rgb(37 35 41 / 0.7);
 }
 
 .app-tabbar-item {
@@ -962,8 +957,8 @@ table {
   flex: 1;
   place-content: center;
   justify-items: center;
-  gap: 3px;
-  border-radius: 16px;
+  gap: 2px;
+  border-radius: var(--radius-lg);
   font-size: 11px;
   font-weight: 500;
   color: var(--ink-zone-muted);
@@ -1195,7 +1190,6 @@ table {
   transition:
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease),
     transform var(--dur-fast) var(--ease);
 }
@@ -1203,9 +1197,8 @@ summary::-webkit-details-marker {
   display: none;
 }
 .scoreboard {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line-strong);
-  background: transparent;
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
 }
 .scoreboard > div:first-child,
 .scoreboard > div:nth-child(2) {
@@ -1271,21 +1264,20 @@ summary::-webkit-details-marker {
   padding-bottom: 16px;
 }
 .scoring-console .pad {
-  border: 0;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  padding-inline: 0;
-  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
 }
 .scoring-console .pad-key {
-  border-radius: 3px;
+  border-radius: var(--radius-lg);
   font-family: var(--font-sans);
   font-size: 22px;
   font-weight: 500;
 }
 .scoring-console .pad-key[data-tone='six'] {
-  background: var(--text-primary);
+  border-color: transparent;
+  background: var(--accent-fill);
+  color: var(--on-accent);
 }
 .scoring-console .pad-key[data-tone='quiet'],
 .scoring-console .pad-key[data-tone='wicket'],
@@ -1323,7 +1315,6 @@ summary::-webkit-details-marker {
   border-radius: var(--radius-2xl);
   background: var(--ink-zone);
   color: var(--ink-zone-text);
-  box-shadow: 0 22px 40px -28px rgb(37 35 41 / 0.7);
 }
 .page-header::after {
   content: '';
@@ -1505,7 +1496,6 @@ summary {
   text-transform: none;
 }
 
-.live-page .scoreboard,
 .live-page .crease-card,
 .live-page .score-panel {
   overflow: hidden;

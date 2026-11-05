@@ -76,9 +76,9 @@
 
   --shadow-xs: none;
   --shadow-sm: none;
-  --shadow-md: 0 8px 26px -10px rgb(37 35 41 / 0.2);
-  --shadow-lg: 0 18px 40px -16px rgb(37 35 41 / 0.26);
-  --shadow-offset: 4px 4px 0 var(--line-strong);
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-offset: none;
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -163,8 +163,8 @@
   --scrim: rgb(0 0 0 / 0.6);
   --grid-line: rgb(255 255 255 / 0.035);
   --tick: #4a4652;
-  --shadow-md: 0 8px 24px -10px rgb(0 0 0 / 0.6);
-  --shadow-lg: 0 20px 48px -16px rgb(0 0 0 / 0.7);
-  --shadow-offset: 4px 4px 0 #3b3742;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-offset: none;
   color-scheme: dark;
 }
