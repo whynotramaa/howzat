@@ -2,9 +2,9 @@
 
 # Howzat
 
-**Local cricket tournaments with live, ball-by-ball scoring — and a public share link that needs no login.**
+**Cricket and football scoring for local leagues. One phone scores, everyone else follows a link.**
 
-[![Live](https://img.shields.io/badge/live-howzat--zeta.vercel.app-0b7285?style=flat-square)](https://howzat-zeta.vercel.app)
+[![Live](https://img.shields.io/badge/live-howzat.ramaa.tech-0b7285?style=flat-square)](https://howzat.ramaa.tech)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square)
 ![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square)
 ![Node](https://img.shields.io/badge/Node-20%2B-339933?style=flat-square)
@@ -14,29 +14,33 @@
 </div>
 
 <div align="center">
-  <img src="apps/web/public/assets/live-match.png" alt="Live match view: Chennai Super Kings 10/1 after 0.3 overs, with the current over, batter and bowler cards, extras breakdown and fall of wickets" width="100%">
-  <br>
-  <em>The public share link — no account, no app install. Just a URL.</em>
+  <img src=".screenshots/01-home.png" alt="Howzat landing page with the headline 'Every ball, on the record', a spectator view of Riverside CC 143/3 and the scorer's phone beside it" width="100%">
 </div>
 
 ---
 
-## The problem
+## Why it exists
 
-Club and street cricket is scored on paper, in a WhatsApp group, or not at all.
-The people who actually want the score — a parent, a teammate on their way to
-the ground, someone who lost the toss and went home — are not going to install
-an app or create an account to get it.
+Club and street cricket gets scored on paper, in a WhatsApp group, or not at
+all. The people who want the score are a parent, a teammate on the way to the
+ground, or the player who went home after the toss. None of them will install
+an app or make an account to see it.
 
-Howzat gives one person a fast scoring console and everybody else a link.
+Howzat gives one person a scoring console and everybody else a URL.
 
-- **The scorer** taps runs. Every ball is an append-only event, and the console
-  keeps working when the signal at the ground does not.
-- **Everyone else** opens a URL. The score arrives over a websocket, live.
+- **The scorer** taps each ball or incident. Every tap is an append-only event,
+  and the console keeps working when the signal at the ground drops.
+- **Spectators** open the share link. The score arrives over a websocket with
+  no login.
 - **The organizer** gets fixtures, a playoff bracket, and a points table that
-  computes itself — plus what each side still needs to qualify.
-- **The players** are added off a team sheet in one flow, account or not, and a
-  registered one gets a career profile that fills in as matches complete.
+  rebuilds itself after every result, plus what each side still needs to
+  qualify.
+- **Players** go onto a team sheet in one flow, with or without an account. A
+  registered player gets a career profile that fills in as matches finish.
+
+Football runs on the same model. The scorer records goals, cards and
+substitutions against a match clock, and the league table follows the same
+recompute-from-events rule as cricket.
 
 ---
 
@@ -45,29 +49,41 @@ Howzat gives one person a fast scoring console and everybody else a link.
 <table>
 <tr>
 <td width="50%">
-<img src="apps/web/public/assets/scoring-console.png" alt="Scoring console with a run pad from 0 to 6, extras buttons for wide, no ball, bye and leg bye, a wicket button, and an undo control">
-<p align="center"><strong>Scoring console</strong><br><sub>One tap per ball. Extras, wickets and undo are all one reach away, with keyboard shortcuts for a scorer who does this every week.</sub></p>
+<img src=".screenshots/13-scoring.png" alt="Cricket scoring console for Chennai Super Kings v Kolkata Knight Riders at 60/3, with player tiles for the next bowler, extras keys and a run pad from 0 to 6 plus OUT">
+<p align="center"><strong>Scoring console</strong><br><sub>One tap per ball. At the end of an over the console asks for the next bowler with player tiles, and Undo sits under the pad.</sub></p>
 </td>
 <td width="50%">
-<img src="apps/web/public/assets/points-table.png" alt="Points table for a ten team league showing played, won, lost, tied, no result, points and net run rate for each side">
-<p align="center"><strong>Points table</strong><br><sub>Recomputed from the innings records on every result, so it cannot drift. Every NRR input is shown, not just the figure.</sub></p>
+<img src=".screenshots/04-live-public.png" alt="Public live page for LSG v CSK showing the result, the current over, the batter and bowler, and a runs-per-over chart">
+<p align="center"><strong>Public share link</strong><br><sub>No account and no install. A viewer who joins mid-match sees the current score straight away.</sub></p>
 </td>
 </tr>
 <tr>
 <td width="50%">
-<img src="apps/web/public/assets/tournaments.png" alt="Tournament list showing IPL 2026 with ten of ten sides registered and ready for fixtures, alongside two smaller leagues">
-<p align="center"><strong>Tournaments</strong><br><sub>Squad registration gates fixture generation — the UI states exactly what is still missing rather than failing later.</sub></p>
+<img src=".screenshots/09-points-table.png" alt="IPL 2026 points table with played, won, lost, tied, no result, points, net run rate, runs for and runs against for ten teams">
+<p align="center"><strong>Points table</strong><br><sub>Rebuilt from the innings records on every result. The runs and overs behind each NRR figure sit next to it.</sub></p>
 </td>
 <td width="50%">
-<img src="apps/web/public/assets/light-mode.png" alt="The same scoring console rendered in light theme">
-<p align="center"><strong>Light and dark</strong><br><sub>Semantic CSS variables, not <code>dark:</code> classes. Follows the OS by default; a manual choice wins and survives a reload.</sub></p>
+<img src=".screenshots/05-tournament-public.png" alt="Public IPL 2026 tournament page with counts of teams, played, live and remaining matches, a live match card and the table">
+<p align="center"><strong>Public tournament page</strong><br><sub>One link for the whole league, with live matches, the table and a PDF export.</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src=".screenshots/06-dashboard.png" alt="Matches dashboard listing matches to score, with live scores and Resume or Score buttons">
+<p align="center"><strong>Scorer's dashboard</strong><br><sub>Every match you are assigned to, live ones first, one button to resume.</sub></p>
+</td>
+<td width="50%">
+<img src=".screenshots/10-team-detail.png" alt="Chennai Super Kings squad page showing 11 of 11 players, each with an avatar and a role tag">
+<p align="center"><strong>Squads</strong><br><sub>Fixture generation waits until every squad is full, and the page says what is missing.</sub></p>
 </td>
 </tr>
 </table>
 
 <div align="center">
-  <img src="apps/web/public/assets/notifications.png" alt="Notification popover reading: you have been added to this tournament" width="70%">
-  <p><strong>Notifications</strong> — scorers learn they have been assigned to a match without being told out of band.</p>
+<img src=".screenshots/15-scoring-mobile.png" alt="Scoring console on a phone, with bowler tiles, extras and the run pad" width="32%">
+&nbsp;
+<img src=".screenshots/16-live-public-mobile.png" alt="Public live page on a phone" width="32%">
+<p><sub>The console and the share link are built for a phone first.</sub></p>
 </div>
 
 ---
@@ -89,27 +105,29 @@ flowchart LR
   R -.->|cross-instance fan-out| IO
 ```
 
-**Scoring is HTTP, never websocket.** Auth, idempotency, validation and retry
-semantics all live in one place, which leaves the realtime layer a disposable,
-read-only fan-out. The write path publishes to `realtime/bus.ts` and never
-imports socket.io.
+**Scoring goes over HTTP, never the websocket.** Auth, idempotency, validation
+and retries live in one place. The realtime layer only fans out reads, and the
+write path publishes to `realtime/bus.ts` without importing socket.io.
 
 **Every ball goes through the queue, online or not.** There is no separate
-offline path to keep in step with the online one — the connection only decides
-whether the queue drains now or later, and `clientEventId` makes the replay
-indistinguishable from a first attempt.
+offline path to keep in step. The connection only decides whether the queue
+drains now or later, and `clientEventId` makes a replay look the same as a
+first attempt.
 
-**Postgres is the truth; Redis is derived.** `BallEvent` is append-only and is
-the sole source of truth for anything that happens in a match. The snapshot in
-Redis is a cache — delete it and the next read rebuilds the score by folding
-the event log. Snapshot writes are guarded by `lastEventSeq`, so a slow write
-can never overwrite a newer score.
+**Postgres holds the truth and Redis holds a cache.** `BallEvent` is
+append-only and is the only record of what happened in a match. Delete the
+Redis snapshot and the next read rebuilds the score by folding the event log.
+Snapshots carry a match revision, so a slow write cannot overwrite a newer
+score.
 
-**Broadcasts carry the whole snapshot, not a delta.** Slightly larger on the
-wire, and self-healing: a client that misses one message is corrected by the
-next, and `seq` monotonicity is enough to discard an out-of-order arrival. It
-is also what lets a viewer join mid-match and see the current score
-immediately, rather than a replay from ball one.
+**Broadcasts carry the whole snapshot, not a delta.** The message is a little
+larger. In return, a client that misses one message is corrected by the next,
+and a viewer who joins mid-match sees the current score instead of a replay
+from ball one.
+
+[docs/storage-and-recovery.md](docs/storage-and-recovery.md) covers
+transactions, locks, derived-data retries, backups and offline recovery in
+more depth.
 
 ---
 
@@ -119,90 +137,79 @@ immediately, rather than a replay from ball one.
 <summary><strong>Correctness</strong></summary>
 
 - **Overs are base-6.** `16.5 + 0.1` is `17.0`, not `16.6`. `PointsTable`
-  stores *balls* and converts only at read time, which is what makes the NRR
-  arithmetic hard to get subtly wrong.
+  stores balls and converts only when it reads, which keeps the NRR arithmetic
+  honest.
 - **The bowled-out rule.** A side dismissed inside its quota is charged the
-  **full quota** of overs for NRR, not the balls it actually faced. There is a
-  regression test proving the rule changes the answer.
-- **DLS is derived, never stored.** The scorer records stoppages — overs left,
-  wickets down, overs left on resumption — and the allotments, the par score
-  and the revised target are recomputed from that list every time it changes.
-  A stoppage typed wrong can be deleted and the match returns to exactly where
-  it would have been. The resource table is the ICC's published Standard
-  Edition; the Professional Edition is a licensed program nobody outside the
-  licence can reimplement, and the Standard Edition is what the playing
-  conditions themselves fall back to when it is not at the ground.
-- **A DLS result changes NRR, not just the scoreboard.** The side batting first
-  is deemed to have scored the par score off the chasing side's overs, per the
-  ICC rule — charging it the runs it happened to make off the overs it happened
-  to face would punish it for a chase that never ran its course.
+  full quota of overs for NRR, not the balls it faced. A regression test
+  proves the rule changes the answer.
+- **DLS is derived, never stored.** The scorer records stoppages: overs left,
+  wickets down, and overs left on resumption. The allotments, par score and
+  revised target are recomputed from that list every time it changes. Delete
+  a mistyped stoppage and the match returns to where it would have been. The
+  resource table is the ICC Standard Edition. The Professional Edition is a
+  licensed program, and the playing conditions fall back to the Standard
+  Edition when the program is not at the ground.
+- **A DLS result changes NRR too.** Per the ICC rule, the side batting first
+  is deemed to have scored the par score off the chasing side's overs.
 - **The points table is recomputed, never incremented.** Every
   `match:completed` rebuilds the tournament from the event log in one
-  transaction. Costlier than an increment, and it buys idempotency: replaying
-  an event converges instead of double-counting.
-- **Idempotent ball writes.** Each ball carries a `clientEventId`. Re-posting
-  an identical body returns `200` with the same snapshot instead of `201`, so a
-  flaky connection at the ground cannot double-count a six.
-- **Undo is an event, not a delete.** `POST /matches/:id/balls/undo` appends an
-  `UNDO`; `GET /matches/:id/events` still shows both. Nothing is destroyed.
+  transaction. That costs more than an increment and makes replays safe,
+  because a repeated event converges instead of counting twice.
+- **Ball writes are idempotent.** Each ball carries a `clientEventId`.
+  Re-posting the same body returns `200` with the same snapshot instead of
+  `201`, so a flaky connection cannot count a six twice.
+- **Undo is an event, not a delete.** `POST /matches/:id/balls/undo` appends
+  an `UNDO`. `GET /matches/:id/events` still shows both.
 
 </details>
 
 <details>
 <summary><strong>Scoring with no signal</strong></summary>
 
-The console does not stop when the connection does. A ball scored offline is
-queued in IndexedDB and replayed when the network returns; the scorer sees the
-running score move immediately either way.
+A ball scored offline goes into IndexedDB and replays when the network
+returns. The scorer sees the score move straight away either way.
 
-- **The queue is the same idempotency story as the write path.** Each queued
-  ball is keyed by its `clientEventId`, so a replay is indistinguishable from
-  the original attempt — which is the whole reason the queue is safe to drain
-  blindly. The phone has no way to know whether its first attempt landed.
-- **The drain is ordered and stops at the first failure.** Ball *n+1*'s legality
-  depends on ball *n*; syncing past a rejection would post deliveries against a
-  state the server never reached. Failed balls surface in the UI with the
-  server's reason and can be retried explicitly.
-- **The browser runs the same reducer the server does.** `packages/shared` is
-  imported by both, so the offline score is folded by the code that will later
-  validate it — not a second implementation that can disagree.
-- **The previous over's bowler is carried through the fold.** Offline, the
-  server's answer is frozen at the moment the connection dropped. A stale one
-  offers the wrong bowlers at the over boundary and lets through a ball the
-  server rejects with `CONSECUTIVE_OVERS` on sync — the failure would appear
-  minutes later, against a ball the scorer had forgotten about.
-- **Crease overrides clear against the *displayed* sequence, not the server's.**
-  Offline the server's sequence never moves, so tracking against it would
-  freeze the striker and the bowler for the rest of the innings.
+- **The queue uses the same idempotency key as the write path.** Each queued
+  ball is keyed by its `clientEventId`, so the queue can drain blindly. The
+  phone cannot know whether its first attempt landed, and it does not need to.
+- **The drain runs in order and stops at the first failure.** Whether ball
+  *n+1* is legal depends on ball *n*. The UI shows a rejected ball with the
+  server's reason and a retry button.
+- **The browser runs the same reducer as the server.** Both import
+  `packages/shared`, so the offline score comes from the code that will later
+  validate it.
+- **The previous over's bowler is carried through the fold.** Without it, the
+  console would offer the wrong bowlers at the over boundary offline, and the
+  server would reject the ball with `CONSECUTIVE_OVERS` minutes later on sync.
+- **One tab drains at a time.** Web Locks pick the owner across tabs, and
+  BroadcastChannel keeps every tab's queue indicator current.
 
 </details>
 
 <details>
 <summary><strong>Security</strong></summary>
 
-- **Sign up once, then username and password.** The email code is spent
-  confirming the address, not gating every sign-in. Mailing a code each time
-  reads as frictionless and is the opposite in the one place this app is used:
-  a ground with bad signal, where the scorer's email is on a different device
-  and the match is waiting on them. Passwords are bcrypt at cost 12.
-- **Access tokens are 15-minute JWTs held in memory only** — never
-  `localStorage`, so an XSS cannot exfiltrate one. The httpOnly refresh cookie
-  is what survives a reload.
+- **Sign up once, then use a handle and password.** The email code confirms
+  the address once. Mailing a code at every sign-in fails at a ground with bad
+  signal, where the scorer's email is on another device and the match is
+  waiting. Passwords use bcrypt at cost 12.
+- **Access tokens are 15-minute JWTs held in memory**, never in
+  `localStorage`, so an XSS cannot read one. The httpOnly refresh cookie
+  survives a reload.
 - **Refresh tokens are opaque random strings** stored as SHA-256 hashes and
-  rotated on every use. Presenting an already-revoked token is treated as theft
-  and revokes the user's entire session family.
-- **Codes are scoped to what they were issued for.** A code emailed to confirm
-  an address is not redeemable as a password reset, even though both are six
-  digits sent to the same inbox. They are `crypto.randomInt`, stored hashed.
-- **No enumeration oracles.** Every code failure path returns the same message,
-  a login against a missing account still burns a password comparison, and
-  handle lookup requires a session — a public "does this handle exist"
-  endpoint would be an oracle.
-- **`requireScorerForMatch`** guards every match route, with a 60s Redis cache
-  invalidated the moment an assignment changes.
-- Redis-backed rate limits on code requests and ball writes, with a truthful
-  `Retry-After`. The per-IP ceiling is deliberately looser than the per-email
-  one — a shared ground wifi should not lock out a whole team.
+  rotated on every use. Presenting a revoked token counts as theft and revokes
+  the whole session family.
+- **Codes are scoped to their purpose.** A code sent to confirm an address
+  does not work as a password reset. Codes come from `crypto.randomInt` and
+  are stored hashed.
+- **No enumeration oracles.** Every code failure returns the same message, a
+  login against a missing account still runs a password comparison, and
+  handle lookup requires a session.
+- **`requireScorerForMatch`** guards every match route, with a 60-second Redis
+  cache cleared the moment an assignment changes.
+- **Rate limits live in Redis** for code requests and ball writes, with a
+  truthful `Retry-After`. The per-IP limit is looser than the per-email one,
+  so a shared ground wifi does not lock out a whole team.
 
 </details>
 
@@ -210,40 +217,37 @@ running score move immediately either way.
 <summary><strong>Running on serverless</strong></summary>
 
 The API is a long-lived Express server locally and a Vercel Function in
-production. Three things that difference forced:
+production. That difference forced three choices.
 
-- **Websocket transport only.** Socket.IO defaults to HTTP long-polling, whose
-  handshake is process-sticky: the session lives in one instance's memory and
-  the next poll can land elsewhere, producing `session ID unknown`. Both ends
-  pin `transports: ['websocket']`.
-- **Viewers are counted in Redis, not by asking the other instances.** The
-  adapter's `fetchSockets()` broadcasts a request and waits for every subscribed
-  instance to answer — which never terminates well on a platform that *freezes*
-  idle instances, because a frozen instance stays subscribed but cannot reply.
-  A sorted set keyed by match, pruned by join timestamp, has no such dependency
-  on who happens to be awake.
-- **Event subscribers are awaited.** The instance is frozen the moment the
-  response is sent, so a detached standings rebuild would be truncated
-  part-way through with no error. `publishMatchEvent` returns a promise; the
-  match-completion path awaits it, while the hot ball path still drops it.
+- **Websocket transport only.** Socket.IO starts with HTTP long-polling by
+  default, and its handshake sticks to one process. On Vercel the next poll
+  can land on another instance and fail with `session ID unknown`. Both ends
+  set `transports: ['websocket']`.
+- **Viewer counts live in Redis.** The adapter's `fetchSockets()` waits for
+  every subscribed instance to answer, and Vercel freezes idle instances. A
+  sorted set per match, pruned by join time, does not depend on who is awake.
+- **Event subscribers are awaited on completion.** Vercel freezes the instance
+  once the response is sent, so a detached standings rebuild would stop
+  part-way. `publishMatchEvent` returns a promise. The match-completion path
+  awaits it, and the ball path does not.
 
 </details>
 
 ---
 
-## Getting started
+## Run it locally
 
 ### Prerequisites
 
-Node 20+. Both datastores have free tiers and neither needs a local install.
+You need Node 20 or later. Both datastores have free tiers, and neither needs
+a local install.
 
-- **Postgres — [Neon](https://neon.tech)**: copy *two* connection strings. The
-  **pooled** one (host contains `-pooler`) is `DATABASE_URL`; the **direct**
-  one is `DIRECT_URL`. Prisma migrations cannot run through the pooler, which
-  is why both exist.
-- **Redis — [Upstash](https://upstash.com)**: copy the `rediss://` URL (note
-  the double *s* — it is TLS). Plain `redis://` is accepted and then dies,
-  surfacing as a confusing `MaxRetriesPerRequestError`.
+- **Postgres on [Neon](https://neon.tech).** Copy two connection strings. The
+  pooled one (its host contains `-pooler`) is `DATABASE_URL`. The direct one
+  is `DIRECT_URL`. Prisma migrations cannot run through the pooler.
+- **Redis on [Upstash](https://upstash.com).** Copy the `rediss://` URL, with
+  two s's for TLS. A plain `redis://` URL connects and then fails with
+  `MaxRetriesPerRequestError`.
 
 ### Setup
 
@@ -252,142 +256,138 @@ npm install
 cp .env.example .env
 ```
 
-Fill in `DATABASE_URL`, `DIRECT_URL` and `REDIS_URL`, then generate the two
-secrets:
+Fill in `DATABASE_URL`, `DIRECT_URL` and `REDIS_URL`. Generate the two secrets
+with:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 ```
 
-Leave `RESEND_API_KEY` blank — verification and password-reset codes are then
-printed to the API log rather than emailed, which is the intended development
-path.
+Leave `RESEND_API_KEY` blank in development. The API then prints verification
+and password-reset codes to its log instead of sending email.
 
 ```bash
-npm run db:migrate      # first run asks for a name; "init" is fine
+npm run db:migrate      # the first run asks for a name; "init" is fine
 npm run db:seed
 npm run dev             # API on :4000, web on :5173
 ```
 
 ### Seeded accounts
 
-Sign in with the **handle and password** — all three share `howzat1234`, and
-all three are seeded as verified so there is no code to hunt for in the log.
+Sign in with the handle and password. All three accounts use `howzat1234` and
+are seeded as verified.
 
-| Handle | Password | What they are |
+| Handle | Password | Role |
 | --- | --- | --- |
 | `@organizer` | `howzat1234` | Owns both tournaments |
 | `@whynotramaa` | `howzat1234` | Assigned to every IPL 2026 match |
-| `@demoscorer` | `howzat1234` | Assigned to nothing, useful for testing 403s |
+| `@demoscorer` | `howzat1234` | Assigned to nothing, for testing 403s |
 
-Nobody has a role column. Being an organizer means owning a tournament; being a
-scorer means holding an assignment for a match. All three are also registered
-players in a Sunday League side, so their career profiles fill in as matches
-complete.
+There is no role column. An organizer is someone who owns a tournament, and a
+scorer is someone with an assignment for a match. All three are also players
+in a Sunday League side, so their career profiles fill in as matches finish.
 
-**IPL 2026** seeds 10 teams, 11 players each and 49 matches; **Sunday League
-2026** is a 4-team sandbox. The seed is idempotent and never regenerates
-fixtures for a tournament whose matches have started, so re-running it cannot
-destroy scoring data. Squads are illustrative demo data, not real rosters.
+The seed creates **IPL 2026** with 10 teams, 11 players each and 49 matches,
+and **Sunday League 2026** as a 4-team sandbox. It is idempotent and never
+regenerates fixtures for a tournament whose matches have started. The squads
+are demo data, not real rosters.
 
 ---
 
-## Deployment
+## Deploy
 
-Web and API ship as **one Vercel project on one origin** — the SPA at `/`, the
-API at `/api/*`, sockets at `/api/socket.io`. Same-origin is what keeps the
-`sameSite=strict` refresh cookie working and removes CORS from the picture.
+Web and API ship as one Vercel project on one origin. The SPA is at `/`, the
+API at `/api/*`, and sockets at `/api/socket.io`. A single origin keeps the
+`sameSite=strict` refresh cookie working and removes CORS.
 
 ```bash
+npm run db:deploy       # once per release, before the new API serves traffic
 npm run build           # API bundle + web static build
 npx vercel --prod
 ```
 
-`vercel.json` builds the API with tsup before the function is compiled, because
-files under `api/` are transpiled individually and will not follow a relative
-TypeScript import out of that directory.
+`vercel.json` builds the API with tsup before Vercel compiles the function.
+Vercel transpiles files under `api/` one at a time and does not follow a
+relative TypeScript import out of that directory.
 
-> **Note** — on the free plan a function is capped at 300s, so a live-match
-> websocket reconnects at least every five minutes. Measured: the connection
-> held 315s, dropped with `transport close`, and reconnected 2s later with the
-> viewer count intact. The client is snapshot-first, so this is invisible.
+> **Note.** On the free plan a function runs for at most 300 seconds, so a
+> live-match websocket reconnects at least every five minutes. In a measured
+> run the connection held for 315 seconds, closed with `transport close`, and
+> reconnected 2 seconds later with the viewer count intact. The client loads
+> the snapshot first, so viewers do not notice.
 
 ---
 
-## Verification
+## Check it
 
-`npm test` covers the pure logic — 45 tests across the scoring reducer, the
-fixture generator's pairing guarantees, career aggregation, and the NRR
-arithmetic including the plan's exact worked scenario.
+`npm test` runs Vitest over the shared logic (cricket and football reducers,
+fixtures, NRR, DLS, career stats, the football clock and formations), the
+offline ball queue, and the API scoring route.
 
-The parts worth checking by hand:
+These checks need a person:
 
 | Check | Expected |
 | --- | --- |
-| Score a wide and a no-ball in an over | After six *submissions* the over reads `0.4`, not `0.6` |
-| Re-post a ball with the same `clientEventId` | `200` with an identical snapshot; the score does not move |
-| Same bowler two overs running | Rejected with `CONSECUTIVE_OVERS` |
-| `DEL match:<id>` in Redis, then re-read the snapshot | Identical score, rebuilt from the event log |
-| Open the share link mid-match in a fresh window | Current score immediately — never a replay from ball one |
-| Kill the API with the live page open | Badge flips to "Reconnecting", then resyncs by refetching |
-| Score an over with the network throttled to offline, then restore it | The score moves as you tap; the queue drains in order and the server lands on the same total |
-| Go offline and try the same bowler two overs running | Rejected on the device, before it is ever queued |
-| Run two API instances, score through one | The viewer on the other updates, via Redis pub/sub |
-| Chase bowled out inside its quota | That row's `oversFaced` is the **full quota** |
+| Score a wide and a no-ball in an over | After six taps the over reads `0.4`, not `0.6` |
+| Re-post a ball with the same `clientEventId` | `200` with the same snapshot, and the score does not move |
+| Pick the same bowler two overs running | Rejected with `CONSECUTIVE_OVERS` |
+| Run `DEL match:<id>` in Redis, then re-read the snapshot | The same score, rebuilt from the event log |
+| Open the share link mid-match in a fresh window | The current score at once, never a replay from ball one |
+| Kill the API with the live page open | The badge shows "Reconnecting", then resyncs |
+| Score an over offline, then restore the network | The score moves as you tap, the queue drains in order, and the server lands on the same total |
+| Run two API instances and score through one | The viewer on the other updates through Redis pub/sub |
+| Bowl out a chasing side inside its quota | That row's `oversFaced` is the full quota |
 
 ---
 
 ## Layout
 
 ```
-packages/shared/   types, zod schemas, constants — one contract for both apps
-  src/scoring/reducer.ts   applyBall / buildState — the core of the system
-  src/scoring/validate.ts  the legal-state guard, run before any write
-  src/scoring/format.ts    base-6 overs, run rate, strike rate, economy
-  src/fixtures/circle.ts   round-robin by the circle method (pure, no DB)
-  src/fixtures/knockout.ts the four-slot playoff bracket, filled as feeders end
-  src/nrr/index.ts         points + NRR, incl. the bowled-out quota rule (pure)
-  src/dls/table.ts         the ICC Standard Edition resource table, unabridged
-  src/dls/index.ts         resources, par and revised targets (pure)
-  src/qualification/       bounded "can we still qualify" scenarios (pure)
-  src/stats/career.ts      career totals from per-match rows (pure)
+packages/shared/   types, zod schemas, constants: one contract for both apps
+  src/scoring/             cricket reducer, legal-state guard, base-6 formatting
+  src/football/            football reducer, match clock, formations, standings
+  src/fixtures/            round robin by the circle method, playoff bracket
+  src/nrr/                 points and NRR, including the bowled-out quota rule
+  src/dls/                 ICC Standard Edition table, par and revised targets
+  src/qualification/       bounded "can we still qualify" scenarios
+  src/stats/career.ts      career totals from per-match rows
 
 apps/api/          express + prisma + redis
-  src/app.ts               createApp() — no listen(), so it is host-agnostic
-  src/index.ts             long-lived server entry (local dev)
-  src/vercel.ts            serverless entry — exports the server, never listens
-  src/config/env.ts        zod-parsed process.env, throws at boot if incomplete
-  src/lib/                 prisma, redis, logger, errors, lock, slug
+  src/app.ts               createApp(), with no listen(), so any host can run it
+  src/index.ts             long-lived server entry for local dev
+  src/vercel.ts            serverless entry that exports the server
+  src/config/env.ts        zod-parsed process.env; throws at boot if incomplete
   src/middleware/          requireAuth, requireScorerForMatch, rate limits
   src/modules/             auth, users, me, notifications, tournaments, teams,
-                           players, fixtures, matches, scoring, snapshot,
-                           standings, stats
-  src/modules/public/      the no-auth share link surface (slug-addressed)
-  src/realtime/bus.ts      transport-agnostic seam the write path publishes to
+                           players, fixtures, matches, scoring, football, dls,
+                           snapshot, standings, stats
+  src/modules/public/      the no-auth share link routes, addressed by slug
+  src/realtime/bus.ts      the seam the write path publishes to
   src/realtime/io.ts       socket.io + Redis adapter, Redis-backed viewer count
 
 apps/web/          vite + react + tailwind v4
-  src/styles/tokens.css    semantic CSS variables; light/dark, no `dark:` classes
+  src/styles/tokens.css    semantic CSS variables for light and dark
   src/lib/api.ts           fetch wrapper with silent token refresh
   src/lib/socket.ts        one shared socket per tab
-  src/lib/offlineBallQueue.ts   IndexedDB queue for balls scored with no signal
-  src/features/            auth, dashboard, organizer, matches, live, profile,
-                           notifications
+  src/lib/offlineBallQueue.ts   IndexedDB queue for balls scored offline
+  src/features/            auth, dashboard, organizer, matches, football, live,
+                           home, profile, notifications
 
-api/server.ts      the Vercel Function — re-exports the built server
+api/server.ts      the Vercel Function; re-exports the built server
+docs/              storage and recovery runbook
 ```
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | API and web together |
-| `npm run typecheck` | `tsc -b` across all three workspaces |
-| `npm run lint` | ESLint |
-| `npm test` | Vitest over the reducer, fixtures and NRR |
-| `npm run build` | API bundle + web static build |
-| `npm run db:migrate` | Create/apply a migration (uses `DIRECT_URL`) |
-| `npm run db:seed` | Demo tournaments, teams, squads, accounts |
-| `npm run db:studio` | Prisma Studio |
-
----
+| `npm run dev` | Runs the API and web together |
+| `npm run typecheck` | Runs `tsc -b` across all three workspaces |
+| `npm run lint` | Runs ESLint |
+| `npm test` | Runs Vitest |
+| `npm run build` | Builds the API bundle and the web static build |
+| `npm run db:migrate` | Creates and applies a migration through `DIRECT_URL` |
+| `npm run db:deploy` | Applies committed migrations in a release |
+| `npm run db:seed` | Seeds demo tournaments, teams, squads and accounts |
+| `npm run db:maintenance` | Retries pending derived work and prunes expired codes and tokens |
+| `npm run db:studio` | Opens Prisma Studio |

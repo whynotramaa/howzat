@@ -4,7 +4,7 @@ import { ApiError } from '@/lib/api';
 import { Button, TextAction } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Wordmark, WordmarkMark } from '@/components/Wordmark';
+import { WordmarkMark } from '@/components/Wordmark';
 import { useAuth } from './AuthProvider';
 
 type Step = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
@@ -177,7 +177,7 @@ export function LoginPage() {
   return (
     <AuthLayout>
       {step === 'login' ? (
-        <form onSubmit={handleLogin} className="flex flex-col gap-8">
+        <form onSubmit={handleLogin} className="flex flex-col gap-6">
           <FormHeading eyebrow="Welcome back" title="Sign in" lead={null} />
 
           <div className="flex flex-col gap-4">
@@ -226,11 +226,11 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'register' ? (
-        <form onSubmit={handleRegister} className="flex flex-col gap-8">
+        <form onSubmit={handleRegister} className="flex flex-col gap-6">
           <FormHeading
             eyebrow="Join the club"
             title="Create your account"
-            lead="Your username is public."
+            lead={null}
           />
 
           <div className="flex flex-col gap-4">
@@ -248,7 +248,7 @@ export function LoginPage() {
               label="Username"
               autoComplete="username"
               required
-              placeholder="whynotramaa"
+              placeholder="username"
               hint="Public. a-z, 0-9 and _"
               value={username}
               onChange={(event) =>
@@ -292,7 +292,7 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'forgot' ? (
-        <form onSubmit={handleForgot} className="flex flex-col gap-8">
+        <form onSubmit={handleForgot} className="flex flex-col gap-6">
           <FormHeading eyebrow="Account recovery" title="Reset your password" lead={null} />
 
           <Input
@@ -320,7 +320,7 @@ export function LoginPage() {
           />
         </form>
       ) : step === 'reset' ? (
-        <form onSubmit={handleReset} className="flex flex-col gap-8">
+        <form onSubmit={handleReset} className="flex flex-col gap-6">
           <FormHeading
             eyebrow="Account recovery"
             title="Choose a new password"
@@ -333,7 +333,7 @@ export function LoginPage() {
 
           {devCode ? <DevCodeBanner code={devCode} /> : null}
 
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6">
             <CodeInput inputRef={codeInputRef} value={code} onChange={setCode} />
 
             <Input
@@ -380,7 +380,7 @@ export function LoginPage() {
           </div>
         </form>
       ) : (
-        <form onSubmit={handleVerify} className="flex flex-col gap-8">
+        <form onSubmit={handleVerify} className="flex flex-col gap-6">
           <FormHeading
             eyebrow="One step left"
             title="Confirm your email"
@@ -432,55 +432,26 @@ export function LoginPage() {
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh bg-surface lg:grid-cols-[1.05fr_1fr]">
-      <aside className="sticky top-0 hidden h-dvh flex-col self-start p-4 lg:flex">
-        <figure className="relative flex-1 overflow-hidden rounded-[var(--radius-lg)]">
-          <img
-            src="/login-trophy-backdrop.png"
-            alt="Players lifting the trophy on the night of the final"
-            className="absolute inset-0 size-full object-cover object-[50%_20%]"
-          />
-        </figure>
-        <figcaption className="flex items-baseline justify-between gap-6 px-1 pt-4 text-xs text-muted">
-          <span>The final, scored ball by ball.</span>
-          <span className="tabular">Every ball, on the record</span>
-        </figcaption>
-      </aside>
-
-      <main className="flex flex-col px-6 py-7 sm:px-12 lg:px-20">
-        <header className="flex items-center justify-between">
-          <Link to="/" aria-label="Howzat home">
-            <Wordmark size="sm" />
-          </Link>
-          <ThemeToggle />
-        </header>
-
-        <div className="flex flex-1 items-center py-14">
-          <div className="w-full max-w-[26rem]">{children}</div>
-        </div>
-
-        <p className="text-xs text-muted">
-          Spectators never need an account. Share the live link instead.
-        </p>
-      </main>
+    <div className="flex min-h-dvh flex-col bg-surface px-4 py-5 sm:px-6">
+      <header className="mx-auto flex w-full max-w-[1120px] items-center justify-between">
+        <Link to="/" aria-label="Howzat home" className="flex items-center gap-2">
+          <WordmarkMark size="sm" />
+          <span className="text-[0.9375rem] font-semibold tracking-tight">Howzat</span>
+        </Link>
+        <ThemeToggle />
+      </header>
+      <div className="flex flex-1 items-center justify-center py-10">
+        <div className="w-full max-w-[22rem]">{children}</div>
+      </div>
     </div>
   );
 }
 
-function FormHeading({
-  eyebrow,
-  title,
-  lead,
-}: {
-  eyebrow: string;
-  title: string;
-  lead: ReactNode;
-}) {
+function FormHeading({ title, lead }: { eyebrow?: string; title: string; lead?: ReactNode }) {
   return (
     <div>
-      <p className="eyebrow">{eyebrow}</p>
-      <h1 className="display mt-5 text-[clamp(2.25rem,5vw,3.25rem)] text-primary">{title}</h1>
-      {lead ? <p className="mt-3 text-sm text-secondary">{lead}</p> : null}
+      <h1 className="text-[1.375rem] font-semibold tracking-tight text-primary">{title}</h1>
+      {lead ? <p className="mt-1 text-[0.8125rem] text-muted">{lead}</p> : null}
     </div>
   );
 }
@@ -495,7 +466,7 @@ function FormFooter({
   onClick: () => void;
 }) {
   return (
-    <p className="border-t border-line pt-6 text-sm text-secondary">
+    <p className="text-center text-[0.8125rem] text-muted">
       {question}{' '}
       <button
         type="button"
@@ -529,7 +500,7 @@ function CodeInput({
       placeholder="000000"
       value={value}
       onChange={(event) => onChange(event.target.value.replace(/\D/g, ''))}
-      className="display tabular h-16 text-center text-[2.25rem] tracking-[0.4em] placeholder:text-[var(--line-strong)]"
+      className="mono h-14 text-center text-[1.75rem] tracking-[0.4em] placeholder:text-[var(--line-strong)]"
     />
   );
 }

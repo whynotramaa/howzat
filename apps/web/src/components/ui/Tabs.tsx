@@ -23,7 +23,7 @@ export function Tabs<T extends string>({
       role="group"
       aria-label="View options"
       className={cn(
-        'flex w-full max-w-full gap-6 overflow-x-auto overflow-y-hidden border-b border-line',
+        'flex max-w-full gap-6 overflow-x-auto border-b border-line',
         className,
       )}
     >
@@ -37,17 +37,17 @@ export function Tabs<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              'relative inline-flex h-12 shrink-0 items-center gap-2 border-b-2 px-1',
-              'text-[0.875rem] font-medium whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
+              '-mb-px inline-flex h-10 shrink-0 items-center gap-1.5 border-b-2',
+              'text-[0.9375rem] whitespace-nowrap transition-colors duration-[var(--dur-fast)]',
               active
-                ? 'border-current text-primary'
-                : 'border-transparent text-muted hover:text-primary',
+                ? 'border-[var(--text-primary)] font-semibold text-primary'
+                : 'border-transparent font-medium text-muted hover:text-secondary',
             )}
           >
             {item.label}
             {item.meta !== undefined ? (
               <span
-                className={cn('tabular text-[0.75rem]', active ? 'text-secondary' : 'text-muted')}
+                className="bg-sunken px-1.5 text-xs leading-[18px] font-semibold text-muted"
               >
                 {item.meta}
               </span>

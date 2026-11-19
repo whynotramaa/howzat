@@ -50,7 +50,7 @@ export function Toaster() {
       {items.map((item) => (
         <div
           key={item.id}
-          className="sheet-in flex items-center gap-2.5 rounded-[var(--radius-md)] border border-line bg-raised py-3 pr-2 pl-4 shadow-[var(--shadow-lg)]"
+          className="sheet-in flex items-center gap-2.5 rounded-[var(--radius-md)] border border-line bg-raised py-3 pr-2 pl-4"
           role={item.tone === 'error' ? 'alert' : 'status'}
         >
           <span

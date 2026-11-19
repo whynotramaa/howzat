@@ -3,32 +3,35 @@
 @import './scoring.css';
 
 @font-face {
-  font-family: 'Gilroy';
-  font-style: normal;
-  font-weight: 400;
+  font-family: 'DM Sans';
+  font-weight: 100 1000;
   font-display: swap;
-  src: url('/fonts/Gilroy-400.woff') format('woff');
+  src: url('/fonts/DMSans.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Gilroy';
-  font-style: normal;
+  font-family: 'Barlow Condensed';
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/Gilroy-500.woff') format('woff');
+  src: url('/fonts/BarlowCondensed-500.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Gilroy';
-  font-style: normal;
+  font-family: 'Barlow Condensed';
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/Gilroy-700.woff') format('woff');
+  src: url('/fonts/BarlowCondensed-700.woff2') format('woff2');
 }
 
 @font-face {
   font-family: 'Behind The Nineties';
-  font-style: normal;
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/BehindTheNineties.woff2') format('woff2');
@@ -36,7 +39,6 @@
 
 @font-face {
   font-family: 'Apple Garamond';
-  font-style: normal;
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/AppleGaramond.woff2') format('woff2');
@@ -44,7 +46,6 @@
 
 @font-face {
   font-family: 'Apple Garamond';
-  font-style: normal;
   font-weight: 300;
   font-display: swap;
   src: url('/fonts/AppleGaramond-Light.woff2') format('woff2');
@@ -91,10 +92,11 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
 
-  --font-sans: 'Gilroy', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-serif: 'Behind The Nineties', 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
   --font-book: 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  --font-mono: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, sans-serif;
+  --font-code: ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --font-hand: 'Apple Garamond', Garamond, ui-serif, Georgia, serif;
   --color-cta: var(--cta);
 }
@@ -111,8 +113,9 @@ body {
   background: var(--surface);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.9375rem;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 22px;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -168,7 +171,7 @@ h1,
 h2,
 h3 {
   text-wrap: balance;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
 
 button,
@@ -187,9 +190,9 @@ select {
 
 .display {
   font-family: var(--font-sans);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.025em;
-  line-height: 1.08;
+  line-height: 1.12;
 }
 
 .display em {
@@ -266,13 +269,28 @@ address {
   }
 }
 
-.eyebrow {
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
+.eyebrow,
+.t-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.t-caption {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.t-fig {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
 }
 
 .tabular,
@@ -283,15 +301,17 @@ table {
 }
 
 .mono {
-  letter-spacing: -0.005em;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .score-figure {
-  font-family: var(--font-sans);
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.01em;
-  line-height: 0.9;
+  line-height: 0.875;
 }
 
 .hand {
@@ -300,8 +320,8 @@ table {
 
 .btn-primary {
   background: var(--accent-grad);
-  color: #fff;
-  border: 1px solid color-mix(in oklab, var(--cta) 80%, #000);
+  color: var(--on-accent);
+  font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -309,13 +329,32 @@ table {
 }
 
 .btn-secondary {
-  background: transparent;
+  background: var(--surface-sunken);
   color: var(--text-primary);
-  border: 1px solid var(--line-strong);
+  font-weight: 600;
 }
 
 .btn-secondary:hover {
-  border-color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+body *:not(:is(.landing, .landing *, .eng-paper, .eng-paper *)),
+body *:not(:is(.landing, .landing *, .eng-paper, .eng-paper *))::before,
+body *:not(:is(.landing, .landing *, .eng-paper, .eng-paper *))::after {
+  border-radius: 0 !important;
+}
+
+.press,
+.button {
+  transition:
+    transform var(--dur) var(--ease),
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.press:active:not(:disabled),
+.button:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .card-lift {
@@ -661,10 +700,8 @@ table {
   color: var(--text-primary);
   font-size: 0.8125rem;
   font-weight: 500;
-  box-shadow: 0 4px 0 var(--line-strong);
   transition:
     transform 120ms var(--ease),
-    box-shadow 120ms var(--ease),
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease);
 }
@@ -676,7 +713,6 @@ table {
 
 .console-key:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--line-strong);
   transition-duration: 60ms;
 }
 
@@ -734,7 +770,6 @@ table {
   justify-content: center;
   border-radius: var(--push-radius);
   background: var(--push-tone);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
   transition:
     transform var(--dur-fast) var(--ease),
     filter var(--dur-fast) var(--ease);
@@ -831,9 +866,6 @@ table {
 }
 
 .avatar-ring {
-  box-shadow:
-    0 0 0 2px var(--surface-raised),
-    0 0 0 3px var(--ring, var(--line-strong));
 }
 
 .app-topbar {
@@ -906,6 +938,11 @@ table {
 
 .assist-mode button {
   min-height: 44px;
+}
+
+.assist-mode .pad-key.h-14 {
+  height: 4.5rem;
+  font-size: 1.5rem;
 }
 
 .assist-note {
@@ -1006,7 +1043,6 @@ table {
   fill: var(--text-secondary);
 }
 
-/* Gilroy leads the interface; serif is reserved for brand and editorial accents. */
 button,
 input,
 select,
@@ -1018,162 +1054,101 @@ label,
 table {
   font-family: var(--font-sans);
 }
-.button {
-  transition:
-    background-color var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
-    transform 100ms var(--ease);
-}
-.button:active:not(:disabled) {
-  transform: scale(0.98);
-}
+
 summary::-webkit-details-marker {
   display: none;
 }
-.masthead-nav a {
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 500;
-}
-.scoreboard {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line-strong);
-  background: transparent;
-}
-.scoreboard > div:first-child,
-.scoreboard > div:nth-child(2) {
-  padding-inline: 0;
-}
-.scoreboard > div:first-child p:first-child {
-  font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 500;
-}
-.scoreboard .board-stat dd {
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 500;
-}
+
+.scoreboard,
 .crease-card,
-.score-panel {
-  border: 0;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
+.score-panel,
+.football-scoreline,
+.football-console,
+.football-log {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
 }
+
+.scoreboard .board-stat dd {
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
 .crease-name {
-  font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.35;
 }
+
 .crease-stat {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
 .crease-stat > span {
   font-size: 10px;
   color: var(--text-muted);
 }
+
 .rpo-col:focus .rpo-tip,
 .rpo-col:focus-within .rpo-tip {
   opacity: 1;
 }
-.scoring-console .roll-strip {
-  transition: none;
-}
-.scoring-console .scoreboard > div:first-child {
-  padding-top: 12px;
-  gap: 8px;
-}
-.scoring-console .scoreboard > div:first-child > div {
-  gap: 8px;
-}
-.scoring-console .scoreboard > div:first-child p:first-child {
-  font-size: 15px;
-}
-.scoring-console .scoreboard > div:first-child > span {
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  text-transform: none;
-}
-.scoring-console .scoreboard > div:nth-child(2) {
-  padding-top: 10px;
-  padding-bottom: 16px;
-}
-.scoring-console .pad {
-  border: 0;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  padding-inline: 0;
-  background: transparent;
-}
-.scoring-console .pad-key {
-  border-radius: 3px;
-  font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 500;
-}
-.scoring-console .pad-key[data-tone='six'] {
-  background: var(--text-primary);
-}
-.scoring-console .pad-key[data-tone='quiet'],
-.scoring-console .pad-key[data-tone='wicket'],
-.scoring-console .pad-seg .pad-key {
-  font-family: var(--font-sans);
-  font-size: 13px;
-}
-.scoring-console .pad-seg {
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  padding: 0 0 8px;
-  background: transparent;
-}
+
 .stat-strip {
   gap: 0;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
 }
+
 .stat-tile {
   border: 0;
   border-radius: 0;
   background: transparent;
 }
+
 .stat-tile + .stat-tile {
   border-left: 1px solid var(--line);
 }
+
 .stat-tile .score-figure {
-  font-size: 28px;
+  font-size: 1.5rem;
 }
-.page-header {
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--line-strong);
-}
+
+.page-title,
 .page-header h1 {
-  font-size: clamp(1.75rem, 3vw, 2rem);
+  font-size: 32px;
+  line-height: 36px;
   font-weight: 700;
-  line-height: 1.2;
+  letter-spacing: -0.025em;
 }
+
 .section-title {
-  font-family: var(--font-sans);
-  font-size: 18px;
-  line-height: 1.35;
-  font-weight: 700;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
 }
-.football-scoreline {
-  border: 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
-  background: transparent;
+
+#main-content h2.display,
+#main-content h3.display {
+  font-size: 1.0625rem;
+  line-height: 1.3;
 }
-.match-ledger .eyebrow {
-  letter-spacing: 0.08em;
+
+.row-link {
+  transition: background-color var(--dur-fast) var(--ease);
 }
+
+.row-link:hover {
+  background: var(--surface-hover);
+}
+
 @media (max-width: 639px) {
   .crease-heading {
     display: flex;
@@ -1191,118 +1166,12 @@ summary::-webkit-details-marker {
     text-align: left;
     font-size: 13px;
   }
-  .scoreboard > div:nth-child(2) {
-    gap: 12px;
-  }
-  .scoreboard > div:nth-child(2) > div {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .scoreboard .board-stat {
-    align-items: flex-start;
-  }
-  .scoreboard > div:nth-child(2) > dl {
-    flex-direction: column;
-    gap: 6px;
-    margin-left: auto;
-  }
-  .scoreboard > div:first-child p:first-child {
-    font-size: 15px;
-  }
-  .masthead > a .serif {
-    font-size: 26px;
-  }
   .stat-tile:nth-child(3) {
     border-left: 0;
   }
   .stat-tile:nth-child(n + 3) {
     border-top: 1px solid var(--line);
   }
-  .page-header {
-    padding-bottom: 20px;
-  }
-  .page-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    width: 100%;
-  }
-  .page-actions > a,
-  .page-actions > button {
-    width: 100%;
-  }
-  .match-side {
-    gap: 10px;
-  }
-  .match-side > span:nth-child(2) {
-    font-size: 15px;
-  }
-}
-@media (max-width: 359px) {
-  .scoring-console .scoreboard .score-figure {
-    font-size: 2.25rem;
-  }
-  .scoring-console .scoreboard .mono.text-lg {
-    font-size: 0.875rem;
-  }
-}
-
-.scoring-workspace header h1 {
-  font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 500;
-}
-.football-scoreline p {
-  font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: 500;
-}
-.football-console,
-.football-log {
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-}
-.football-log {
-  border-top: 1px solid var(--line-strong);
-}
-.football-log .eyebrow {
-  font-weight: 500;
-}
-summary {
-  font-family: var(--font-sans);
-}
-
-#main-content h2.display,
-#main-content h3.display {
-  font-size: 20px;
-  line-height: 1.3;
-}
-.dashboard-secondary .section-title {
-  font-size: 14px;
-  font-weight: 700;
-}
-.dashboard .match-ledger {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  padding: 20px;
-  background: var(--surface-raised);
-}
-.dashboard .stat-strip {
-  border-top: 1px solid var(--line);
-  border-bottom: 0;
-}
-.dashboard .stat-tile {
-  gap: 12px;
-  padding-block: 16px;
-}
-.dashboard .stat-tile .score-figure {
-  font-weight: 500;
-}
-.dashboard .stat-tile .eyebrow {
-  font-size: 11px;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .live-page .scoreboard,
@@ -1531,64 +1400,45 @@ summary {
   }
 }
 
-.tournaments-page .page-header {
-  padding-bottom: 24px;
+.tabbar a[aria-current='page'] .ic-line,
+.tabbar a:not([aria-current='page']) .ic-fill,
+.seg-nav a[aria-current='page'] .ic-line,
+.seg-nav a:not([aria-current='page']) .ic-fill {
+  display: none;
 }
-.tournaments-page .page-header h1 {
-  margin-top: 0;
-}
-.tournament-section-count {
-  display: inline-grid;
-  min-width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 6px;
+
+.seg-nav {
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
   background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.seg-nav a {
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 0 14px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
 }
-.tournament-card {
-  min-height: 204px;
-  padding: 20px 20px 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
+
+.seg-nav a svg {
+  width: 18px;
+  height: 18px;
+}
+
+.seg-nav a:hover {
+  color: var(--text-primary);
+}
+
+.seg-nav a[aria-current='page'] {
   background: var(--surface-raised);
-  transition: border-color var(--dur-fast) var(--ease);
-}
-.tournament-status {
-  min-height: 25px;
-  padding: 6px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.tournament-name {
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-}
-.tournament-card-footer {
-  min-height: 56px;
-  border-top: 1px solid var(--line);
-  padding-block: 10px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .tournament-card:hover {
-    border-color: var(--line-strong);
-  }
-  .tournament-card:hover .tournament-card-arrow {
-    background: var(--surface-sunken);
-    color: var(--text-primary);
-  }
-}
-@media (max-width: 639px) {
-  .tournament-card {
-    padding-inline: 16px;
-  }
-  .tournament-name {
-    font-size: 19px;
-  }
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--text-primary);
+  font-weight: 600;
 }

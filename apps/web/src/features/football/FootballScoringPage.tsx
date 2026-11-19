@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { ErrorText, Skeleton } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
-import { PushButton } from '@/components/ui/PushButton';
 import { SportMark } from '@/components/ui/SportMark';
 import { PlayerTiles } from '@/components/ui/PlayerTiles';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -98,53 +97,68 @@ export function FootballScoringPage() {
   }
 
   return (
-    <div className={cn('flex flex-col gap-4', assisted && 'assist-mode')}>
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            to={`/matches/${matchId}`}
-            aria-label="Back to match"
-            className="grid size-11 shrink-0 place-items-center rounded-full border border-line-strong text-secondary"
-          >
-            ←
-          </Link>
-          <h1 className="text-base font-semibold whitespace-nowrap sm:text-xl">
-            {data.home.team.shortName} <span className="mx-1 text-muted">v</span>{' '}
-            {data.away.team.shortName}
-          </h1>
-        </div>
+    <div
+      className={cn(
+        'mx-auto flex w-full max-w-[1120px] flex-col gap-3 px-3 pt-2 pb-10 sm:px-6',
+        assisted && 'assist-mode',
+      )}
+    >
+      <header className="flex h-11 items-center gap-2">
+        <Link
+          to="/dashboard"
+          aria-label="Back to matches"
+          className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] border border-line bg-raised text-secondary hover:text-primary"
+        >
+          <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M10 3.5 5.5 8l4.5 4.5" />
+          </svg>
+        </Link>
+        <h1 className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold">
+          {data.home.team.shortName} v {data.away.team.shortName}
+        </h1>
         <Disclosure className="relative shrink-0">
-          <summary className="flex min-h-11 cursor-pointer items-center rounded-md border border-line-strong px-4 text-sm font-medium">
-            Match tools
+          <summary
+            aria-label="Match tools"
+            className="grid size-9 cursor-pointer place-items-center rounded-[var(--radius-md)] border border-line bg-raised text-secondary hover:text-primary"
+          >
+            <svg viewBox="0 0 16 16" className="size-4" fill="currentColor" aria-hidden>
+              <circle cx="3.5" cy="8" r="1.25" />
+              <circle cx="8" cy="8" r="1.25" />
+              <circle cx="12.5" cy="8" r="1.25" />
+            </svg>
           </summary>
-          <div className="absolute right-0 top-full z-40 mt-2 flex w-64 flex-wrap gap-2 rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-[var(--shadow-md)]">
+          <div className="absolute right-0 top-full z-40 mt-2 flex w-56 flex-col rounded-[var(--radius-lg)] border border-line bg-raised p-1 text-[0.8125rem]">
             <button
               type="button"
               aria-pressed={assisted}
               onClick={() => setAssisted(!assisted)}
-              className="min-h-11 rounded-md border border-line-strong px-4 text-sm"
+              className="flex h-9 items-center justify-between rounded-[var(--radius-sm)] px-2.5 text-left hover:bg-hover"
             >
-              Assist {assisted ? 'on' : 'off'}
+              Large keys <span className="text-muted">{assisted ? 'On' : 'Off'}</span>
             </button>
+            <Link
+              to={`/matches/${matchId}`}
+              className="flex h-9 items-center rounded-[var(--radius-sm)] px-2.5 hover:bg-hover"
+            >
+              Match details
+            </Link>
             {snapshot ? (
-              <ShareLink
-                slug={snapshot.publicSlug}
-                matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
-                label="Share live"
-              />
+              <div className="px-1.5 py-1">
+                <ShareLink
+                  slug={snapshot.publicSlug}
+                  variant="quiet"
+                  matchLabel={`${data.home.team.shortName} v ${data.away.team.shortName}`}
+                  label="Share"
+                />
+              </div>
             ) : null}
           </div>
         </Disclosure>
       </header>
-      {assisted ? (
-        <p className="assist-note">
-          Start the clock. Record events. End the period at the whistle.
-        </p>
-      ) : null}
       {!online ? (
         <p
           role="status"
-          className="rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm"
+          className="rounded-[var(--radius-md)] border border-warning bg-warning-soft px-3 py-2 text-sm"
         >
           Offline. Reconnect to record events.
         </p>
@@ -157,7 +171,7 @@ export function FootballScoringPage() {
         resultText={snapshot?.resultText ?? null}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-5">
         <Card className="football-console overflow-hidden">
           <ClockBar
             clock={watch.clock}
@@ -168,7 +182,7 @@ export function FootballScoringPage() {
             error={clockCommand.error}
           />
 
-          <div className="border-t border-line px-5 py-6 sm:px-8 sm:py-7">
+          <div className="border-t border-line p-3 sm:p-4">
             {watch.clock ? (
               <>
                 <GoalKey
@@ -176,7 +190,7 @@ export function FootballScoringPage() {
                   onPress={() => setPending({ kind: 'GOAL' })}
                 />
 
-                <div className="mt-3 grid grid-cols-3 gap-3">
+                <div className="mt-2 grid grid-cols-3 gap-2">
                   <MinorKey
                     label="Save"
                     disabled={!canRecord || busy}
@@ -231,11 +245,7 @@ export function FootballScoringPage() {
               </>
             ) : (
               <p className="rounded-[var(--radius-md)] border border-dashed border-line-strong px-5 py-5 text-center text-[0.8125rem] text-secondary">
-                This match has not kicked off yet.{' '}
-                <Link to={`/matches/${matchId}`} className="text-accent">
-                  Name the team sheets first
-                </Link>
-                .
+                Not kicked off.
               </p>
             )}
           </div>
@@ -343,13 +353,13 @@ function Scoreline({
         }}
       />
 
-      <CardBody className="flex items-center justify-between gap-4 py-4">
+      <CardBody className="flex items-center justify-between gap-3 px-3 py-3 sm:px-4">
         <TeamScore team={home} align="left" />
 
-        <div className="flex shrink-0 flex-col items-center gap-2">
+        <div className="flex shrink-0 flex-col items-center gap-1">
           <span
             key={`${homeGoals}-${awayGoals}`}
-            className="score-bump score-figure flex items-center gap-3 text-[2.25rem] text-primary sm:text-[2.75rem]"
+            className="score-bump score-figure flex items-center gap-3 text-[2.5rem] text-primary sm:text-[3rem]"
           >
             {homeGoals}
             <span className="text-[0.5em] text-line-strong">—</span>
@@ -377,7 +387,7 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
         align === 'right' ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left',
       )}
     >
-      <TeamMark shortName={team.shortName} color={team.primaryColor} size="lg" />
+      <TeamMark shortName={team.shortName} color={team.primaryColor} size="md" />
 
       <div className="min-w-0 max-w-full">
         <p className="break-words text-sm font-semibold text-primary sm:text-base">{team.name}</p>
@@ -388,19 +398,16 @@ function TeamScore({ team, align }: { team: TeamRef; align: 'left' | 'right' }) 
 
 function GoalKey({ disabled, onPress }: { disabled: boolean; onPress: () => void }) {
   return (
-    <PushButton
-      tone="var(--cta)"
-      depth={10}
-      radius="var(--radius-xl)"
+    <button
+      type="button"
       disabled={disabled}
       onClick={onPress}
-      className="w-full"
-      faceClassName="h-24 gap-1.5 text-white"
-      ariaLabel="Record a goal"
+      aria-label="Record a goal"
+      className="button flex h-20 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--accent-grad)] text-on-accent disabled:opacity-40"
     >
-      <SportMark sport="FOOTBALL" className="size-7 opacity-95" />
-      <span className="text-[1.5rem] leading-none font-semibold tracking-[-0.01em]">Goal</span>
-    </PushButton>
+      <SportMark sport="FOOTBALL" className="size-6" />
+      <span className="text-xl font-semibold">Goal</span>
+    </button>
   );
 }
 
@@ -416,7 +423,7 @@ function MinorKey({
   onPress: () => void;
 }) {
   return (
-    <button type="button" className="console-key h-16 w-full" disabled={disabled} onClick={onPress}>
+    <button type="button" className="console-key h-14 w-full" disabled={disabled} onClick={onPress}>
       <span aria-hidden className="flex items-center">
         {glyph}
       </span>

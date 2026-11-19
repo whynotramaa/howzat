@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/cn';
 
 const fieldShell = cn(
-  'h-12 w-full rounded-[var(--radius-md)] border bg-raised px-4 text-base text-primary',
+  'h-10 w-full rounded-[var(--radius-md)] border bg-raised px-3 text-[0.9375rem] text-primary sm:text-sm',
   'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
   'placeholder:text-muted',
 );
@@ -19,7 +19,7 @@ const fieldShell = cn(
 function stateBorder(hasError: boolean): string {
   return hasError
     ? 'border-[var(--alert)]'
-    : 'border-line-strong hover:border-primary focus:border-[var(--focus)]';
+    : 'border-line hover:border-line-strong focus:border-[var(--focus)]';
 }
 
 export function Field({
@@ -38,8 +38,8 @@ export function Field({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <label htmlFor={htmlFor} className="text-[0.8125rem] font-medium text-primary">
+    <div className={cn('flex flex-col gap-1.5', className)}>
+      <label htmlFor={htmlFor} className="text-[0.8125rem] font-medium text-secondary">
         {label}
       </label>
 
@@ -85,8 +85,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const resolvedType = isPassword && revealed ? 'text' : type;
 
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={inputId} className="text-[0.8125rem] font-medium text-primary">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={inputId} className="text-[0.8125rem] font-medium text-secondary">
         {label}
       </label>
 

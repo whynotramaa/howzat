@@ -12,7 +12,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function SkeletonCard({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-5 shadow-[var(--shadow-sm)]">
+    <div className="rounded-[var(--radius-lg)] border border-line bg-raised p-4">
       <div className="h-4 w-2/5 animate-pulse rounded bg-sunken" />
       <div className="mt-4 flex flex-col gap-2.5">
         {Array.from({ length: rows }).map((_, index) => (
@@ -46,7 +46,7 @@ export function ErrorText({ error, onRetry }: { error: unknown; onRetry?: () => 
     <div
       role="alert"
       className={cn(
-        'rounded-[var(--radius-md)] border border-[var(--alert)]/40 bg-alert-soft px-4 py-3.5',
+        'rounded-[var(--radius-md)] border border-[var(--alert)]/30 bg-alert-soft px-3.5 py-3',
         'text-sm text-primary',
       )}
     >
@@ -55,7 +55,7 @@ export function ErrorText({ error, onRetry }: { error: unknown; onRetry?: () => 
         <button
           type="button"
           onClick={onRetry}
-          className="mt-2 min-h-11 rounded-md border border-line-strong bg-raised px-4 text-sm font-medium"
+          className="mt-2 h-9 rounded-[var(--radius-md)] border border-line bg-raised px-3 text-[0.8125rem] font-medium"
         >
           Retry
         </button>

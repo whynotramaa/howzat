@@ -16,24 +16,26 @@ export interface MatchSide {
 function Side({ side, decided }: { side: MatchSide | null; decided: boolean }) {
   if (!side)
     return (
-      <div className="flex min-h-10 items-center gap-3">
-        <span className="w-9 text-center text-muted">—</span>
-        <span className="font-sans text-xl text-muted">To be decided</span>
+      <div className="flex min-h-8 items-center gap-2.5">
+        <span className="grid size-8 place-items-center rounded-[7px] border border-dashed border-line-strong text-muted">
+          ?
+        </span>
+        <span className="text-sm text-muted">To be decided</span>
       </div>
     );
   return (
-    <div className="match-side flex min-w-0 items-center gap-3">
+    <div className="match-side flex min-w-0 items-center gap-2.5">
       <TeamMark shortName={side.shortName} color={side.color} size="md" />
       <span
         className={cn(
-          'min-w-0 flex-1 break-words font-sans text-base font-medium leading-snug',
+          'min-w-0 flex-1 truncate text-sm font-medium',
           decided && !side.winner ? 'text-secondary' : 'text-primary',
         )}
       >
         {side.name}
       </span>
       {side.score != null && side.score !== '' ? (
-        <span className="score-figure shrink-0 text-[1.875rem]">{side.score}</span>
+        <span className="score-figure shrink-0 text-lg">{side.score}</span>
       ) : null}
       {side.note ? <span className="text-xs text-muted">{side.note}</span> : null}
     </div>
@@ -71,7 +73,7 @@ export function MatchCard({
     <article
       style={style}
       className={cn(
-        'match-ledger relative flex min-w-0 flex-col border-t border-line-strong py-5',
+        'match-ledger relative flex min-w-0 flex-col rounded-[var(--radius-lg)] border border-line bg-raised p-4 transition-colors hover:border-line-strong',
         className,
       )}
     >
@@ -84,23 +86,23 @@ export function MatchCard({
       ) : null}
 
       <div className="pointer-events-none relative flex min-h-6 items-center justify-between gap-3">
-        <div className="eyebrow min-w-0 truncate">{eyebrow}</div>
+        <div className="min-w-0 truncate text-xs text-muted">{eyebrow}</div>
         <StatusPill status={status} />
       </div>
 
-      <div className="pointer-events-none relative mt-4 grid gap-3">
+      <div className="pointer-events-none relative mt-3 grid gap-2">
         <Side side={home} decided={decided} />
         <Side side={away} decided={decided} />
       </div>
 
       {result ? (
-        <p className="pointer-events-none relative mt-3 font-sans text-[1.0625rem] leading-snug text-primary italic">
+        <p className="pointer-events-none relative mt-3 text-[0.8125rem] font-medium text-primary">
           {result}
         </p>
       ) : null}
 
       {meta || actions ? (
-        <div className="relative mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="relative mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line pt-3">
           <div className="pointer-events-none min-w-0 text-xs text-muted">{meta}</div>
           {actions ? (
             <div className="relative z-10 flex items-center gap-1.5">{actions}</div>
@@ -125,26 +127,21 @@ function HeroSide({
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-col items-center gap-4 text-center md:flex-row md:gap-5',
+        'flex min-w-0 flex-col items-center gap-2 text-center md:flex-row md:gap-4',
         align === 'end' ? 'md:flex-row-reverse md:text-right' : 'md:text-left',
       )}
     >
       {side ? (
-        <TeamMark
-          shortName={side.shortName}
-          color={side.color}
-          size="xl"
-          className="max-sm:!size-16"
-        />
+        <TeamMark shortName={side.shortName} color={side.color} size="xl" />
       ) : (
-        <span className="grid size-16 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-line-strong font-sans text-2xl text-muted md:size-20">
+        <span className="grid size-14 shrink-0 place-items-center rounded-[12px] border border-dashed border-line-strong text-lg text-muted">
           ?
         </span>
       )}
       <div className="min-w-0">
         <p
           className={cn(
-            'display line-clamp-2 text-[clamp(1.375rem,3vw,2.5rem)]',
+            'line-clamp-2 text-[0.9375rem] font-semibold sm:text-lg',
             faded ? 'text-secondary' : 'text-primary',
           )}
         >
@@ -153,7 +150,7 @@ function HeroSide({
         {side?.score != null && side.score !== '' ? (
           <p
             className={cn(
-              'score-figure tabular mt-2 text-[clamp(1.75rem,3.4vw,2.75rem)]',
+              'score-figure tabular mt-1 text-2xl',
               faded ? 'text-muted' : 'text-primary',
             )}
           >
@@ -190,36 +187,35 @@ export function MatchHero({
   return (
     <section
       className={cn(
-        'reveal paper-grain relative overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised px-5 py-7 md:px-10 md:py-10',
+        'relative overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised px-4 py-5 md:px-8 md:py-6',
         className,
       )}
     >
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex items-center justify-between gap-3">
         {eyebrow ? (
-          <div className="eyebrow flex flex-wrap justify-center gap-x-2.5">{eyebrow}</div>
-        ) : null}
+          <div className="flex min-w-0 flex-wrap gap-x-2 text-xs text-muted">{eyebrow}</div>
+        ) : (
+          <span />
+        )}
         <StatusPill status={status} />
       </div>
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-8">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-8">
         <HeroSide side={home} decided={decided} align="start" />
-        <span
-          aria-hidden
-          className="grid size-12 place-items-center rounded-full border border-line-strong bg-surface font-sans text-[1.5rem] leading-none text-secondary italic md:size-14"
-        >
-          v
+        <span aria-hidden className="text-xs font-medium text-muted">
+          vs
         </span>
         <HeroSide side={away} decided={decided} align="end" />
       </div>
       {result ? (
-        <p className="display mx-auto mt-8 max-w-[34ch] text-center text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">
+        <p className="mx-auto mt-5 max-w-[40ch] text-center text-sm font-medium text-primary">
           {result}
         </p>
       ) : null}
       {detail ? (
-        <div className="mt-5 text-center text-[0.8125rem] text-secondary">{detail}</div>
+        <div className="mt-3 text-center text-[0.8125rem] text-muted">{detail}</div>
       ) : null}
       {actions ? (
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-2 border-t border-dashed border-line pt-6">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2 border-t border-line pt-4">
           {actions}
         </div>
       ) : null}

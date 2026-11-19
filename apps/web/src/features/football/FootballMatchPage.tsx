@@ -110,9 +110,9 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
   if (!data) return null;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4">
-        <BackLink to={`/tournaments/${match.tournamentId}/fixtures`}>Fixtures</BackLink>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <BackLink to={`/tournaments/${match.tournamentId}?tab=fixtures`}>Fixtures</BackLink>
         <MatchHero
           eyebrow={
             <>
@@ -141,16 +141,12 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
             winner: match.winnerTeamId === data.away.id,
           }}
           result={finished ? (match.resultText ?? 'No result') : undefined}
-          detail={
-            started
-              ? 'The match is under way, so the team sheets are locked.'
-              : 'Name both starting sides on the pitch, set the clock, then kick off.'
-          }
+
           actions={
             <>
               {started && !finished ? (
                 <ButtonLink to={`/matches/${match.id}/score`} size="sm">
-                  Open the console
+                  Resume scoring
                 </ButtonLink>
               ) : null}
               <ButtonLink
@@ -178,7 +174,7 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
         <div className="flex flex-col gap-4">
           <Pitch
             home={lineups.home}
@@ -207,14 +203,14 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
                     setActiveSlot(null);
                   }}
                   className={cn(
-                    'flex items-center gap-3 rounded-[var(--radius-xl)] border px-3.5 py-2.5',
+                    'flex items-center gap-2.5 rounded-[var(--radius-md)] border px-3 py-2',
                     'transition-colors duration-[var(--dur-fast)]',
                     activeSide === side
-                      ? 'border-primary bg-raised'
+                      ? 'border-[var(--text-primary)] bg-raised'
                       : 'border-line bg-raised hover:border-line-strong',
                   )}
                 >
-                  <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="md" />
+                  <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="sm" />
                   <span className="text-sm font-medium text-primary">{squad.name}</span>
                   <Pill tone={complete ? 'success' : 'neutral'}>
                     {side === 'HOME' ? countNamed(homeSelection) : countNamed(awaySelection)}/
@@ -240,56 +236,50 @@ export function FootballMatchPage({ match }: { match: MatchWithInningsDto }) {
         ) : null}
       </div>
 
+      {saveLineups.error ? <ErrorText error={saveLineups.error} /> : null}
+      {kickOff.error ? <ErrorText error={kickOff.error} /> : null}
+
+      {!started && clockSetting ? (
+        <>
+          <details className="rounded-[var(--radius-lg)] border border-line bg-raised">
+            <summary className="flex h-12 cursor-pointer items-center justify-between px-4 text-sm font-medium">
+              Match length
+              <span className="mono text-xs text-muted">
+                {clockSetting.periods} × {clockSetting.periodMinutes} min ·{' '}
+                {substitutionLimit === null ? 'rolling subs' : `${substitutionLimit} subs`}
+              </span>
+            </summary>
+            <div className="flex flex-col gap-6 border-t border-line p-4">
+              <PeriodDesigner
+                periods={clockSetting.periods}
+                periodMinutes={clockSetting.periodMinutes}
+                onChange={setClock}
+              />
+              <SubstitutionRule
+                value={substitutionLimit}
+                onChange={(value) => setSubLimit({ value })}
+              />
+            </div>
+          </details>
+          <div className="sticky bottom-0 -mx-4 border-t border-line bg-surface px-4 py-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+            <Button
+              size="lg"
+              fullWidth
+              disabled={!bothComplete}
+              isLoading={saveLineups.isPending || kickOff.isPending}
+              onClick={() => void handleSaveAndKickOff()}
+            >
+              {bothComplete ? 'Kick off' : 'Name both starting sides'}
+            </Button>
+          </div>
+        </>
+      ) : null}
+
       <MatchScorersCard
         tournamentId={match.tournamentId}
         matchId={match.id}
         scorers={match.scorers}
       />
-
-      {saveLineups.error ? <ErrorText error={saveLineups.error} /> : null}
-      {kickOff.error ? <ErrorText error={kickOff.error} /> : null}
-
-      {!started && clockSetting ? (
-        <Card>
-          <CardHeader className="border-0 px-6 pt-6 pb-0">
-            <p className="eyebrow mb-2.5">This match</p>
-            <p className="display text-[1.875rem] text-primary">How long are we playing?</p>
-            <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
-              Set for this fixture alone. The tournament default stays as it is.
-            </p>
-          </CardHeader>
-
-          <CardBody className="flex flex-col gap-8">
-            <PeriodDesigner
-              periods={clockSetting.periods}
-              periodMinutes={clockSetting.periodMinutes}
-              onChange={setClock}
-            />
-
-            <SubstitutionRule
-              value={substitutionLimit}
-              onChange={(value) => setSubLimit({ value })}
-            />
-
-            <div className="flex flex-wrap items-center justify-between gap-5 border-t border-line pt-7">
-              <p className="text-[0.8125rem] text-secondary">
-                {bothComplete
-                  ? 'The clock starts the moment you kick off, and can be paused at any time.'
-                  : 'Both starting sides must be named before the whistle.'}
-              </p>
-
-              <Button
-                size="lg"
-                disabled={!bothComplete}
-                isLoading={saveLineups.isPending || kickOff.isPending}
-                onClick={() => void handleSaveAndKickOff()}
-              >
-                Kick off
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
-      ) : null}
     </div>
   );
 }
@@ -344,7 +334,7 @@ function TeamSheetEditor({
           <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="lg" />
           <div className="min-w-0">
             <p className="eyebrow mb-1">Team sheet</p>
-            <p className="display truncate text-[1.5rem] text-primary">{squad.name}</p>
+            <p className="truncate text-[0.9375rem] font-semibold text-primary">{squad.name}</p>
           </div>
         </div>
 

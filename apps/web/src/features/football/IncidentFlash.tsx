@@ -53,11 +53,9 @@ export function IncidentFlash({ payload }: { payload: FlashPayload | null }) {
         className={cn(
           'incident-flash relative flex items-center gap-5 overflow-hidden',
           'rounded-[var(--radius-xl)] border bg-raised px-7 py-5',
-          'shadow-[var(--shadow-lg)]',
         )}
         style={{
           borderColor: `color-mix(in oklab, ${tone} 60%, transparent)`,
-          boxShadow: `0 32px 70px -30px color-mix(in oklab, ${tone} 55%, transparent), var(--shadow-lg)`,
         }}
       >
         <span aria-hidden className="incident-sheen" />

@@ -50,7 +50,7 @@ export function DlsSheet({
       onClose={onClose}
       size="lg"
       title="Duckworth-Lewis-Stern"
-      description="Record stoppages to recompute target overs and score."
+
       footer={
         <Button variant="quiet" onClick={onClose}>
           Done

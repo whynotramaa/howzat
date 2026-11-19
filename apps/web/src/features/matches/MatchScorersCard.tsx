@@ -38,14 +38,11 @@ export function MatchScorersCard({
 
   return (
     <Card>
-      <CardHeader className="border-0 px-6 pt-6 pb-0">
-        <h2 className="display text-[1.875rem] text-primary">Scorers</h2>
-        <p className="mt-2 max-w-2xl text-[0.8125rem] text-secondary">
-          Anyone you add here can score this match from their phone.
-        </p>
+      <CardHeader className="border-0 pb-0">
+        <h2 className="text-[0.8125rem] font-medium text-muted">Scorers</h2>
       </CardHeader>
 
-      <CardBody className="flex flex-col gap-7">
+      <CardBody className="flex flex-col gap-4">
         {scorers.length > 0 ? (
           <ul className="flex flex-col gap-2.5">
             {scorers.map((scorer) => (

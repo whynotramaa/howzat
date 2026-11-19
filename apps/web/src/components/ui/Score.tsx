@@ -26,9 +26,9 @@ export function BallChip({
   return (
     <span
       data-kind={ballKind(display, isWicket)}
-      className={cn('ball', size === 'sm' ? 'size-6 text-[0.625rem]' : 'size-8 text-xs')}
+      className={cn('ball', size === 'sm' ? 'size-[1.875rem] text-xs' : 'size-8 text-xs')}
     >
-      {display === '0' ? '•' : display}
+      {display === '0' ? '·' : display}
     </span>
   );
 }

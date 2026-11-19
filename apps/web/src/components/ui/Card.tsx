@@ -1,6 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
-import { Scene, type SceneName } from '@/components/ui/Sketch';
+import type { SceneName } from '@/components/ui/Sketch';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
@@ -10,7 +10,7 @@ export function Card({ className, children, ...props }: CardProps) {
   return (
     <div
       {...props}
-      className={cn('rounded-[var(--radius-xl)] border border-line bg-raised', className)}
+      className={cn('rounded-[var(--radius-lg)] border border-line bg-raised', className)}
     >
       {children}
     </div>
@@ -19,7 +19,7 @@ export function Card({ className, children, ...props }: CardProps) {
 
 export function CardHeader({ className, children, ...props }: CardProps) {
   return (
-    <div {...props} className={cn('border-b border-line px-5 py-4', className)}>
+    <div {...props} className={cn('border-b border-line px-4 py-3', className)}>
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ export function CardHeader({ className, children, ...props }: CardProps) {
 
 export function CardBody({ className, children, ...props }: CardProps) {
   return (
-    <div {...props} className={cn('p-5', className)}>
+    <div {...props} className={cn('p-4', className)}>
       {children}
     </div>
   );
@@ -39,7 +39,6 @@ export function PageHeader({
   description,
   actions,
   back,
-  art,
   className,
 }: {
   eyebrow?: ReactNode;
@@ -51,31 +50,27 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn('page-header reveal', className)}>
-      {back ? <div className="-ml-0.5 mb-4">{back}</div> : null}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <header className={cn('page-header', className)}>
+      {back ? <div className="-ml-1 mb-2">{back}</div> : null}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 flex-1">
+          <h1 className="text-primary">{title}</h1>
           {eyebrow ? (
-            <div className="eyebrow flex flex-wrap items-center gap-x-2.5 gap-y-1">{eyebrow}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-muted">
+              {eyebrow}
+            </div>
           ) : null}
-          <h1 className="display mt-2 max-w-[32ch] text-primary">{title}</h1>
           {description ? (
-            <p className="mt-3 max-w-[56ch] text-[0.9375rem] leading-relaxed text-secondary">
-              {description}
-            </p>
+            <p className="mt-1 max-w-[56ch] text-[0.8125rem] text-muted">{description}</p>
           ) : null}
         </div>
-        {actions ? (
-          <div className="page-actions flex flex-wrap items-center gap-2">{actions}</div>
-        ) : null}
-        {art ? <div className="hidden w-[120px] shrink-0 lg:block">{art}</div> : null}
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </header>
   );
 }
 
 export function SectionHeading({
-  eyebrow,
   title,
   description,
   action,
@@ -88,13 +83,10 @@ export function SectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-3', className)}>
+    <div className={cn('flex flex-wrap items-center justify-between gap-x-4 gap-y-2', className)}>
       <div className="min-w-0">
-        {eyebrow ? <p className="eyebrow mb-2.5">{eyebrow}</p> : null}
         <h2 className="section-title text-primary">{title}</h2>
-        {description ? (
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
-        ) : null}
+        {description ? <p className="mt-0.5 text-[0.8125rem] text-muted">{description}</p> : null}
       </div>
       {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
     </div>
@@ -105,11 +97,10 @@ export function EmptyState({
   title,
   description,
   action,
-  scene = 'scorebook',
   compact,
 }: {
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
   scene?: SceneName;
   compact?: boolean;
@@ -117,16 +108,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'paper-grain flex flex-col items-center rounded-[var(--radius-xl)] border border-dashed border-line-strong px-6 text-center',
-        compact ? 'py-6' : 'py-8',
+        'flex flex-col items-center rounded-[var(--radius-lg)] border border-dashed border-line-strong px-6 text-center',
+        compact ? 'py-8' : 'py-12',
       )}
     >
-      <Scene name={scene} className={compact ? 'max-w-[80px]' : 'max-w-[100px]'} />
-      <p className={cn('display mt-5 text-primary', compact ? 'text-[1.5rem]' : 'text-[2rem]')}>
-        {title}
-      </p>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">{description}</p>
-      {action ? <div className="mt-6 flex flex-wrap justify-center gap-2">{action}</div> : null}
+      <p className="text-[0.9375rem] font-semibold text-primary">{title}</p>
+      {description ? <p className="mt-1 max-w-sm text-[0.8125rem] text-muted">{description}</p> : null}
+      {action ? <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -159,14 +147,14 @@ export function StatTile({
     <div
       style={style}
       className={cn(
-        'stat-tile flex min-w-0 flex-col justify-between gap-3 rounded-[var(--radius-xl)] border border-line bg-raised px-4 py-4',
+        'stat-tile flex min-w-0 flex-col justify-between gap-2 px-4 py-3',
         className,
       )}
     >
       <span className="eyebrow">{label}</span>
       <div>
         <span
-          className={cn('score-figure tabular block text-[2rem] leading-none', STAT_TONES[tone])}
+          className={cn('score-figure tabular block leading-none', STAT_TONES[tone])}
         >
           {value}
         </span>
@@ -191,13 +179,8 @@ export function StatStrip({
         className,
       )}
     >
-      {items.map((item, index) => (
-        <StatTile
-          key={item.label}
-          {...item}
-          className="reveal"
-          style={{ '--delay': `${80 + index * 60}ms` } as CSSProperties}
-        />
+      {items.map((item) => (
+        <StatTile key={item.label} {...item} />
       ))}
     </div>
   );
