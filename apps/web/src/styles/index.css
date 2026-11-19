@@ -1190,7 +1190,7 @@ summary::-webkit-details-marker {
 .innings-choice[aria-pressed='true'] {
   border-color: var(--cta);
   background: var(--cta);
-  color: #fff;
+  color: var(--on-accent);
 }
 .innings-choice .innings-overs {
   opacity: 0.75;

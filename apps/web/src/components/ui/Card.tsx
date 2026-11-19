@@ -53,7 +53,7 @@ export function PageHeader({
     <header className={cn('page-header', className)}>
       {back ? <div className="-ml-1 mb-2">{back}</div> : null}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-auto">
           <h1 className="text-primary">{title}</h1>
           {eyebrow ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-muted">
