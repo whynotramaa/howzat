@@ -1,5 +1,5 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DEFAULT_OVERS_PER_INNINGS,
   DEFAULT_PERIODS,
@@ -39,9 +39,11 @@ const SPORTS: Array<{ value: Sport; label: string }> = [
 export function TournamentsPage() {
   const { data, isPending, error, refetch } = useTournaments();
   const [params, setParams] = useSearchParams();
-  const [quickMatch, setQuickMatch] = useState(false);
   const creating = params.get('new') === '1';
+  const quickMatch = params.get('quick') === '1';
   const setCreating = (open: boolean) => setParams(open ? { new: '1' } : {}, { replace: true });
+  const setQuickMatch = (open: boolean) =>
+    setParams(open ? { quick: '1' } : {}, { replace: true });
 
   const items = data?.items ?? [];
   const sections = [
@@ -54,14 +56,16 @@ export function TournamentsPage() {
   ];
 
   return (
-    <div className="tournaments-page flex flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Tournaments"
         actions={
           <>
-            <Button onClick={() => setCreating(true)}>New tournament</Button>
-            <Button variant="secondary" onClick={() => setQuickMatch(true)}>
+            <Button size="sm" variant="secondary" onClick={() => setQuickMatch(true)}>
               Quick match
+            </Button>
+            <Button size="sm" onClick={() => setCreating(true)}>
+              New tournament
             </Button>
           </>
         }
@@ -70,34 +74,29 @@ export function TournamentsPage() {
       {error ? <ErrorText error={error} onRetry={() => void refetch()} /> : null}
 
       {isPending ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {[0, 1, 2, 3].map((index) => (
-            <Skeleton key={index} className="h-52" />
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-14" />
           ))}
         </div>
       ) : items.length > 0 ? (
-        <div className="flex flex-col gap-9">
-          {sections
-            .filter((section) => section.items.length > 0)
-            .map((section) => (
-              <section key={section.title} aria-label={section.title}>
-                <div className="mb-4 flex items-center gap-2.5">
-                  <h2 className="text-base font-bold">{section.title}</h2>
-                  <span className="tournament-section-count tabular">{section.items.length}</span>
-                </div>
-                <ul className="grid gap-4 md:grid-cols-2">
-                  {section.items.map((tournament, index) => (
-                    <TournamentCard key={tournament.id} tournament={tournament} index={index} />
-                  ))}
-                </ul>
-              </section>
-            ))}
-        </div>
+        sections
+          .filter((section) => section.items.length > 0)
+          .map((section) => (
+            <section key={section.title} aria-label={section.title}>
+              <h2 className="mb-2 text-[0.8125rem] font-medium text-muted">
+                {section.title} <span className="mono ml-1">{section.items.length}</span>
+              </h2>
+              <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
+                {section.items.map((tournament) => (
+                  <TournamentRow key={tournament.id} tournament={tournament} />
+                ))}
+              </ul>
+            </section>
+          ))
       ) : error ? null : (
         <EmptyState
-          scene="trophy"
           title="No tournaments yet"
-          description="Create a league for the season, or score a one-off match with friends."
           action={
             <>
               <Button size="sm" onClick={() => setCreating(true)}>
@@ -117,88 +116,40 @@ export function TournamentsPage() {
   );
 }
 
-function TournamentCard({ tournament, index }: { tournament: TournamentDto; index: number }) {
+function TournamentRow({ tournament }: { tournament: TournamentDto }) {
   const registered = tournament.registeredTeams ?? 0;
   const eligible = tournament.eligibleTeams ?? 0;
   const ready = registered === tournament.teamsCount && eligible === registered;
   const state =
     tournament.status === 'COMPLETED'
-      ? 'Completed'
+      ? null
       : tournament.status === 'IN_PROGRESS'
-        ? 'In progress'
+        ? { label: 'Live', tone: 'success' as const }
         : ready
-          ? 'Ready'
+          ? { label: 'Ready', tone: 'success' as const }
           : registered < tournament.teamsCount
-            ? 'Registering'
-            : 'Squads short';
-  const inProgress = tournament.status === 'IN_PROGRESS';
-  const completed = tournament.status === 'COMPLETED';
-  const tone = completed
-    ? 'neutral'
-    : inProgress || ready
-      ? 'success'
-      : registered < tournament.teamsCount
-        ? 'neutral'
-        : 'warning';
+            ? { label: `${registered}/${tournament.teamsCount} teams`, tone: 'neutral' as const }
+            : { label: 'Squads short', tone: 'warning' as const };
 
   return (
-    <li className="reveal" style={{ '--delay': `${index * 60}ms` } as CSSProperties}>
+    <li className="border-b border-line last:border-b-0">
       <Link
         to={`/tournaments/${tournament.id}`}
-        aria-labelledby={`tournament-${tournament.id}`}
-        className="tournament-card group flex h-full min-w-0 flex-col"
+        className="row-link flex items-center gap-3 px-3 py-3 sm:px-4"
       >
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex min-w-0 items-center gap-2 text-xs text-secondary">
-            <span className="tournament-sport-icon grid size-8 shrink-0 place-items-center rounded-md bg-sunken">
-              <SportGlyph sport={tournament.sport} className="size-6" />
-            </span>
-            {tournament.sport === 'FOOTBALL' ? 'Football' : 'Cricket'}
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] border border-line bg-sunken">
+          <SportGlyph sport={tournament.sport} className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{tournament.name}</span>
+          <span className="block truncate text-xs text-muted">
+            {FORMAT_LABELS[tournament.format]} ·{' '}
+            {tournament.sport === 'FOOTBALL'
+              ? `${tournament.playersPerTeam} a side`
+              : `${tournament.oversPerInnings} overs`}
           </span>
-          <Pill
-            tone={tone}
-            className={cn(
-              'tournament-status',
-              tone === 'success'
-                ? 'bg-success-soft'
-                : tone === 'warning'
-                  ? 'bg-warning-soft'
-                  : 'bg-sunken',
-            )}
-          >
-            {state}
-          </Pill>
-        </div>
-        <div className="my-5 min-w-0">
-          <h3 id={`tournament-${tournament.id}`} className="tournament-name break-words">
-            {tournament.name}
-          </h3>
-          <p className="mt-1.5 text-xs text-muted">
-            {FORMAT_LABELS[tournament.format]}
-            {tournament.doubleRoundRobin ? ' · Home and away' : ''}
-          </p>
-        </div>
-        <div className="tournament-card-footer mt-auto flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.8125rem] text-secondary">
-            <span className="tabular">
-              <strong className="font-medium text-primary">
-                {registered}/{tournament.teamsCount}
-              </strong>{' '}
-              teams
-            </span>
-            <span>
-              {tournament.sport === 'FOOTBALL'
-                ? `${tournament.playersPerTeam} a side · ${tournament.periods} × ${tournament.periodMinutes} min`
-                : `${tournament.oversPerInnings} overs`}
-            </span>
-          </div>
-          <span
-            aria-hidden
-            className="tournament-card-arrow grid size-8 shrink-0 place-items-center rounded-full text-lg text-muted"
-          >
-            →
-          </span>
-        </div>
+        </span>
+        {state ? <Pill tone={state.tone}>{state.label}</Pill> : null}
       </Link>
     </li>
   );
@@ -206,6 +157,7 @@ function TournamentCard({ tournament, index }: { tournament: TournamentDto; inde
 
 function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const createTournament = useCreateTournament();
+  const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [sport, setSport] = useState<Sport>('CRICKET');
@@ -222,7 +174,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    await createTournament.mutateAsync({
+    const created = await createTournament.mutateAsync({
       name,
       sport,
       format,
@@ -234,7 +186,7 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
       periodMinutes,
     });
 
-    onClose();
+    void navigate(`/tournaments/${created.id}`);
   }
 
   return (
@@ -266,15 +218,15 @@ function CreateTournamentSheet({ open, onClose }: { open: boolean; onClose: () =
                 onClick={() => setSport(option.value)}
                 aria-pressed={sport === option.value}
                 className={cn(
-                  'flex h-16 items-center justify-center gap-2 rounded-[var(--radius-xl)] border text-[0.9375rem] font-semibold',
+                  'flex h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border text-sm font-medium',
                   'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)]',
                   sport === option.value
-                    ? 'border-primary bg-raised text-primary'
+                    ? 'border-[var(--text-primary)] bg-raised text-primary'
                     : 'border-line text-muted hover:border-line-strong hover:text-primary',
                 )}
               >
-                <SportGlyph sport={option.value} className="size-7" />
-                <span className="text-base font-medium">{option.label}</span>
+                <SportGlyph sport={option.value} className="size-5" />
+                {option.label}
               </button>
             ))}
           </div>

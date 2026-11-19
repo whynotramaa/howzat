@@ -21,19 +21,10 @@ import {
 } from '@howzat/shared';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
-import { ClockIcon, StumpsIcon, TrendIcon, TrophyIcon, UndoIcon } from '@/components/ui/Icons';
+import { UndoIcon } from '@/components/ui/Icons';
 import { PdfButton } from '@/components/ui/PdfButton';
 import { PlayerTiles } from '@/components/ui/PlayerTiles';
-import {
-  BallChip,
-  CreaseCard,
-  LeaderRow,
-  OverStrip,
-  Panel,
-  RunsPerOver,
-  Scoreboard,
-  StatLine,
-} from '@/components/ui/Score';
+import { BallChip } from '@/components/ui/Score';
 import { Sheet } from '@/components/ui/Sheet';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { ShareLink } from '@/components/ui/ShareLink';
@@ -106,45 +97,46 @@ export function ScoringPage() {
         )
       : null;
 
+  const label = `${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`;
+
   return (
     <Shell>
-      <div className={assisted ? 'assist-mode' : ''}>
-        <header className="flex items-center justify-between gap-3 pb-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              to={`/matches/${matchId}`}
-              aria-label="Back to match"
-              className="grid size-10 shrink-0 place-items-center rounded-full border border-line-strong text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
-            >
-              ←
-            </Link>
-            <div className="hidden shrink-0 -space-x-2.5 sm:flex">
-              {match.team1 ? (
-                <TeamMark
-                  shortName={match.team1.shortName}
-                  color={match.team1.primaryColor}
-                  size="md"
-                />
-              ) : null}
-              {match.team2 ? (
-                <TeamMark
-                  shortName={match.team2.shortName}
-                  color={match.team2.primaryColor}
-                  size="md"
-                />
-              ) : null}
-            </div>
-            <h1 className="min-w-0 text-base font-semibold whitespace-nowrap sm:text-xl">
-              {match.team1?.shortName ?? 'TBD'} <span className="mx-1 text-muted">v</span>{' '}
-              {match.team2?.shortName ?? 'TBD'}
+      <div className={cn('flex flex-col gap-3', assisted && 'assist-mode')}>
+        <header className="-mx-2 grid h-[3.25rem] grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-1">
+          <Link
+            to="/dashboard"
+            aria-label="Back to matches"
+            className="press grid size-11 place-items-center text-primary hover:bg-hover"
+          >
+            <svg viewBox="0 0 256 256" className="size-[22px]" fill="currentColor" aria-hidden>
+              <path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z" />
+            </svg>
+          </Link>
+          <div className="grid min-w-0">
+            <h1 className="truncate text-[0.9375rem] leading-5 font-semibold">
+              {match.team1?.name ?? 'TBD'} v {match.team2?.name ?? 'TBD'}
             </h1>
+            <span className="t-caption truncate">
+              {innings ? `Innings ${innings.number}` : 'Scoring'}
+              {dlsApplied ? ' · DLS' : ''}
+            </span>
           </div>
-
+          <div className="flex items-center gap-1">
+          <SyncPill
+            isOnline={queue.isOnline}
+            syncState={queue.syncState}
+            pending={queue.items.length > 0 || recordBall.isPending}
+          />
           <Disclosure className="relative shrink-0">
-            <summary className="flex min-h-11 cursor-pointer items-center rounded-md border border-line-strong px-4 text-sm font-medium">
-              Match tools
+            <summary
+              aria-label="Match tools"
+              className="press grid size-11 cursor-pointer place-items-center text-primary hover:bg-hover"
+            >
+              <svg viewBox="0 0 256 256" className="size-[22px]" fill="currentColor" aria-hidden>
+                <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
+              </svg>
             </summary>
-            <div className="absolute right-0 top-full z-40 mt-2 flex w-64 flex-wrap gap-2 rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-[var(--shadow-md)]">
+            <div className="absolute right-0 top-full z-40 mt-1 flex w-56 flex-col border border-line bg-raised p-1 text-sm">
               <button
                 type="button"
                 aria-pressed={assisted}
@@ -156,44 +148,36 @@ export function ScoringPage() {
                     return !value;
                   })
                 }
-                className="h-10 rounded-full border border-line-strong px-4 text-sm text-secondary transition-colors hover:border-[var(--text-primary)] hover:text-primary"
+                className="flex h-9 items-center justify-between rounded-[var(--radius-sm)] px-2.5 text-left hover:bg-hover"
               >
-                Assist{' '}
-                <span className={assisted ? 'font-medium text-primary' : 'text-muted'}>
-                  {assisted ? 'on' : 'off'}
-                </span>
+                Large keys <span className="text-muted">{assisted ? 'On' : 'Off'}</span>
               </button>
-              {dlsApplied ? (
-                <span className="rounded-full border border-warning px-3 py-1 text-[0.6875rem] font-semibold tracking-[0.08em] text-warning uppercase">
-                  DLS applied
-                </span>
-              ) : null}
               {matchClosed ? null : (
-                <Button size="sm" variant="secondary" onClick={() => setDlsOpen(true)}>
-                  {dlsApplied ? 'Rain' : 'DLS'}
-                </Button>
+                <button
+                  type="button"
+                  onClick={() => setDlsOpen(true)}
+                  className="flex h-9 items-center rounded-[var(--radius-sm)] px-2.5 text-left hover:bg-hover"
+                >
+                  {dlsApplied ? 'Rain revision' : 'DLS'}
+                </button>
               )}
-              <ShareLink
-                slug={match.publicSlug}
-                variant="quiet"
-                matchLabel={`${match.team1?.shortName ?? 'TBD'} v ${match.team2?.shortName ?? 'TBD'}`}
-              />
-              <QueueRecovery matchId={matchId} userId={user?.id ?? ''} />
+              <Link
+                to={`/matches/${matchId}`}
+                className="flex h-9 items-center rounded-[var(--radius-sm)] px-2.5 hover:bg-hover"
+              >
+                Match details
+              </Link>
+              <div className="flex items-center justify-between gap-2 px-1.5 py-1">
+                <ShareLink slug={match.publicSlug} variant="quiet" label="Share" matchLabel={label} />
+                <QueueRecovery matchId={matchId} userId={user?.id ?? ''} />
+              </div>
             </div>
           </Disclosure>
+          </div>
         </header>
-        {assisted ? (
-          <p className="assist-note">
-            Pick two batters and a bowler, then tap runs. Choose an extra first. Balls save on this
-            device before syncing.
-          </p>
-        ) : null}
 
         {queue.error ? (
-          <p
-            role="alert"
-            className="rounded-[var(--radius-md)] border border-alert px-4 py-3 text-sm text-alert"
-          >
+          <p role="alert" className="rounded-[var(--radius-md)] border border-alert px-3 py-2 text-sm text-alert">
             {queue.error}
           </p>
         ) : null}
@@ -208,14 +192,10 @@ export function ScoringPage() {
 
         {matchClosed ? (
           <Closed
-            icon={<TrophyIcon className="size-7 text-muted" />}
-            eyebrow="Match closed"
-            headline={match.resultText ?? 'This match is over'}
-            body="There is nothing left to score."
+            headline={match.resultText ?? 'Match over'}
             action={
               <PdfButton
                 label="Share PDF"
-                arrow
                 size="md"
                 build={() =>
                   import('@/lib/pdf').then((pdf) => pdf.buildCricketMatchPdf(match.publicSlug))
@@ -224,16 +204,11 @@ export function ScoringPage() {
             }
           />
         ) : match.status === 'INNINGS_BREAK' || (state?.isComplete && innings) ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {state && context ? <Board state={state} context={context} /> : null}
-
             <Closed
-              icon={<ClockIcon className="size-7 text-muted" />}
-              eyebrow={match.status === 'INNINGS_BREAK' ? 'Innings break' : 'Innings complete'}
               headline={
-                innings?.targetRuns
-                  ? `Chasing ${innings.targetRuns}`
-                  : 'The chase is set up and ready'
+                innings?.targetRuns ? `Target ${innings.targetRuns}` : 'Innings complete'
               }
               action={
                 match.status === 'INNINGS_BREAK' && innings ? (
@@ -253,15 +228,13 @@ export function ScoringPage() {
           </div>
         ) : !state || !context ? (
           <Closed
-            icon={<StumpsIcon className="size-7 text-muted" />}
-            eyebrow="Not started"
-            headline="This match has not started yet"
-            body="Record the toss, name both XIs, then start the match."
-            action={<ButtonLink to={`/matches/${matchId}`}>Go to match setup</ButtonLink>}
+            headline="Not started"
+            action={<ButtonLink to={`/matches/${matchId}`}>Match details</ButtonLink>}
           />
         ) : optimistic ? (
           <Console
             key={context.inningsId}
+            publicSlug={match.publicSlug}
             optimisticState={optimistic.state}
             context={context}
             par={dls.data?.par ?? null}
@@ -283,40 +256,14 @@ export function ScoringPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-4 px-2 py-4 pb-16 sm:px-4">
-      {children}
-    </div>
-  );
+  return <div className="mx-auto w-full max-w-[1120px] px-3 pt-2 pb-10 sm:px-6">{children}</div>;
 }
 
-function Closed({
-  icon,
-  eyebrow,
-  headline,
-  body,
-  action,
-}: {
-  icon: React.ReactNode;
-  eyebrow: string;
-  headline: string;
-  body?: string;
-  action?: React.ReactNode;
-}) {
+function Closed({ headline, action }: { headline: string; action?: React.ReactNode }) {
   return (
-    <section
-      aria-label={eyebrow}
-      className="paper-grain flex flex-col items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong px-6 py-20 text-center"
-    >
-      <span className="grid size-14 place-items-center rounded-full border border-line bg-raised text-secondary">
-        {icon}
-      </span>
-      <p className="eyebrow mt-2">{eyebrow}</p>
-      <p className="display text-[clamp(1.75rem,3.4vw,2.5rem)]">{headline}</p>
-      {body ? (
-        <p className="max-w-sm text-[0.875rem] leading-relaxed text-secondary">{body}</p>
-      ) : null}
-      {action ? <div className="mt-3 flex flex-col items-center gap-2">{action}</div> : null}
+    <section className="flex flex-col items-center gap-4 rounded-[var(--radius-lg)] border border-line bg-raised px-6 py-12 text-center">
+      <p className="text-lg font-semibold">{headline}</p>
+      {action ? <div className="flex flex-col items-center gap-2">{action}</div> : null}
     </section>
   );
 }
@@ -328,6 +275,7 @@ interface Crease {
 }
 
 interface ConsoleProps {
+  publicSlug: string;
   optimisticState: MatchState;
   context: InningsContext;
   par: DlsParPosition | null;
@@ -388,6 +336,7 @@ function foldQueuedBalls(
 }
 
 function Console({
+  publicSlug,
   optimisticState,
   context,
   par,
@@ -397,7 +346,6 @@ function Console({
   saveError,
   queueItems,
   isOnline,
-  syncState,
   onBall,
   onUndo,
   onRetryQueue,
@@ -559,74 +507,125 @@ function Console({
 
   const canUndo = displayState.lastEventSeq > 0 && !isSaving && queueItems.length === 0 && isOnline;
 
+  const batters = [crease.striker, crease.nonStriker]
+    .filter((id): id is string => Boolean(id))
+    .map((id) => {
+      const batsman = displayState.batsmen[id];
+      return {
+        id,
+        name: batsman?.name ?? context.battingXI.find((player) => player.id === id)?.name ?? 'Batter',
+        runs: batsman?.runs ?? 0,
+        balls: batsman?.balls ?? 0,
+        fours: batsman?.fours ?? 0,
+        sixes: batsman?.sixes ?? 0,
+        onStrike: id === crease.striker,
+      };
+    });
+  const bowler = bowlerFigures(displayState, context, crease.bowler);
+  const partnership = displayState.partnerships.find((entry) => entry.isCurrent);
+
+  const legalInOver = displayState.thisOver.filter((ball) => ball.isLegalDelivery).length;
+  const overRuns = displayState.thisOver.reduce((sum, ball) => sum + ball.runs, 0);
+
   return (
-    <div className="scoring-console flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-      <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+    <div className="scoring-console grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-6">
+      <div className="flex min-w-0 flex-col gap-3">
         <Board
           state={displayState}
           context={context}
-          status={
-            <SyncStatus
-              isSaving={isSaving}
-              isOnline={isOnline}
-              syncState={syncState}
-              hasQueuedBalls={queueItems.length > 0}
-              ready={ready}
-            />
-          }
+          par={par}
+          partnership={partnership ? partnership.runs : null}
         />
-      </div>
 
-      <div className="order-3 min-w-0 lg:col-start-1 lg:row-start-2">
-        <CreaseCard
-          batters={[crease.striker, crease.nonStriker]
-            .filter((id): id is string => Boolean(id))
-            .map((id) => {
-              const batsman = displayState.batsmen[id];
-              return {
-                id,
-                name:
-                  batsman?.name ??
-                  context.battingXI.find((player) => player.id === id)?.name ??
-                  'Batter',
-                runs: batsman?.runs ?? 0,
-                balls: batsman?.balls ?? 0,
-                fours: batsman?.fours ?? 0,
-                sixes: batsman?.sixes ?? 0,
-                onStrike: id === crease.striker,
-              };
-            })}
-          bowler={bowlerFigures(displayState, context, crease.bowler)}
-          emptyLabel="Pick the openers on the pad"
-          action={
-            crease.striker && crease.nonStriker ? (
-              <button
-                type="button"
-                onClick={() =>
-                  setOverride((current) => ({
-                    ...current,
-                    striker: crease.nonStriker,
-                    nonStriker: crease.striker,
-                  }))
-                }
-                className="min-h-11 text-[0.8125rem] text-secondary transition-colors hover:text-primary"
-              >
-                Swap ends
-              </button>
-            ) : null
-          }
-          bowlerAction={
-            crease.bowler ? (
-              <button
-                type="button"
-                onClick={() => setOverride((current) => ({ ...current, bowler: null }))}
-                className="shrink-0 text-[0.8125rem] text-muted transition-colors hover:text-primary"
-              >
-                Change
-              </button>
-            ) : null
-          }
-        />
+        <section className="border border-line bg-raised px-4 py-1">
+          <div className="crow crow-bat head">
+            <span className="t-label flex items-center gap-2">
+              Batter
+              {crease.striker && crease.nonStriker ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOverride((current) => ({
+                      ...current,
+                      striker: crease.nonStriker,
+                      nonStriker: crease.striker,
+                    }))
+                  }
+                  className="press bg-sunken px-1.5 py-0.5 text-[11px] font-semibold tracking-normal normal-case text-secondary"
+                >
+                  Swap
+                </button>
+              ) : null}
+            </span>
+            <span className="t-label">R (B)</span>
+            <span className="t-label">4s</span>
+            <span className="t-label">6s</span>
+          </div>
+          {batters.length === 0 ? (
+            <div className="crow crow-bat">
+              <span className="text-sm text-muted">Pick openers below</span>
+            </div>
+          ) : (
+            batters.map((batter) => (
+              <div key={batter.id} className="crow crow-bat" data-on={batter.onStrike || undefined}>
+                <span className="nm">
+                  <i aria-hidden />
+                  <span>{batter.name}</span>
+                  {batter.onStrike ? <span className="sr-only">on strike</span> : null}
+                </span>
+                <span className="t-fig">
+                  {batter.runs} <small>({batter.balls})</small>
+                </span>
+                <span className="t-fig">{batter.fours}</span>
+                <span className="t-fig">{batter.sixes}</span>
+              </div>
+            ))
+          )}
+          <div className="crow crow-bowl head">
+            <span className="t-label flex items-center gap-2">
+              Bowler
+              {crease.bowler ? (
+                <button
+                  type="button"
+                  onClick={() => setOverride((current) => ({ ...current, bowler: null }))}
+                  className="press bg-sunken px-1.5 py-0.5 text-[11px] font-semibold tracking-normal normal-case text-secondary"
+                >
+                  Change
+                </button>
+              ) : null}
+            </span>
+            <span className="t-label">O-M-R-W</span>
+            <span className="t-label">Econ</span>
+          </div>
+          <div className="crow crow-bowl">
+            <span className="nm">
+              <span>{bowler?.name ?? 'Pick a bowler below'}</span>
+            </span>
+            <span className="t-fig">
+              {bowler ? `${bowler.overs}-${bowler.maidens}-${bowler.runs}-${bowler.wickets}` : '—'}
+            </span>
+            <span className="t-fig">{bowler?.econ != null ? bowler.econ.toFixed(2) : '0.00'}</span>
+          </div>
+        </section>
+
+        <section className="grid gap-2">
+          <div className="flex items-center justify-between">
+            <span className="t-label">This over</span>
+            <span className="t-caption">
+              {overRuns} run{overRuns === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {displayState.thisOver.map((ball) => (
+              <span key={ball.seq} className="chip-land">
+                <BallChip display={ball.display} isWicket={ball.isWicket} size="sm" />
+              </span>
+            ))}
+            {Array.from({ length: Math.max(0, 6 - legalInOver) }, (_, index) => (
+              <span key={`empty-${index}`} data-kind="empty" className="ball size-[1.875rem]" />
+            ))}
+          </div>
+        </section>
       </div>
 
       <Pad
@@ -643,6 +642,7 @@ function Console({
         saveError={saveError}
         queueItems={queueItems}
         isOnline={isOnline}
+        scorecardHref={`/live/${publicSlug}?view=scorecard`}
         onOverride={(next) => setOverride((current) => ({ ...current, ...next }))}
         onExtra={(value) => setExtraType((current) => (current === value ? null : value))}
         onRuns={(runs) => void handleRuns(runs)}
@@ -654,13 +654,9 @@ function Console({
         onRetryQueue={onRetryQueue}
       />
 
-      <div className="order-4 flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-3">
-        <InningsNumbers state={displayState} context={context} par={par} />
-        <Momentum state={displayState} />
-        <div className="grid items-start gap-4 xl:grid-cols-2">
-          <EventsCard state={displayState} />
-          <WicketsCard state={displayState} />
-        </div>
+      <div className="grid min-w-0 items-start gap-3 sm:grid-cols-2 lg:col-start-1">
+        <EventsCard state={displayState} />
+        <WicketsCard state={displayState} />
       </div>
 
       {wicketOpen ? (
@@ -701,96 +697,110 @@ function bowlerFigures(state: MatchState, context: InningsContext, bowlerId: str
 function Board({
   state,
   context,
-  status,
+  par,
+  partnership,
 }: {
   state: MatchState;
   context: InningsContext;
-  status?: React.ReactNode;
+  par?: DlsParPosition | null;
+  partnership?: number | null;
 }) {
   const quota = quotaBalls(context);
   const ballsLeft = Math.max(0, quota - state.legalBalls);
   const needed = context.targetRuns !== null ? context.targetRuns - state.runs : null;
   const crr = state.legalBalls > 0 ? (state.runs * 6) / state.legalBalls : 0;
   const rrr = needed !== null && ballsLeft > 0 ? (Math.max(0, needed) * 6) / ballsLeft : null;
+  const rates: Array<[string, string]> = [
+    ['CRR', crr.toFixed(2)],
+    ['RRR', rrr !== null ? rrr.toFixed(2) : '—'],
+    ['Extras', String(state.extras.total)],
+    ["P'ship", partnership != null ? String(partnership) : '—'],
+  ];
 
   return (
-    <Scoreboard
-      size="md"
-      team={context.battingTeam}
-      eyebrow={`Innings ${context.number} · vs ${context.bowlingTeam.shortName}`}
-      status={status}
-      runs={state.runs}
-      wickets={state.wickets}
-      overs={formatOvers(state.legalBalls)}
-      quota={formatOvers(quota)}
-      stats={[
-        { label: 'CRR', value: crr.toFixed(2) },
-        ...(rrr !== null ? [{ label: 'RRR', value: rrr.toFixed(2) }] : []),
-      ]}
-    >
-      {needed !== null && needed > 0 && context.targetRuns ? (
-        <div className="px-4 py-3 sm:px-6">
-          <p className="text-[0.8125rem] text-secondary">
-            Need <span className="font-semibold text-accent">{needed}</span> runs from{' '}
-            <span className="font-semibold text-primary">{ballsLeft}</span>{' '}
-            {ballsLeft === 1 ? 'ball' : 'balls'}
-          </p>
-
-          <div className="chase-track mt-2.5">
-            <span
-              className="chase-fill"
-              style={{ width: `${Math.min(100, (state.runs / context.targetRuns) * 100)}%` }}
-            />
+    <section className="grid gap-3 border border-line bg-raised p-4">
+      <div className="flex h-5 items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold">
+          <TeamMark
+            shortName={context.battingTeam.shortName}
+            color={context.battingTeam.primaryColor}
+            size="sm"
+            className="!size-5"
+          />
+          <span className="truncate">{context.battingTeam.name}</span>
+        </span>
+        <span className="t-caption whitespace-nowrap">
+          {context.targetRuns ? `Target ${context.targetRuns}` : `${formatOvers(quota)} overs`}
+        </span>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <p className="flex items-baseline gap-2 whitespace-nowrap">
+          <span key={`${state.runs}-${state.wickets}`} className="score-figure score-bump text-[64px]">
+            {state.runs}/{state.wickets}
+          </span>
+          <span className="mono text-[22px] font-medium text-muted">
+            {formatOvers(state.legalBalls)}
+          </span>
+        </p>
+        {needed !== null && needed > 0 ? (
+          <div className="grid justify-items-end gap-0.5 pb-0.5 whitespace-nowrap">
+            <b className="mono text-2xl leading-[26px]">{needed}</b>
+            <span className="t-caption">needed off {ballsLeft}</span>
           </div>
-
-          <div className="tabular mt-2 flex justify-between text-[0.6875rem] text-muted">
-            <span>
-              {state.runs} of {context.targetRuns}
-            </span>
-            <span>{ballsLeft} balls left</span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-4 border-t border-line pt-3">
+        {rates.map(([label, value], index) => (
+          <div key={label} className={cn('grid gap-0.5', index > 0 && 'border-l border-line pl-3')}>
+            <span className="t-label">{label}</span>
+            <span className="t-fig">{value}</span>
           </div>
-        </div>
+        ))}
+      </div>
+      {par ? (
+        <p className="t-caption">
+          DLS par <span className="mono text-primary">{par.parScore}</span> ·{' '}
+          {par.difference === 0
+            ? 'level'
+            : par.difference > 0
+              ? `${par.difference} ahead`
+              : `${Math.abs(par.difference)} behind`}
+        </p>
       ) : null}
-    </Scoreboard>
+    </section>
   );
 }
 
-function SyncStatus({
-  isSaving,
+function SyncPill({
   isOnline,
   syncState,
-  hasQueuedBalls,
-  ready,
+  pending,
 }: {
-  isSaving: boolean;
   isOnline: boolean;
   syncState: 'idle' | 'syncing' | 'synced' | 'failed';
-  hasQueuedBalls: boolean;
-  ready: boolean;
+  pending: boolean;
 }) {
   const failed = syncState === 'failed';
-  const syncing = isSaving || syncState === 'syncing' || hasQueuedBalls;
   const label = failed
-    ? 'Retry'
+    ? 'Not saved'
     : !isOnline
       ? 'Offline'
-      : syncing
+      : pending || syncState === 'syncing'
         ? 'Saving'
-        : syncState === 'synced'
-          ? 'Synced'
-          : ready
-            ? 'Ready'
-            : 'Select players';
-
+        : 'Synced';
+  const tone = failed
+    ? 'bg-[var(--wkt-soft)] text-[var(--wkt-ink)]'
+    : !isOnline || label === 'Saving'
+      ? 'bg-[var(--xtra-soft)] text-[var(--xtra-ink)]'
+      : 'bg-[var(--six-soft)] text-[var(--six-ink)]';
   return (
     <span
-      data-tone={failed ? 'live' : syncing || !ready ? 'warning' : 'success'}
-      className="eyebrow flex shrink-0 items-center gap-2"
+      role="status"
+      className={cn('inline-flex h-6 items-center gap-1 px-2 text-xs font-semibold whitespace-nowrap', tone)}
     >
-      <span
-        aria-hidden
-        className={cn('size-1.5 rounded-full bg-current', syncing && 'animate-pulse')}
-      />
+      <svg viewBox="0 0 256 256" className="size-3.5" fill="currentColor" aria-hidden>
+        <path d="M160,40A88.09,88.09,0,0,0,81.29,88.67,64,64,0,1,0,72,216h88a88,88,0,0,0,0-176Zm0,160H72a48,48,0,0,1,0-96c1.1,0,2.2,0,3.29.11A88,88,0,0,0,72,128a8,8,0,0,0,16,0,72,72,0,1,1,72,72Z" />
+      </svg>
       {label}
     </span>
   );
@@ -818,6 +828,7 @@ function Pad({
   saveError,
   queueItems,
   isOnline,
+  scorecardHref,
   onOverride,
   onExtra,
   onRuns,
@@ -825,6 +836,7 @@ function Pad({
   onUndo,
   onRetryQueue,
 }: {
+  scorecardHref: string;
   state: MatchState;
   crease: Crease;
   availableBatsmen: PlayerRef[];
@@ -845,7 +857,6 @@ function Pad({
   onUndo: () => void;
   onRetryQueue: () => Promise<void>;
 }) {
-  const legal = state.thisOver.filter((ball) => ball.isLegalDelivery).length;
   const failedInQueue = queueItems.some((item) => item.status === 'failed');
   const notice = padNotice({ localError, saveError, isOnline, failedInQueue, queueItems });
   const prerequisite =
@@ -865,52 +876,10 @@ function Pad({
     hit?.key === key ? <span key={hit.n} aria-hidden className="key-ripple" /> : null;
 
   return (
-    <div className="pad order-2 flex flex-col gap-4 p-4 lg:sticky lg:top-16 lg:col-start-2 lg:row-span-3 lg:row-start-1">
-      <div className="flex items-center justify-between gap-3 border-b border-line pb-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="shrink-0">
-            <p className="eyebrow">Over {state.currentOverNumber + 1}</p>
-            <p className="tabular mt-0.5 text-xs text-muted">{legal} of 6</p>
-          </div>
-          <span aria-hidden className="h-8 w-px shrink-0 bg-line" />
-          <OverStrip
-            size="sm"
-            balls={state.thisOver.map((ball) => ({
-              key: ball.seq,
-              display: ball.display,
-              isWicket: ball.isWicket,
-            }))}
-            emptyLabel="New over"
-          />
-        </div>
-
-        <button
-          type="button"
-          disabled={!canUndo}
-          title={
-            !isOnline
-              ? 'Undo is available after deliveries sync'
-              : queueItems.length
-                ? 'Wait for pending deliveries to sync'
-                : 'Undo last delivery'
-          }
-          onClick={() => press('undo', onUndo)}
-          data-tone="quiet"
-          className="pad-key h-11 shrink-0 px-3 text-[0.8125rem]"
-        >
-          {ripple('undo')}
-          <UndoIcon />
-          Undo
-        </button>
-      </div>
-
+    <div className="pad sticky bottom-0 z-20 -mx-3 grid gap-2 border-x-0 px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:mx-0 sm:border-x lg:top-3 lg:bottom-auto lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:p-4">
       {crease.striker === null || crease.nonStriker === null ? (
         <PickerRow
-          label={
-            state.legalBalls === 0 && !state.needsNewBatsman
-              ? 'Select openers'
-              : 'Select new batter'
-          }
+          label={state.legalBalls === 0 && !state.needsNewBatsman ? 'Openers' : 'New batter'}
           players={availableBatsmen}
           onPick={(playerId) =>
             onOverride(crease.striker === null ? { striker: playerId } : { nonStriker: playerId })
@@ -920,10 +889,24 @@ function Pad({
 
       {crease.bowler === null ? (
         <PickerRow
-          label={state.legalBalls === 0 ? 'Select opening bowler' : 'Select next bowler'}
+          label={state.legalBalls === 0 ? 'Opening bowler' : 'Next bowler'}
           players={availableBowlers}
           onPick={(playerId) => onOverride({ bowler: playerId })}
         />
+      ) : null}
+
+      {notice.alert || prerequisite ? (
+        <p
+          role={notice.alert ? 'alert' : undefined}
+          className={cn('text-[13px]', notice.alert ? 'font-semibold text-live' : 'text-muted')}
+        >
+          {notice.alert ? notice.message : prerequisite}
+          {failedInQueue ? (
+            <button type="button" onClick={() => void onRetryQueue()} className="ml-2 underline">
+              Retry
+            </button>
+          ) : null}
+        </p>
       ) : null}
 
       <div className="pad-seg" role="group" aria-label="Extras">
@@ -934,11 +917,8 @@ function Pad({
             aria-pressed={extraType === option.value}
             data-armed={extraType === option.value}
             onClick={() => onExtra(option.value)}
-            className="pad-key h-11 text-[0.8125rem]"
+            className="pad-key"
           >
-            <span aria-hidden className="key-legend uppercase">
-              {option.key}
-            </span>
             {option.label}
           </button>
         ))}
@@ -952,52 +932,55 @@ function Pad({
             disabled={!ready || isSaving || (byeLike && runs === 0)}
             onClick={() => press(`r${runs}`, () => onRuns(runs))}
             data-tone={runTone(runs)}
-            className="pad-key h-14 text-xl"
+            className="pad-key h-[3.75rem] text-[32px]"
           >
             {ripple(`r${runs}`)}
             {runs}
           </button>
         ))}
-
         <button
           type="button"
           disabled={!ready || isSaving}
           onClick={() => press('w', onWicket)}
           data-tone="wicket"
-          className="pad-key h-14 text-base tracking-[0.04em]"
+          className="pad-key h-[3.75rem]"
         >
           {ripple('w')}
-          <span aria-hidden className="key-legend">
-            W
-          </span>
           OUT
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-3">
-        <p
-          role={notice.alert ? 'alert' : undefined}
-          className={cn('text-[0.8125rem]', notice.alert ? 'font-medium text-live' : 'text-muted')}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={!canUndo}
+          title={
+            !isOnline
+              ? 'Undo is available after deliveries sync'
+              : queueItems.length
+                ? 'Wait for pending deliveries to sync'
+                : 'Undo last delivery'
+          }
+          onClick={() => press('undo', onUndo)}
+          data-tone="quiet"
+          className="pad-key h-10"
         >
-          {extraType && !notice.alert
-            ? `${EXTRAS.find((option) => option.value === extraType)?.label} armed`
-            : (prerequisite ?? notice.message)}
-        </p>
-
-        <div className="flex items-center gap-3">
-          {failedInQueue ? (
-            <button
-              type="button"
-              onClick={() => void onRetryQueue()}
-              className="pad-key h-11 px-3 text-xs"
-            >
-              Retry queue
-            </button>
-          ) : null}
-          <p className="hidden text-[0.6875rem] text-muted xl:block">
-            0-6 · W · D N B L · Backspace
-          </p>
-        </div>
+          {ripple('undo')}
+          <UndoIcon />
+          Undo
+        </button>
+        <a
+          href={scorecardHref}
+          target="_blank"
+          rel="noreferrer"
+          data-tone="quiet"
+          className="pad-key h-10"
+        >
+          <svg viewBox="0 0 256 256" className="size-[18px]" fill="currentColor" aria-hidden>
+            <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z" />
+          </svg>
+          Scorecard
+        </a>
       </div>
     </div>
   );
@@ -1048,97 +1031,35 @@ function PickerRow({
   );
 }
 
-function InningsNumbers({
-  state,
-  context,
-  par,
-}: {
-  state: MatchState;
-  context: InningsContext;
-  par: DlsParPosition | null;
-}) {
-  const quota = quotaBalls(context);
-  const ballsLeft = Math.max(0, quota - state.legalBalls);
-  const partnership = state.partnerships.find((entry) => entry.isCurrent);
-  const { extras } = state;
-
-  return (
-    <StatLine
-      items={[
-        ...(partnership
-          ? [{ label: 'Partnership', value: `${partnership.runs} (${partnership.balls})` }]
-          : []),
-        {
-          label: 'Extras',
-          value: `${extras.total} (w ${extras.wides}, nb ${extras.noBalls}, b ${extras.byes}, lb ${extras.legByes})`,
-        },
-        { label: 'Balls left', value: ballsLeft },
-        ...(par
-          ? [
-              {
-                label: 'DLS par',
-                value: `${par.parScore} · ${
-                  par.difference === 0
-                    ? 'level'
-                    : par.difference > 0
-                      ? `${par.difference} ahead`
-                      : `${Math.abs(par.difference)} behind`
-                }`,
-                tone: 'accent' as const,
-              },
-            ]
-          : []),
-      ]}
-    />
-  );
-}
-
-function Momentum({ state }: { state: MatchState }) {
-  const window = recentWindow(state.recentBalls);
-
-  return (
-    <Panel
-      title="Momentum"
-      icon={<TrendIcon />}
-      meta={<span className="text-xs text-muted">per over</span>}
-      bodyClassName="flex flex-col gap-4"
-    >
-      <RunsPerOver balls={state.recentBalls} />
-
-      <div className="flex flex-col gap-2 border-t border-line pt-3">
-        <LeaderRow
-          label={`Last ${window.balls} balls`}
-          value={`${window.runs} runs · ${window.wickets}w`}
-          emphasis
-        />
-        <LeaderRow
-          label="Dot balls"
-          value={window.balls > 0 ? `${Math.round((window.dots / window.balls) * 100)}%` : '—'}
-        />
-        <LeaderRow label="Boundaries" value={`${window.fours}×4 · ${window.sixes}×6`} />
-      </div>
-    </Panel>
-  );
-}
-
 function WicketsCard({ state }: { state: MatchState }) {
   return (
-    <Panel title="Fall of wickets" icon={<StumpsIcon />} bodyClassName="flex flex-col gap-2.5">
+    <section className="rounded-[var(--radius-lg)] border border-line bg-raised">
+      <h2 className="border-b border-line px-3 py-2 text-xs font-medium text-muted">
+        Fall of wickets
+      </h2>
       {state.fallOfWickets.length === 0 ? (
-        <p className="text-xs text-muted">None</p>
+        <p className="px-3 py-3 text-xs text-muted">None</p>
       ) : (
-        state.fallOfWickets
-          .slice()
-          .reverse()
-          .map((wicket) => (
-            <LeaderRow
-              key={wicket.wicket}
-              label={`${wicket.wicket}. ${wicket.name}`}
-              value={`${wicket.teamRuns} (${wicket.overs})`}
-            />
-          ))
+        <ol>
+          {state.fallOfWickets
+            .slice()
+            .reverse()
+            .map((wicket) => (
+              <li
+                key={wicket.wicket}
+                className="flex justify-between gap-3 border-b border-line px-3 py-2 text-[0.8125rem] last:border-b-0"
+              >
+                <span className="truncate">
+                  <span className="mono text-muted">{wicket.wicket}.</span> {wicket.name}
+                </span>
+                <span className="mono shrink-0">
+                  {wicket.teamRuns} <span className="text-muted">({wicket.overs})</span>
+                </span>
+              </li>
+            ))}
+        </ol>
       )}
-    </Panel>
+    </section>
   );
 }
 
@@ -1146,18 +1067,21 @@ function EventsCard({ state }: { state: MatchState }) {
   const events = useMemo(() => state.recentBalls.slice(-8).reverse(), [state.recentBalls]);
 
   return (
-    <Panel title="Deliveries" icon={<ClockIcon />} bodyClassName="p-0">
+    <section className="rounded-[var(--radius-lg)] border border-line bg-raised">
+      <h2 className="border-b border-line px-3 py-2 text-xs font-medium text-muted">
+        Recent balls
+      </h2>
       {events.length === 0 ? (
-        <p className="p-4 text-xs text-muted">None</p>
+        <p className="px-3 py-3 text-xs text-muted">None</p>
       ) : (
-        <ol className="flex flex-col">
+        <ol>
           {events.map((ball) => (
             <li
               key={ball.seq}
-              className="flex items-center gap-3 border-b border-line px-4 py-2 last:border-b-0"
+              className="flex items-center gap-3 border-b border-line px-3 py-1.5 last:border-b-0"
             >
-              <BallChip display={ball.display} isWicket={ball.isWicket} />
-              <span className="tabular w-10 shrink-0 text-xs text-muted">
+              <BallChip display={ball.display} isWicket={ball.isWicket} size="sm" />
+              <span className="mono w-9 shrink-0 text-xs text-muted">
                 {ball.overNumber}.{ball.ballNumber}
               </span>
               <span
@@ -1172,30 +1096,7 @@ function EventsCard({ state }: { state: MatchState }) {
           ))}
         </ol>
       )}
-    </Panel>
-  );
-}
-
-interface BallWindow {
-  balls: number;
-  runs: number;
-  dots: number;
-  fours: number;
-  sixes: number;
-  wickets: number;
-}
-
-function recentWindow(recentBalls: ReadonlyArray<BallSummary>): BallWindow {
-  return recentBalls.reduce<BallWindow>(
-    (totals, ball) => ({
-      balls: totals.balls + (ball.isLegalDelivery ? 1 : 0),
-      runs: totals.runs + ball.runs,
-      dots: totals.dots + (ball.isLegalDelivery && ball.runs === 0 ? 1 : 0),
-      fours: totals.fours + (!ball.extraType && ball.runs === 4 ? 1 : 0),
-      sixes: totals.sixes + (!ball.extraType && ball.runs === 6 ? 1 : 0),
-      wickets: totals.wickets + (ball.isWicket ? 1 : 0),
-    }),
-    { balls: 0, runs: 0, dots: 0, fours: 0, sixes: 0, wickets: 0 },
+    </section>
   );
 }
 

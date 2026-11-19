@@ -46,9 +46,19 @@ export function ScoringRoute() {
   if (error) return <ErrorText error={error} onRetry={() => void refetch()} />;
   if (!data) return null;
 
+  const notStarted = data.status === 'SCHEDULED' || data.status === 'TOSS';
+
   return (
     <Suspense fallback={<SkeletonCard rows={6} />}>
-      {data.sport === 'FOOTBALL' ? <FootballScoringPage /> : <ScoringPage />}
+      {notStarted ? (
+        <div className="px-4 pt-4 pb-16 sm:px-6">
+          {data.sport === 'FOOTBALL' ? <FootballMatchPage match={data} /> : <MatchPage />}
+        </div>
+      ) : data.sport === 'FOOTBALL' ? (
+        <FootballScoringPage />
+      ) : (
+        <ScoringPage />
+      )}
     </Suspense>
   );
 }

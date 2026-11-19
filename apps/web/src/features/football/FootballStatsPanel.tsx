@@ -154,7 +154,7 @@ function AwardCard({
               size="lg"
             />
             <div className="min-w-0">
-              <p className="display truncate text-[1.375rem] text-primary">{player.playerName}</p>
+              <p className="truncate text-[0.9375rem] font-semibold text-primary">{player.playerName}</p>
               <p className="mt-1 truncate text-xs text-muted">{player.team.name}</p>
             </div>
           </div>

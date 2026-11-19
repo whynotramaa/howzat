@@ -1,25 +1,23 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { TeamDto } from '@howzat/shared';
-import { BackLink } from '@/components/ui/BackLink';
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { MatchDto, TeamDto } from '@howzat/shared';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { EmptyState, PageHeader, SectionHeading, StatStrip } from '@/components/ui/Card';
-import { SportGlyph } from '@/components/ui/Sketch';
-import { Input } from '@/components/ui/Input';
+import { EmptyState } from '@/components/ui/Card';
+import { Disclosure } from '@/components/ui/Disclosure';
 import { ErrorText, Skeleton, SkeletonCard } from '@/components/ui/Feedback';
 import { TeamMark } from '@/components/ui/Pill';
 import { Sheet } from '@/components/ui/Sheet';
-import { ShareLink } from '@/components/ui/ShareLink';
+import { toast } from '@/components/ui/Toast';
 import { PdfButton } from '@/components/ui/PdfButton';
+import { Tabs } from '@/components/ui/Tabs';
+import { stageLabel } from '@/lib/pdf/sources';
 import { useFixtures, useGenerateFixtures } from '@/features/matches/queries';
 import { cn } from '@/lib/cn';
 import { StandingsTable } from './StandingsTable';
 import { TournamentStatsPanel } from './TournamentStatsPanel';
 import { QualificationPanel } from './QualificationPanel';
-
 import {
   useCreateTeam,
-  useDeleteTeam,
   useDeleteTournament,
   useTeams,
   useTournament,
@@ -32,29 +30,29 @@ const FORMAT_LABELS = {
 } as const;
 
 const TEAM_COLORS = [
-  '#2f63d8',
-  '#d0533c',
-  '#4d8a57',
-  '#d99a2b',
-  '#7a58c9',
-  '#1f8a8a',
-  '#b8336a',
-  '#191917',
+  '#2563eb',
+  '#dc2626',
+  '#16a34a',
+  '#d97706',
+  '#7c3aed',
+  '#0d9488',
+  '#db2777',
+  '#18181b',
 ];
+
+type Tab = 'fixtures' | 'teams' | 'table';
 
 export function TournamentDetailPage() {
   const { tournamentId = '' } = useParams();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
 
   const tournament = useTournament(tournamentId);
   const teams = useTeams(tournamentId);
   const fixtures = useFixtures(tournamentId);
-  const deleteTeam = useDeleteTeam(tournamentId);
   const deleteTournament = useDeleteTournament();
   const generate = useGenerateFixtures(tournamentId);
 
-  const [adding, setAdding] = useState(false);
-  const [removing, setRemoving] = useState<TeamDto | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   if (tournament.isPending) return <SkeletonCard rows={4} />;
@@ -62,339 +60,172 @@ export function TournamentDetailPage() {
     return <ErrorText error={tournament.error} onRetry={() => void tournament.refetch()} />;
   if (!tournament.data) return null;
 
+  const t = tournament.data;
   const registered = teams.data?.total ?? 0;
   const eligible = teams.data?.eligibleCount ?? 0;
-  const full = registered >= tournament.data.teamsCount;
-  const readyForFixtures = full && eligible === registered;
-  const fixtureCount = fixtures.data?.total ?? 0;
-  const played = fixtures.data?.items.filter((match) => match.status === 'COMPLETED').length ?? 0;
-  const started =
-    fixtures.data?.items.filter((match) =>
-      ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
-    ).length ?? 0;
+  const full = registered >= t.teamsCount;
+  const ready = full && eligible === registered;
+  const matches = fixtures.data?.items ?? [];
+  const played = matches.filter((match) => match.status === 'COMPLETED').length;
+  const started = matches.filter((match) =>
+    ['LIVE', 'INNINGS_BREAK', 'COMPLETED'].includes(match.status),
+  ).length;
+  const isSingleMatch = t.teamsCount === 2 && !t.doubleRoundRobin;
 
-  const isSingleMatch = tournament.data.teamsCount === 2 && !tournament.data.doubleRoundRobin;
-  const soleMatch = isSingleMatch ? fixtures.data?.items[0] : undefined;
+  const tabs: Array<{ value: Tab; label: string; meta?: number }> = [
+    { value: 'fixtures', label: 'Matches', meta: matches.length || undefined },
+    { value: 'table', label: 'Table' },
+    { value: 'teams', label: 'Teams', meta: registered },
+  ];
+  const requested = params.get('tab') as Tab | null;
+  const tab: Tab =
+    requested && tabs.some((item) => item.value === requested)
+      ? requested
+      : matches.length
+        ? 'fixtures'
+        : 'teams';
 
-  async function startTheMatch() {
+  async function handleGenerate() {
     const result = await generate.mutateAsync(false);
-    const match = result.items[0];
-    if (match) void navigate(`/matches/${match.id}`);
+    if (isSingleMatch && result.items[0]) {
+      void navigate(`/matches/${result.items[0].id}/score`);
+      return;
+    }
+    setParams({ tab: 'fixtures' }, { replace: true });
   }
 
-  const steps = [
-    {
-      label: 'Register teams',
-      detail: full
-        ? 'Every slot filled'
-        : `${tournament.data.teamsCount - registered} slots still open`,
-      done: full,
-    },
-    {
-      label: 'Fill the squads',
-      detail:
-        registered === 0
-          ? 'Waiting on teams'
-          : eligible === registered
-            ? 'Every squad is ready'
-            : `${registered - eligible} squad${registered - eligible === 1 ? '' : 's'} short of players`,
-      done: registered > 0 && eligible === registered,
-    },
-    {
-      label: isSingleMatch ? 'Start the match' : 'Draw the fixtures',
-      detail:
-        fixtureCount > 0
-          ? `${played} of ${fixtureCount} played`
-          : readyForFixtures
-            ? 'Good to go'
-            : 'Unlocks when squads are full',
-      done: fixtureCount > 0,
-    },
-  ];
-  const current = steps.findIndex((step) => !step.done);
+  const shareUrl = `${window.location.origin}/tournament/${tournamentId}`;
 
   return (
-    <div className="flex flex-col gap-7">
-      <PageHeader
-        back={<BackLink to="/tournaments">Tournaments</BackLink>}
-        eyebrow={
-          <>
-            <span>{tournament.data.sport === 'FOOTBALL' ? 'Football' : 'Cricket'}</span>
-            <span aria-hidden>·</span>
-            <span>{FORMAT_LABELS[tournament.data.format]}</span>
-            <span aria-hidden>·</span>
-            <span>
-              {tournament.data.sport === 'FOOTBALL'
-                ? `${tournament.data.periods} × ${tournament.data.periodMinutes} min`
-                : `${tournament.data.oversPerInnings} overs`}
-            </span>
-            <span aria-hidden>·</span>
-            <span>{tournament.data.playersPerTeam} a side</span>
-          </>
-        }
-        title={tournament.data.name}
-        art={<SportGlyph sport={tournament.data.sport} className="ml-auto size-36" />}
-        actions={
-          <>
-            {isSingleMatch ? (
-              soleMatch ? (
-                <ButtonLink to={`/matches/${soleMatch.id}`}>Open match</ButtonLink>
-              ) : (
-                <Button
-                  disabled={!readyForFixtures}
-                  isLoading={generate.isPending}
-                  onClick={() => void startTheMatch()}
-                >
-                  Start match
-                </Button>
-              )
-            ) : (
-              <ButtonLink
-                to={`/tournaments/${tournamentId}/fixtures`}
-                disabled={!readyForFixtures && fixtureCount === 0}
-              >
-                {fixtureCount > 0 ? 'Fixtures' : 'Generate fixtures'}
-              </ButtonLink>
-            )}
-            {!full ? (
-              <Button variant="secondary" onClick={() => setAdding(true)}>
-                Add team
-              </Button>
-            ) : null}
-            <ShareLink
-              slug={tournamentId}
-              url={`${window.location.origin}/tournament/${tournamentId}`}
-              label="Share"
-              matchLabel={tournament.data.name}
-              variant="quiet"
-            />
-            <Button
-              variant="quiet"
-              onClick={() => setDeleting(true)}
-              aria-label="Delete tournament"
-              title="Delete tournament"
+    <div className="flex flex-col gap-5">
+      <div className="-mx-2 -mt-2 flex items-center justify-between">
+        <Link
+          to="/tournaments"
+          aria-label="Back to tournaments"
+          className="press grid size-11 place-items-center hover:bg-hover"
+        >
+          <svg viewBox="0 0 256 256" className="size-[22px]" fill="currentColor" aria-hidden>
+            <path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z" />
+          </svg>
+        </Link>
+        <Disclosure className="relative">
+          <summary
+            aria-label="Tournament menu"
+            className="press grid size-11 cursor-pointer list-none place-items-center hover:bg-hover"
+          >
+            <svg viewBox="0 0 256 256" className="size-[22px]" fill="currentColor" aria-hidden>
+              <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z" />
+            </svg>
+          </summary>
+          <div className="absolute right-0 z-40 mt-1 grid w-52 border border-line bg-raised p-1">
+            <button
+              type="button"
+              onClick={() => void shareTournament(shareUrl, t.name)}
+              className="flex h-10 items-center px-3 text-left text-sm font-medium hover:bg-sunken"
             >
-              <svg
-                viewBox="0 0 16 16"
-                className="size-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4" />
-              </svg>
-            </Button>
-          </>
-        }
+              Share link
+            </button>
+            {played ? (
+              <PdfButton
+                variant="quiet"
+                label="Download PDF"
+                className="h-10 justify-start px-3"
+                build={() => import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))}
+              />
+            ) : null}
+            <hr className="my-1 border-line" />
+            <button
+              type="button"
+              onClick={() => setDeleting(true)}
+              className="flex h-10 items-center px-3 text-left text-sm font-medium text-alert hover:bg-sunken"
+            >
+              Delete tournament
+            </button>
+          </div>
+        </Disclosure>
+      </div>
+
+      <header className="grid gap-1">
+        <h1 className="page-title truncate">{t.name}</h1>
+        <p className="truncate text-[13px] text-secondary">
+          {[
+            t.sport === 'FOOTBALL' ? 'Football' : 'Cricket',
+            FORMAT_LABELS[t.format],
+            `${t.teamsCount} teams`,
+            t.sport === 'FOOTBALL' ? `${t.periods} × ${t.periodMinutes} min` : `${t.oversPerInnings} ov`,
+          ].join(' · ')}
+        </p>
+      </header>
+
+      <Tabs
+        value={tab}
+        onChange={(value) => setParams({ tab: value }, { replace: true })}
+        items={tabs}
       />
 
       {generate.error ? <ErrorText error={generate.error} /> : null}
 
-      {!fixtures.isPending && !fixtures.error && fixtureCount === 0 ? (
-        <ol className="grid gap-3 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <li
-              key={step.label}
-              className={cn(
-                'flex items-center gap-4 rounded-[var(--radius-xl)] border bg-raised p-4',
-                index === current ? 'border-primary' : 'border-line',
-              )}
-            >
-              <span
-                className={cn(
-                  'grid size-10 shrink-0 place-items-center rounded-full border font-sans text-[1.25rem] leading-none',
-                  step.done
-                    ? 'border-success bg-success text-[var(--surface-raised)]'
-                    : index === current
-                      ? 'border-primary text-primary'
-                      : 'border-line-strong text-muted',
-                )}
-              >
-                {step.done ? (
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="size-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="m3.5 8.5 3 3 6-7" />
-                  </svg>
-                ) : (
-                  index + 1
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-primary">{step.label}</span>
-                <span className="block truncate text-xs text-muted">{step.detail}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      ) : null}
-
-      <StatStrip
-        items={[
-          { label: 'Teams in', value: `${registered}/${tournament.data.teamsCount}` },
-          {
-            label: 'Squads ready',
-            value: `${eligible}/${registered}`,
-            tone: registered > 0 && eligible === registered ? 'success' : 'default',
-          },
-          { label: 'Matches played', value: `${played}/${fixtureCount}` },
-        ]}
-      />
-
-      <section className="flex min-w-0 flex-col gap-5">
-        <SectionHeading
-          title="Teams"
-          action={
-            <Button size="sm" variant="secondary" onClick={() => setAdding(true)} disabled={full}>
-              Add team
-            </Button>
-          }
-        />
-        {teams.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((index) => (
-              <Skeleton key={index} className="h-44" />
-            ))}
-          </div>
-        ) : teams.data && teams.data.items.length > 0 ? (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {teams.data.items.map((team, index) => (
-              <li
-                key={team.id}
-                className="reveal relative"
-                style={{ '--delay': `${index * 50}ms` } as CSSProperties}
-              >
-                <Link
-                  to={`/teams/${team.id}`}
-                  className="card-lift flex h-full flex-col items-center rounded-[var(--radius-xl)] border border-line bg-raised px-4 pt-6 pb-4 text-center"
-                >
-                  <TeamMark shortName={team.shortName} color={team.primaryColor} size="xl" />
-                  <span className="mt-4 break-words text-[0.9375rem] font-semibold text-primary">
-                    {team.name}
-                  </span>
-                  <span
-                    className={cn(
-                      'mt-1 text-xs',
-                      team.isEligible ? 'text-success' : 'text-warning',
-                    )}
-                  >
-                    {team.isEligible
-                      ? 'Squad ready'
-                      : `${team.squadSize - team.playerCount} more to pick`}
-                  </span>
-                  <span className="mt-4 flex w-full items-center gap-2">
-                    <span className="h-1 flex-1 overflow-hidden rounded-full bg-sunken">
-                      <span
-                        className={cn(
-                          'block h-full rounded-full',
-                          team.isEligible ? 'bg-success' : 'bg-[var(--ink-amber)]',
-                        )}
-                        style={{
-                          width: `${Math.min(100, (team.playerCount / Math.max(1, team.squadSize)) * 100)}%`,
-                        }}
-                      />
-                    </span>
-                    <span className="tabular text-xs text-muted">
-                      {team.playerCount}/{team.squadSize}
-                    </span>
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setRemoving(team)}
-                  aria-label={`Remove ${team.name}`}
-                  className="absolute top-1 right-1 grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-alert"
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    aria-hidden
-                  >
-                    <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-            {!full
-              ? Array.from(
-                  { length: Math.min(4, tournament.data.teamsCount - registered) },
-                  (_, index) => (
-                    <li key={`open-${index}`}>
-                      <button
-                        type="button"
-                        onClick={() => setAdding(true)}
-                        className="grid h-full min-h-44 w-full place-content-center justify-items-center gap-3 rounded-[var(--radius-xl)] border border-dashed border-line-strong text-muted transition-colors hover:border-primary hover:text-primary"
-                      >
-                        <span className="grid size-12 place-items-center rounded-full border border-dashed border-current text-xl leading-none">
-                          +
-                        </span>
-                        <span className="text-xs font-medium">Open slot</span>
-                      </button>
-                    </li>
-                  ),
-                )
-              : null}
-          </ul>
+      {tab === 'fixtures' ? (
+        matches.length ? (
+          <FixturesTab tournamentId={tournamentId} matches={matches} />
         ) : (
           <EmptyState
-            scene="squad"
-            title="No teams yet"
-            description={`${tournament.data.teamsCount} slots are open. Add the first team and give it a colour.`}
+            title={ready ? 'Ready to draw' : 'No matches yet'}
+            description={
+              ready ? undefined : `Fill ${t.teamsCount} teams with full squads first`
+            }
             action={
-              <Button size="sm" onClick={() => setAdding(true)}>
-                Add team
-              </Button>
+              ready ? (
+                <Button isLoading={generate.isPending} onClick={() => void handleGenerate()}>
+                  {isSingleMatch ? 'Start match' : 'Generate fixtures'}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => setParams({ tab: 'teams' }, { replace: true })}
+                >
+                  Go to teams
+                </Button>
+              )
             }
           />
-        )}
-        {deleteTeam.error ? <ErrorText error={deleteTeam.error} /> : null}
-      </section>
-
-      {played > 0 ? (
-        <section className="flex min-w-0 flex-col gap-5">
-          <SectionHeading
-            eyebrow="Standings"
-            title="Standings"
-            action={
-              <PdfButton
-                size="sm"
-                variant="quiet"
-                build={() =>
-                  import('@/lib/pdf').then((pdf) => pdf.buildTournamentPdf(tournamentId))
-                }
-              />
-            }
-          />
-          <StandingsTable tournamentId={tournamentId} sport={tournament.data?.sport} />
-        </section>
+        )
       ) : null}
 
-      {started > 0 ? <TournamentStatsPanel tournamentId={tournamentId} /> : null}
-      {played > 0 && teams.data ? (
-        <QualificationPanel
+      {tab === 'teams' ? (
+        <TeamsTab
           tournamentId={tournamentId}
-          teams={teams.data.items.map((team) => ({ id: team.id, name: team.name }))}
+          teams={teams.data?.items}
+          isPending={teams.isPending}
+          slotsLeft={Math.max(0, t.teamsCount - registered)}
+          canDraw={ready && matches.length === 0}
+          isSingleMatch={isSingleMatch}
+          drawing={generate.isPending}
+          onDraw={() => void handleGenerate()}
         />
       ) : null}
 
-      <AddTeamSheet tournamentId={tournamentId} open={adding} onClose={() => setAdding(false)} />
+      {tab === 'table' ? (
+        played ? (
+          <div className="flex flex-col gap-8">
+            <StandingsTable tournamentId={tournamentId} sport={t.sport} />
+            {teams.data ? (
+              <QualificationPanel
+                tournamentId={tournamentId}
+                teams={teams.data.items.map((team) => ({ id: team.id, name: team.name }))}
+              />
+            ) : null}
+            {started ? <TournamentStatsPanel tournamentId={tournamentId} /> : null}
+          </div>
+        ) : (
+          <EmptyState compact title="The table fills after the first result" />
+        )
+      ) : null}
 
       <Sheet
         open={deleting}
         onClose={() => setDeleting(false)}
-        title={`Delete ${tournament.data.name}?`}
+        title={`Delete ${t.name}?`}
         footer={
           <>
             <Button variant="quiet" onClick={() => setDeleting(false)}>
@@ -402,7 +233,7 @@ export function TournamentDetailPage() {
             </Button>
             <Button
               variant="danger"
-              disabled={tournament.data.status === 'IN_PROGRESS'}
+              disabled={t.status === 'IN_PROGRESS'}
               isLoading={deleteTournament.isPending}
               onClick={async () => {
                 await deleteTournament.mutateAsync(tournamentId);
@@ -415,161 +246,275 @@ export function TournamentDetailPage() {
           </>
         }
       >
-        {tournament.data.status === 'IN_PROGRESS' ? (
-          <p className="text-secondary">Matches are under way. Finish or abandon them first.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <p className="text-secondary">
-              {registered} side{registered === 1 ? '' : 's'} and {fixtureCount} fixture
-              {fixtureCount === 1 ? '' : 's'} will be removed.
-            </p>
-            {deleteTournament.error ? <ErrorText error={deleteTournament.error} /> : null}
-          </div>
-        )}
-      </Sheet>
-
-      <Sheet
-        open={removing !== null}
-        onClose={() => setRemoving(null)}
-        title={`Remove ${removing?.name ?? 'this side'}?`}
-        footer={
-          <>
-            <Button variant="quiet" onClick={() => setRemoving(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              isLoading={deleteTeam.isPending}
-              onClick={() => {
-                if (removing)
-                  deleteTeam.mutate(removing.id, { onSuccess: () => setRemoving(null) });
-              }}
-            >
-              Remove
-            </Button>
-          </>
-        }
-      >
-        <p className="text-secondary">
-          Deletes the team and its players. Regenerate fixtures after.
+        <p className="text-sm text-secondary">
+          {t.status === 'IN_PROGRESS'
+            ? 'Matches are under way. Finish or abandon them first.'
+            : `Removes ${registered} team${registered === 1 ? '' : 's'} and ${matches.length} match${matches.length === 1 ? '' : 'es'}.`}
         </p>
+        {deleteTournament.error ? <ErrorText error={deleteTournament.error} /> : null}
       </Sheet>
     </div>
   );
 }
 
-function AddTeamSheet({
+async function shareTournament(url: string, name: string) {
+  if (typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title: name, url });
+      return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link copied');
+  } catch {
+    window.prompt('Copy this link', url);
+  }
+}
+
+function TeamsTab({
   tournamentId,
-  open,
-  onClose,
+  teams,
+  isPending,
+  slotsLeft,
+  canDraw,
+  isSingleMatch,
+  drawing,
+  onDraw,
 }: {
   tournamentId: string;
-  open: boolean;
-  onClose: () => void;
+  teams: TeamDto[] | undefined;
+  isPending: boolean;
+  slotsLeft: number;
+  canDraw: boolean;
+  isSingleMatch: boolean;
+  drawing: boolean;
+  onDraw: () => void;
 }) {
   const createTeam = useCreateTeam(tournamentId);
-
   const [name, setName] = useState('');
-  const [shortName, setShortName] = useState('');
-  const [primaryColor, setPrimaryColor] = useState(TEAM_COLORS[0]!);
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleAdd(event: FormEvent) {
     event.preventDefault();
-    await createTeam.mutateAsync({ name, shortName, primaryColor });
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const words = trimmed.split(/\s+/);
+    const shortName = (
+      words.length > 1 ? words.map((word) => word[0] ?? '').join('') : trimmed.slice(0, 3)
+    )
+      .toUpperCase()
+      .slice(0, 4);
+    await createTeam.mutateAsync({
+      name: trimmed,
+      shortName,
+      primaryColor: TEAM_COLORS[(teams?.length ?? 0) % TEAM_COLORS.length]!,
+    });
     setName('');
-    setShortName('');
-    onClose();
   }
 
+  if (isPending) return <Skeleton className="h-40" />;
+
   return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title="Add team"
-      footer={
-        <>
-          <Button type="button" variant="quiet" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="add-team" isLoading={createTeam.isPending}>
+    <div className="grid gap-3">
+      {teams?.length ? (
+        <ul className="border border-line bg-raised px-4">
+          {teams.map((team) => {
+            const short = !team.isEligible;
+            return (
+              <li key={team.id} className="border-b border-line last:border-b-0">
+                <Link
+                  to={`/teams/${team.id}`}
+                  className="grid h-[3.75rem] grid-cols-[2rem_minmax(0,1fr)_auto_1.25rem] items-center gap-3"
+                >
+                  <TeamMark shortName={team.shortName} color={team.primaryColor} size="md" />
+                  <span className="truncate text-[15px] font-medium">{team.name}</span>
+                  <span
+                    className={cn(
+                      'text-[13px] whitespace-nowrap',
+                      short ? 'bg-warning-soft px-2 py-0.5 font-semibold text-warning' : 'text-muted',
+                    )}
+                  >
+                    {short ? `${team.playerCount} of ${team.squadSize}` : `${team.playerCount} players`}
+                  </span>
+                  <Chevron />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      {slotsLeft > 0 ? (
+        <form onSubmit={handleAdd} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <input
+            aria-label="Team name"
+            placeholder="Team name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="h-11 border border-line-strong bg-raised px-4 text-[15px] outline-none placeholder:text-muted focus:border-[var(--text-primary)]"
+          />
+          <Button type="submit" isLoading={createTeam.isPending} disabled={!name.trim()}>
+            <svg viewBox="0 0 256 256" className="size-[18px]" fill="currentColor" aria-hidden>
+              <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z" />
+            </svg>
             Add
           </Button>
-        </>
-      }
-    >
-      <form id="add-team" onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          label="Name"
-          autoFocus
-          required
-          placeholder="Riverside XI"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={() => {
-            if (!shortName && name.trim()) {
-              setShortName(
-                name
-                  .trim()
-                  .split(/\s+/)
-                  .map((word) => word[0] ?? '')
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 4),
-              );
-            }
-          }}
-        />
+        </form>
+      ) : null}
+      {createTeam.error ? <ErrorText error={createTeam.error} /> : null}
+      {slotsLeft > 0 ? (
+        <p className="t-caption">
+          {slotsLeft} slot{slotsLeft === 1 ? '' : 's'} open
+        </p>
+      ) : null}
 
-        <Input
-          label="Short name"
-          required
-          maxLength={5}
-          placeholder="RIV"
-          value={shortName}
-          onChange={(event) => setShortName(event.target.value.toUpperCase())}
-        />
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1.5 text-xs font-medium text-secondary">Colour</legend>
-          <div className="flex flex-wrap items-center gap-2">
-            {TEAM_COLORS.map((swatch) => (
-              <button
-                key={swatch}
-                type="button"
-                aria-label={`Use ${swatch}`}
-                aria-pressed={primaryColor === swatch}
-                onClick={() => setPrimaryColor(swatch)}
-                className={cn(
-                  'size-8 rounded-full border-2 transition-transform',
-                  primaryColor === swatch ? 'scale-110 border-primary' : 'border-transparent',
-                )}
-                style={{ background: swatch }}
-              />
-            ))}
-            <label className="relative grid size-8 cursor-pointer place-items-center rounded-full border border-dashed border-line-strong text-xs text-muted">
-              +
-              <input
-                id="team-color"
-                type="color"
-                value={primaryColor}
-                onChange={(event) => setPrimaryColor(event.target.value)}
-                className="absolute inset-0 size-full cursor-pointer opacity-0"
-                aria-label="Custom colour"
-              />
-            </label>
-          </div>
-        </fieldset>
-
-        <div className="paper-grain flex items-center gap-5 rounded-[var(--radius-xl)] border border-line p-5">
-          <TeamMark shortName={shortName || '···'} color={primaryColor} size="xl" />
-          <div className="min-w-0">
-            <p className="eyebrow">Crest preview</p>
-            <p className="display mt-2 truncate text-[1.75rem]">{name || 'Your team'}</p>
-          </div>
-        </div>
-
-        {createTeam.error ? <ErrorText error={createTeam.error} /> : null}
-      </form>
-    </Sheet>
+      {canDraw ? (
+        <Button size="lg" isLoading={drawing} onClick={onDraw}>
+          {isSingleMatch ? 'Start match' : 'Generate fixtures'}
+        </Button>
+      ) : null}
+    </div>
   );
 }
+
+function Chevron() {
+  return (
+    <svg viewBox="0 0 256 256" className="size-5 text-muted" fill="currentColor" aria-hidden>
+      <path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z" />
+    </svg>
+  );
+}
+
+function FixturesTab({ tournamentId, matches }: { tournamentId: string; matches: MatchDto[] }) {
+  const generate = useGenerateFixtures(tournamentId);
+  const [confirm, setConfirm] = useState(false);
+  const anyStarted = matches.some((match) => match.status !== 'SCHEDULED');
+  const groups = [
+    {
+      title: 'Live',
+      live: true,
+      items: matches.filter((match) => ['LIVE', 'INNINGS_BREAK', 'TOSS'].includes(match.status)),
+    },
+    { title: 'Upcoming', live: false, items: matches.filter((match) => match.status === 'SCHEDULED') },
+    {
+      title: 'Results',
+      live: false,
+      items: matches
+        .filter((match) => match.status === 'COMPLETED' || match.status === 'ABANDONED')
+        .reverse(),
+    },
+  ];
+
+  return (
+    <div className="grid gap-7">
+      {groups
+        .filter((group) => group.items.length)
+        .map((group) => (
+          <section key={group.title} className="grid gap-2">
+            <div className="flex h-[22px] items-center gap-2">
+              {group.live ? <span aria-hidden className="live-square text-live !size-2" /> : null}
+              <b className="text-[15px] font-semibold">{group.title}</b>
+              <span className="t-caption">{group.items.length}</span>
+            </div>
+            <ul className="border border-line bg-raised px-4">
+              {group.items.map((match) => (
+                <FixtureRow key={match.id} match={match} />
+              ))}
+            </ul>
+          </section>
+        ))}
+
+      {!anyStarted ? (
+        <div>
+          <Button size="sm" variant="quiet" onClick={() => setConfirm(true)}>
+            Regenerate fixtures
+          </Button>
+        </div>
+      ) : null}
+
+      <Sheet
+        open={confirm}
+        onClose={() => setConfirm(false)}
+        title="Regenerate fixtures?"
+        footer={
+          <>
+            <Button variant="quiet" onClick={() => setConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              isLoading={generate.isPending}
+              onClick={async () => {
+                await generate.mutateAsync(true);
+                setConfirm(false);
+              }}
+            >
+              Regenerate
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-secondary">Replaces every fixture and clears scorers.</p>
+        {generate.error ? <ErrorText error={generate.error} /> : null}
+      </Sheet>
+    </div>
+  );
+}
+
+function FixtureRow({ match }: { match: MatchDto }) {
+  const live = ['LIVE', 'INNINGS_BREAK', 'TOSS'].includes(match.status);
+  const done = match.status === 'COMPLETED' || match.status === 'ABANDONED';
+  const meta = done
+    ? (match.resultText ?? 'No result')
+    : [
+        stageLabel(match.stage, match.round),
+        match.scheduledAt
+          ? new Date(match.scheduledAt).toLocaleString(undefined, {
+              weekday: 'short',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : null,
+        match.venue,
+        match.scorers.length ? null : 'No scorer yet',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-line py-4 last:border-b-0">
+      <Link to={done ? `/live/${match.publicSlug}?view=scorecard` : `/matches/${match.id}`} className="grid min-w-0 gap-2">
+        <Side team={match.team1} winner={match.winnerTeamId} />
+        <Side team={match.team2} winner={match.winnerTeamId} />
+        <p className={cn('truncate pl-10 text-xs font-medium', live ? 'font-semibold text-live' : 'text-muted')}>
+          {meta}
+        </p>
+      </Link>
+      {done ? (
+        <Chevron />
+      ) : live || match.scorers.length ? (
+        <ButtonLink to={`/matches/${match.id}/score`} size="sm">
+          Score
+        </ButtonLink>
+      ) : (
+        <ButtonLink to={`/matches/${match.id}`} size="sm" variant="secondary">
+          Assign
+        </ButtonLink>
+      )}
+    </li>
+  );
+}
+
+function Side({ team, winner }: { team: MatchDto['team1']; winner: string | null }) {
+  if (!team) return <span className="pl-10 text-[15px] text-muted">To be decided</span>;
+  const lost = Boolean(winner && winner !== team.id);
+  return (
+    <span className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-3">
+      <TeamMark shortName={team.shortName} color={team.primaryColor} size="sm" className="!size-7" />
+      <span className={cn('truncate text-[15px]', lost ? 'text-muted' : 'font-medium')}>{team.name}</span>
+    </span>
+  );
+}
+

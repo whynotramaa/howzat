@@ -3,27 +3,37 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { Disclosure } from '@/components/ui/Disclosure';
-import { Wordmark } from '@/components/Wordmark';
 import { SketchDefs } from '@/components/ui/Sketch';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
 import { useOnline } from '@/lib/useOnline';
 import { cn } from '@/lib/cn';
 
-function NavIcon({ d }: { d: string }) {
+const ICONS = {
+  house: [
+    'M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z',
+    'M224,120v96a8,8,0,0,1-8,8H160a8,8,0,0,1-8-8V164a4,4,0,0,0-4-4H108a4,4,0,0,0-4,4v52a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V120a16,16,0,0,1,4.69-11.31l80-80a16,16,0,0,1,22.62,0l80,80A16,16,0,0,1,224,120Z',
+  ],
+  trophy: [
+    'M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z',
+    'M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z',
+  ],
+  user: [
+    'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.830,87.830,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z',
+    'M172,120a44,44,0,1,1-44-44A44.05,44.05,0,0,1,172,120Zm60,8A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.09,88.09,0,0,0-91.47-87.93C77.43,41.89,39.87,81.12,40,128.25a87.65,87.65,0,0,0,22.24,58.16A79.71,79.71,0,0,1,84,165.1a4,4,0,0,1,4.83.32,59.83,59.83,0,0,0,78.28,0,4,4,0,0,1,4.83-.32,79.71,79.71,0,0,1,21.79,21.31A87.62,87.62,0,0,0,216,128Z',
+  ],
+} as const;
+
+function NavIcon({ name }: { name: keyof typeof ICONS }) {
+  const [line, fill] = ICONS[name];
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={d} />
-    </svg>
+    <>
+      <svg viewBox="0 0 256 256" className="ic-line size-6" fill="currentColor" aria-hidden>
+        <path d={line} />
+      </svg>
+      <svg viewBox="0 0 256 256" className="ic-fill size-6" fill="currentColor" aria-hidden>
+        <path d={fill} />
+      </svg>
+    </>
   );
 }
 
@@ -31,33 +41,14 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const online = useOnline();
-  const items = [
-    {
-      to: '/dashboard',
-      label: 'Matchday',
-      icon: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
-    },
-    {
-      to: '/tournaments',
-      label: 'Tournaments',
-      icon: 'M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 13v6m-4 2h8',
-    },
-    {
-      to: `/players/${user?.username ?? ''}`,
-      label: 'Profile',
-      icon: 'M20 21v-2a7 7 0 0 0-14 0v2M13 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
-    },
-  ];
   const scoring = /\/score(\/|$)/.test(pathname);
-  const section = scoring
-    ? 'Scoring'
-    : pathname.startsWith('/tournaments') || pathname.startsWith('/teams')
-      ? 'Tournaments'
-      : pathname.startsWith('/players')
-        ? 'Profile'
-        : pathname.startsWith('/matches')
-          ? 'Match'
-          : 'Overview';
+  const nav = [
+    { to: '/dashboard', label: 'Matches', icon: 'house' as const },
+    { to: '/tournaments', label: 'Tournaments', icon: 'trophy' as const, also: '/teams' },
+    { to: `/players/${user?.username ?? ''}`, label: 'Profile', icon: 'user' as const },
+  ];
+  const isActive = (item: (typeof nav)[number]) =>
+    pathname.startsWith(item.to) || Boolean(item.also && pathname.startsWith(item.also));
 
   return (
     <div className="min-h-dvh">
@@ -65,108 +56,94 @@ export function AppShell() {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="app-topbar border-b border-line">
-        <div className="masthead mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-3 px-5 sm:h-16 sm:px-8 lg:px-10">
-          <Link to="/dashboard" aria-label="Howzat home" className="shrink-0">
-            <Wordmark size="sm" />
-          </Link>
-          {!scoring ? (
+      {scoring ? null : (
+        <header className="app-topbar border-b border-[var(--page-line)]">
+          <div className="relative mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-4 md:px-6">
+            <Link to="/dashboard" className="flex items-baseline gap-3">
+              <b className="text-lg font-bold tracking-[-0.02em]">Howzat</b>
+            </Link>
             <nav
               aria-label="Main"
-              className="masthead-nav hidden h-full items-center gap-10 md:flex"
+              className="seg-nav absolute left-1/2 hidden -translate-x-1/2 md:inline-grid"
             >
-              {items.map((item) => (
+              {nav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex h-full items-center border-b-2 pt-0.5 text-[1.375rem]',
-                      isActive
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted hover:text-primary',
-                    )
-                  }
+                  aria-current={isActive(item) ? 'page' : undefined}
+                  className="press"
                 >
+                  <NavIcon name={item.icon} />
                   {item.label}
                 </NavLink>
               ))}
             </nav>
-          ) : (
-            <span className="hidden font-sans text-xl text-muted sm:inline">{section}</span>
-          )}
-          <div className="flex items-center gap-1">
-            {!online ? (
-              <span className="hidden text-xs text-warning sm:inline">Offline</span>
-            ) : null}
-            <ThemeToggle />
-            <NotificationBell />
-            <Disclosure className="relative">
-              <summary
-                aria-label="Account menu"
-                className="grid size-11 cursor-pointer list-none place-items-center rounded-full hover:bg-hover"
-              >
-                <PlayerAvatar seed={user?.username ?? ''} name={user?.name ?? ''} size="sm" />
-              </summary>
-              <div className="absolute right-0 z-50 mt-2 w-56 border border-line bg-raised p-2 shadow-[var(--shadow-md)]">
-                <p className="px-3 py-2 text-lg">{user?.name}</p>
-                <Link
-                  to={`/players/${user?.username ?? ''}`}
-                  className="block min-h-11 px-3 py-2 text-sm"
+            <div className="ml-auto flex items-center gap-1">
+              {!online ? (
+                <span className="bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+                  Offline
+                </span>
+              ) : null}
+              <ThemeToggle />
+              <NotificationBell />
+              <Disclosure className="relative hidden md:block">
+                <summary
+                  aria-label="Account menu"
+                  className="grid size-11 cursor-pointer list-none place-items-center hover:bg-hover"
                 >
-                  Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="min-h-11 w-full px-3 text-left text-sm text-alert hover:bg-hover"
-                >
-                  Sign out
-                </button>
-              </div>
-            </Disclosure>
+                  <PlayerAvatar seed={user?.username ?? ''} name={user?.name ?? ''} size="sm" />
+                </summary>
+                <div className="absolute right-0 z-50 mt-1 grid w-52 border border-line bg-raised p-1">
+                  <Link
+                    to={`/players/${user?.username ?? ''}`}
+                    className="flex h-10 items-center px-3 text-sm font-medium hover:bg-sunken"
+                  >
+                    Profile
+                  </Link>
+                  <hr className="my-1 border-line" />
+                  <button
+                    type="button"
+                    onClick={() => void logout()}
+                    className="flex h-10 items-center px-3 text-left text-sm font-medium text-alert hover:bg-sunken"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </Disclosure>
+            </div>
           </div>
-        </div>
-      </header>
-      <div className="min-w-0">
-        <main
-          id="main-content"
-          className={cn(
-            'mx-auto w-full max-w-[1240px]',
-            scoring
-              ? 'scoring-workspace px-4 pt-4 pb-8 sm:px-8'
-              : 'px-5 pt-7 pb-28 sm:px-8 lg:py-9 lg:px-10',
-          )}
-        >
-          <Outlet />
-        </main>
-      </div>
-      {!scoring ? (
+        </header>
+      )}
+      <main
+        id="main-content"
+        className={cn(
+          'mx-auto w-full max-w-[1200px]',
+          scoring ? '' : 'px-4 pt-6 pb-28 md:px-6 md:pt-10 md:pb-16',
+        )}
+      >
+        <Outlet />
+      </main>
+      {scoring ? null : (
         <nav
           aria-label="Main mobile"
-          className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+          className="tabbar nav-icons fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-line bg-raised px-2 pt-2 pb-[max(1.375rem,env(safe-area-inset-bottom))] md:hidden"
         >
-          {items.map((item) => (
-            <NavLink
+          {nav.map((item) => (
+            <Link
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  'grid h-16 flex-1 place-content-center justify-items-center gap-1 text-[0.6875rem] font-medium',
-                  isActive ? 'text-primary' : 'text-muted',
-                )
-              }
-            >
-              {() => (
-                <>
-                  <NavIcon d={item.icon} />
-                  <span>{item.label}</span>
-                </>
+              aria-current={isActive(item) ? 'page' : undefined}
+              className={cn(
+                'press grid h-[3.25rem] content-center justify-items-center gap-0.5 text-[11px] leading-[14px] font-semibold',
+                isActive(item) ? 'text-primary' : 'text-muted',
               )}
-            </NavLink>
+            >
+              <NavIcon name={item.icon} />
+              {item.label}
+            </Link>
           ))}
         </nav>
-      ) : null}
+      )}
     </div>
   );
 }

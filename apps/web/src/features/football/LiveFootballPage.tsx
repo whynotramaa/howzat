@@ -101,7 +101,7 @@ export function LiveFootballPage({ slug }: { slug: string }) {
           <EmptyState
             scene="goal"
             title="Not kicked off yet"
-            description="Keep this page open. Goals, cards and subs land here the moment they happen."
+            description="Updates as it happens."
           />
         ) : snapshot ? (
           <div className="flex flex-col gap-4">
@@ -204,7 +204,7 @@ function Scoreboard({ snapshot, slug }: { snapshot: FootballSnapshot; slug: stri
       {snapshot.resultText || finished ? (
         <div className="mt-8 flex flex-col items-center gap-5 border-t border-dashed border-line pt-6 text-center">
           {snapshot.resultText ? (
-            <p className="display max-w-[34ch] text-[clamp(1.25rem,2.4vw,1.75rem)] text-primary">
+            <p className="max-w-[40ch] text-base font-semibold text-primary">
               {snapshot.resultText}
             </p>
           ) : null}
@@ -232,7 +232,7 @@ function TeamBlock({ side, align }: { side: FootballSnapshot['home']; align: 'le
       <TeamMark shortName={side.short} color={side.color} size="xl" className="max-sm:!size-14" />
 
       <div className="min-w-0">
-        <p className="display line-clamp-2 text-[clamp(1.125rem,2.6vw,2.25rem)] text-primary">
+        <p className="line-clamp-2 text-[0.9375rem] font-semibold text-primary sm:text-lg">
           {side.name}
         </p>
 

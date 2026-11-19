@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { CareerStatsDto, PlayerProfileDto } from '@howzat/shared';
 import { api } from '@/lib/api';
+import { Button } from '@/components/ui/Button';
 import { EmptyState, PageHeader, SectionHeading, StatStrip } from '@/components/ui/Card';
 import { Pill } from '@/components/ui/Pill';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
@@ -12,7 +13,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 
 export function PlayerProfilePage() {
   const { username = '' } = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const { data, isPending, error } = useQuery({
     queryKey: ['players', username],
@@ -37,47 +38,45 @@ export function PlayerProfilePage() {
   const hasPlayed = career.matches > 0;
 
   return (
-    <div className="flex flex-col gap-12">
-      <PageHeader
-        eyebrow={
-          <>
-            <span>@{data.user.username}</span>
-            {isSelf ? <Pill tone="accent">You</Pill> : null}
-          </>
-        }
-        title={data.user.name}
-        art={
-          <div className="grid place-items-center">
-            <PlayerAvatar
-              seed={data.user.username}
-              name={data.user.name}
-              size="xl"
-              className="!size-36"
-            />
-          </div>
-        }
-      />
+    <div className="flex flex-col gap-8">
+      <div className="flex items-center gap-4">
+        <PlayerAvatar seed={data.user.username} name={data.user.name} size="lg" />
+        <PageHeader
+          className="min-w-0 flex-1"
+          eyebrow={
+            <>
+              <span>@{data.user.username}</span>
+              {isSelf ? <Pill tone="neutral">You</Pill> : null}
+            </>
+          }
+          title={data.user.name}
+          actions={
+            isSelf ? (
+              <Button size="sm" variant="danger" onClick={() => void logout()}>
+                Sign out
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
 
       <StatStrip
         items={[
-          { label: 'Matches', value: career.matches, hint: 'In any squad' },
+          { label: 'Matches', value: career.matches },
           {
             label: 'Runs',
             value: career.batting.runs,
-            hint: career.batting.average ? `Average ${career.batting.average}` : 'No average yet',
+            hint: career.batting.average ? `Avg ${career.batting.average}` : undefined,
           },
           {
             label: 'Wickets',
             value: career.bowling.wickets,
-            hint: career.bowling.bestFigures
-              ? `Best ${career.bowling.bestFigures}`
-              : 'No figures yet',
+            hint: career.bowling.bestFigures ? `Best ${career.bowling.bestFigures}` : undefined,
           },
           {
             label: 'Scored',
             value: data.matchesScored,
             hint: `${data.tournamentsOrganized} organised`,
-            tone: 'accent',
           },
         ]}
       />
@@ -85,8 +84,8 @@ export function PlayerProfilePage() {
       {hasPlayed ? (
         <>
           <section>
-            <SectionHeading eyebrow="Career" title="The numbers" />
-            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <SectionHeading title="Career" />
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
               <BattingCard batting={career.batting} />
               <BowlingCard bowling={career.bowling} />
               <FieldingCard fielding={career.fielding} />
@@ -96,11 +95,7 @@ export function PlayerProfilePage() {
           <RecentMatches matches={data.recentMatches} />
         </>
       ) : (
-        <EmptyState
-          scene="stumps"
-          title="No matches yet"
-          description={isSelf ? 'Matches you play in a squad show up here.' : 'Nothing played yet.'}
-        />
+        <EmptyState compact title="No matches played yet" />
       )}
     </div>
   );
@@ -178,16 +173,15 @@ function StatCard({
   children: ReactNode;
 }) {
   return (
-    <section className="relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised p-5 pl-6">
-      <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ background: ink }} />
+    <section className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-line bg-raised p-4" data-ink={ink}>
       <div>
-        <h3 className="display text-[1.625rem]">{title}</h3>
+        <h3 className="text-[0.8125rem] font-medium text-muted">{title}</h3>
         <p className="mt-3 flex items-baseline gap-2">
-          <span className="score-figure tabular text-[2.75rem] leading-none">{headline}</span>
+          <span className="score-figure tabular text-[2rem] leading-none">{headline}</span>
           <span className="text-xs text-muted">{headlineLabel}</span>
         </p>
       </div>
-      <div className="flex flex-col gap-1.5 border-t border-dashed border-line pt-4 [&_span]:text-[0.8125rem]">
+      <div className="flex flex-col gap-1.5 border-t border-line pt-3 [&_span]:text-[0.8125rem]">
         {children}
       </div>
     </section>
@@ -200,26 +194,26 @@ function RecentMatches({ matches }: { matches: PlayerProfileDto['recentMatches']
   return (
     <section>
       <SectionHeading eyebrow="Form guide" title="Recent matches" />
-      <ul className="mt-6 grid gap-3 md:grid-cols-2">
+      <ul className="mt-3 grid gap-3 md:grid-cols-2">
         {matches.map((match, index) => {
           const dismissals = match.catches + match.runOuts + match.stumpings;
 
           return (
             <li
               key={match.matchId}
-              className="reveal flex flex-col gap-4 rounded-[var(--radius-xl)] border border-line bg-raised p-5"
+              className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-line bg-raised p-4"
               style={{ '--delay': `${index * 50}ms` } as CSSProperties}
             >
               <div className="min-w-0">
-                <p className="eyebrow truncate">{match.tournamentName}</p>
-                <p className="display mt-2 truncate text-[1.375rem]">
+                <p className="truncate text-xs text-muted">{match.tournamentName}</p>
+                <p className="mt-1 truncate text-[0.9375rem] font-semibold">
                   {match.teamName}
                   {match.opponentName ? (
                     <span className="text-muted"> v {match.opponentName}</span>
                   ) : null}
                 </p>
               </div>
-              <dl className="grid grid-cols-3 gap-3 border-t border-dashed border-line pt-4">
+              <dl className="grid grid-cols-3 gap-3 border-t border-line pt-3">
                 <Figure
                   label="Bat"
                   value={match.batted ? `${match.runs}${match.isOut ? '' : '*'}` : '—'}
@@ -248,7 +242,7 @@ function Figure({ label, value, note }: { label: string; value: string; note: st
   return (
     <div className="min-w-0">
       <dt className="eyebrow">{label}</dt>
-      <dd className="score-figure tabular mt-1.5 text-[1.625rem] leading-none">{value}</dd>
+      <dd className="score-figure tabular mt-1 text-xl leading-none">{value}</dd>
       <dd className="mt-1 truncate text-[0.6875rem] text-muted">{note}</dd>
     </div>
   );

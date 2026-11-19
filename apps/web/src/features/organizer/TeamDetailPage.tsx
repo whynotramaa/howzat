@@ -1,9 +1,9 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PLAYER_ROLES, type PlayerDto, type PlayerRole, type Sport } from '@howzat/shared';
 import { BackLink } from '@/components/ui/BackLink';
 import { Button } from '@/components/ui/Button';
-import { EmptyState, PageHeader, SectionHeading } from '@/components/ui/Card';
+import { EmptyState, PageHeader } from '@/components/ui/Card';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { ErrorText, SkeletonCard } from '@/components/ui/Feedback';
 import { PlayerAvatar } from '@/components/ui/PlayerAvatar';
@@ -15,6 +15,7 @@ import {
   useAddPlayer,
   useAddPlayersBulk,
   useDeletePlayer,
+  useDeleteTeam,
   useUpdatePlayer,
   useTeam,
   useTournament,
@@ -32,6 +33,9 @@ export function TeamDetailPage() {
   const { teamId = '' } = useParams();
   const team = useTeam(teamId);
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const navigate = useNavigate();
+  const deleteTeam = useDeleteTeam(team.data?.tournamentId ?? '');
   const tournament = useTournament(team.data?.tournamentId ?? '');
   const editable = tournament.data
     ? !['IN_PROGRESS', 'COMPLETED'].includes(tournament.data.status)
@@ -46,12 +50,15 @@ export function TeamDetailPage() {
   const shortOfStarting = Math.max(0, squad.squadSize - squad.players.length);
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        back={<BackLink to={`/tournaments/${squad.tournamentId}`}>Tournament</BackLink>}
+        back={<BackLink to={`/tournaments/${squad.tournamentId}?tab=teams`}>Teams</BackLink>}
         eyebrow={
           <>
-            <span>{squad.sport === 'FOOTBALL' ? 'Football squad' : 'Cricket squad'}</span>
+            <TeamMark shortName={squad.shortName} color={squad.primaryColor} size="sm" />
+            <span className="mono">
+              {squad.players.length}/{squad.squadSize}
+            </span>
             {squad.isEligible ? (
               <Pill tone="success">Ready</Pill>
             ) : (
@@ -61,36 +68,64 @@ export function TeamDetailPage() {
         }
         title={squad.name}
         actions={
-          editable && remaining > 0 ? (
-            <Button onClick={() => setAdding(true)}>Add players</Button>
+          editable ? (
+            <>
+              <Button size="sm" variant="quiet" onClick={() => setRemoving(true)}>
+                Remove team
+              </Button>
+              {remaining > 0 ? (
+                <Button size="sm" onClick={() => setAdding(true)}>
+                  Add players
+                </Button>
+              ) : null}
+            </>
           ) : undefined
-        }
-        art={
-          <div className="grid place-items-center">
-            <TeamMark
-              shortName={squad.shortName}
-              color={squad.primaryColor}
-              size="xl"
-              className="!size-36 !text-[2.25rem]"
-            />
-          </div>
         }
       />
 
+      <Sheet
+        open={removing}
+        onClose={() => setRemoving(false)}
+        title={`Remove ${squad.name}?`}
+        footer={
+          <>
+            <Button variant="quiet" onClick={() => setRemoving(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              isLoading={deleteTeam.isPending}
+              onClick={() =>
+                deleteTeam.mutate(squad.id, {
+                  onSuccess: () => navigate(`/tournaments/${squad.tournamentId}?tab=teams`),
+                })
+              }
+            >
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-secondary">Deletes the team and its players.</p>
+        {deleteTeam.error ? <ErrorText error={deleteTeam.error} /> : null}
+      </Sheet>
+
       <div>
         <section className="min-w-0">
-          <SectionHeading eyebrow={`${squad.players.length} named`} title="The squad" />
           {squad.players.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                compact
-                scene="squad"
-                title="No players yet"
-                description="Add them one by one, or paste the whole list at once."
-              />
-            </div>
+            <EmptyState
+              compact
+              title="No players yet"
+              action={
+                editable ? (
+                  <Button size="sm" onClick={() => setAdding(true)}>
+                    Add players
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+            <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised">
               {squad.players.map((player, index) => (
                 <PlayerRow
                   key={player.id}
@@ -109,20 +144,13 @@ export function TeamDetailPage() {
 
         {remaining > 0 ? (
           <Sheet open={adding} onClose={() => setAdding(false)} title="Add players">
-            <div className="flex min-w-0 flex-col gap-4">
-              <AddPlayerCard
-                teamId={teamId}
-                tournamentId={squad.tournamentId}
-                sport={squad.sport}
-              />
-              <BulkAddCard
-                teamId={teamId}
-                tournamentId={squad.tournamentId}
-                remaining={remaining}
-                shortOfStarting={shortOfStarting}
-                sport={squad.sport}
-              />
-            </div>
+            <AddPlayerCard
+              teamId={teamId}
+              tournamentId={squad.tournamentId}
+              sport={squad.sport}
+              remaining={remaining}
+              shortOfStarting={shortOfStarting}
+            />
           </Sheet>
         ) : null}
       </div>
@@ -155,24 +183,17 @@ function PlayerRow({
   const [role, setRole] = useState(player.role);
 
   return (
-    <li
-      className="reveal card-lift relative flex items-center gap-3.5 rounded-[var(--radius-xl)] border border-line bg-raised p-3.5"
-      style={{ '--delay': `${index * 40}ms` } as CSSProperties}
-    >
-      <span className="relative shrink-0">
-        <PlayerAvatar
-          seed={player.id}
-          name={player.name}
-          size="md"
-          color={sport === 'FOOTBALL' ? color : undefined}
-        />
-        <span className="tabular absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full border border-line bg-surface text-[0.625rem] font-semibold text-secondary">
-          {index + 1}
-        </span>
-      </span>
+    <li className="flex items-center gap-3 border-b border-line px-3 py-2.5 last:border-b-0 sm:px-4">
+      <span className="mono w-5 shrink-0 text-xs text-muted">{index + 1}</span>
+      <PlayerAvatar
+        seed={player.id}
+        name={player.name}
+        size="sm"
+        color={sport === 'FOOTBALL' ? color : undefined}
+      />
 
       <span className="min-w-0 flex-1">
-        <span className="block break-words text-sm font-semibold">{player.name}</span>
+        <span className="block truncate text-sm font-medium">{player.name}</span>
         {player.isRegistered ? (
           <Link to={`/players/${player.username}`} className="text-xs text-muted hover:text-accent">
             @{player.username}
@@ -195,9 +216,9 @@ function PlayerRow({
           }}
           disabled={deletePlayer.isPending}
           aria-label={`Edit ${player.name}`}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-alert"
+          className="h-8 shrink-0 rounded-[var(--radius-md)] px-2.5 text-xs font-medium text-muted transition-colors hover:bg-hover hover:text-primary"
         >
-          <span className="text-xs font-medium">Edit</span>
+          Edit
         </button>
       ) : null}
       <Sheet
@@ -207,7 +228,7 @@ function PlayerRow({
         footer={
           <>
             <Button
-              variant="quiet"
+              variant="secondary"
               onClick={() => (removing ? setRemoving(false) : setEditing(false))}
             >
               Cancel
@@ -285,13 +306,17 @@ function AddPlayerCard({
   teamId,
   tournamentId,
   sport,
+  remaining,
+  shortOfStarting,
 }: {
   teamId: string;
   tournamentId: string;
   sport: Sport;
+  remaining: number;
+  shortOfStarting: number;
 }) {
   const addPlayer = useAddPlayer(teamId, tournamentId);
-  const [mode, setMode] = useState<'name' | 'account'>('name');
+  const [mode, setMode] = useState<'name' | 'list' | 'account'>('list');
   const [name, setName] = useState('');
   const [role, setRole] = useState<PlayerRole>('BATSMAN');
 
@@ -317,55 +342,58 @@ function AddPlayerCard({
     ) : null;
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-xl)] border border-line bg-raised">
-      <div className="px-5 pt-5 pb-2">
-        <h2 className="display text-[1.625rem]">Add a player</h2>
-      </div>
+    <div className="flex flex-col gap-4">
       <Tabs
-        className="px-2"
         items={[
-          { value: 'name', label: 'By name' },
+          { value: 'list', label: 'Paste list' },
+          { value: 'name', label: 'One by one' },
           { value: 'account', label: 'By username' },
         ]}
         value={mode}
         onChange={setMode}
       />
 
-      <div className="flex flex-col gap-4 p-5">
-        {mode === 'name' ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              label="Name"
-              required
-              placeholder="P. Kabra"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-            {roleField}
-            {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
-            <Button type="submit" size="sm" isLoading={addPlayer.isPending} className="self-start">
-              Add player
-            </Button>
-          </form>
-        ) : (
-          <>
-            {roleField}
-            <UserSearchField
-              onPick={(username) =>
-                addPlayer.mutateAsync({
-                  username,
-                  role,
-                  battingStyle: null,
-                  bowlingStyle: null,
-                })
-              }
-              isPending={addPlayer.isPending}
-            />
-            {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
-          </>
-        )}
-      </div>
-    </section>
+      {mode === 'list' ? (
+        <BulkAddCard
+          teamId={teamId}
+          tournamentId={tournamentId}
+          remaining={remaining}
+          shortOfStarting={shortOfStarting}
+          sport={sport}
+        />
+      ) : mode === 'name' ? (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
+            label="Name"
+            required
+            placeholder="P. Kabra"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          {roleField}
+          {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
+          <Button type="submit" isLoading={addPlayer.isPending} className="self-start">
+            Add player
+          </Button>
+        </form>
+      ) : (
+        <>
+          {roleField}
+          <UserSearchField
+            onPick={(username) =>
+              addPlayer.mutateAsync({
+                username,
+                role,
+                battingStyle: null,
+                bowlingStyle: null,
+              })
+            }
+            isPending={addPlayer.isPending}
+          />
+          {addPlayer.error ? <ErrorText error={addPlayer.error} /> : null}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -392,7 +420,7 @@ function UserSearchField({
     <div className="flex flex-col gap-2">
       <Input
         label="Username"
-        placeholder="whynotramaa"
+        placeholder="username"
         value={term}
         onChange={(event) => setTerm(event.target.value)}
       />
@@ -406,7 +434,7 @@ function UserSearchField({
           {items.map((user) => (
             <li
               key={user.id}
-              className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-line px-3 py-2"
+              className="flex items-center gap-3 rounded-[var(--radius-md)] border border-line px-3 py-2"
             >
               <PlayerAvatar seed={user.username} name={user.name} size="sm" />
               <span className="min-w-0 flex-1">
@@ -467,12 +495,10 @@ function BulkAddCard({
   }
 
   return (
-    <section className="rounded-[var(--radius-xl)] border border-dashed border-line-strong bg-surface p-5">
-      <h2 className="display text-[1.625rem]">Paste a list</h2>
-
+    <section>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <Textarea
-          label="Paste names, one per line"
+          label="One name per line"
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={6}

@@ -177,7 +177,7 @@ function SideFields({
         <TeamMark shortName={side.shortName || '?'} color={side.primaryColor} size="lg" />
         <div className="min-w-0">
           <p className="eyebrow">{label}</p>
-          <p className="display mt-1 truncate text-[1.375rem]">{side.name.trim() || placeholder}</p>
+          <p className="mt-1 truncate text-[0.9375rem] font-semibold">{side.name.trim() || placeholder}</p>
         </div>
       </div>
 

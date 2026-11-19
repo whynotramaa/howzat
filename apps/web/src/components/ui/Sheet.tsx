@@ -81,21 +81,21 @@ export function Sheet({
         className={cn(
           'sheet-in relative flex max-h-[92dvh] w-full flex-col outline-none',
           'border border-line bg-raised',
-          'rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)]',
+          'rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-lg)]',
           size === 'lg' ? 'sm:max-w-2xl' : 'sm:max-w-[30rem]',
         )}
       >
-        <header className="flex items-start gap-4 border-b border-line px-6 py-5">
+        <header className="flex items-start gap-4 px-5 pt-5 pb-2">
           <div className="min-w-0 flex-1">
-            <h2 className="display text-[1.375rem] text-primary">{title}</h2>
-            {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+            <h2 className="text-base font-semibold text-primary">{title}</h2>
+            {description ? <p className="mt-0.5 text-[0.8125rem] text-muted">{description}</p> : null}
           </div>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-2 grid size-10 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-hover hover:text-primary"
+            className="-mt-1 -mr-2 grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] text-muted transition-colors hover:bg-hover hover:text-primary"
           >
             <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor">
               <path d="M3.5 3.5l9 9m0-9l-9 9" strokeWidth="1.4" strokeLinecap="round" />
@@ -103,12 +103,12 @@ export function Sheet({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-3">{children}</div>
 
         {footer ? (
           <footer
             className={cn(
-              'flex flex-wrap items-center justify-end gap-3 border-t border-line bg-sunken/60 px-6 py-4',
+              'flex flex-wrap items-center justify-end gap-2 px-5 py-4',
               'rounded-b-[var(--radius-xl)] pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-4',
             )}
           >

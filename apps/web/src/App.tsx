@@ -1,6 +1,6 @@
 import { Toaster, toast } from '@/components/ui/Toast';
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { HomePage } from '@/features/home/HomePage';
@@ -32,9 +32,6 @@ const TournamentDetailPage = lazy(() =>
 );
 const TeamDetailPage = lazy(() =>
   import('@/features/organizer/TeamDetailPage').then((m) => ({ default: m.TeamDetailPage })),
-);
-const FixturesPage = lazy(() =>
-  import('@/features/matches/FixturesPage').then((m) => ({ default: m.FixturesPage })),
 );
 const PlayerProfilePage = lazy(() =>
   import('@/features/profile/PlayerProfilePage').then((m) => ({ default: m.PlayerProfilePage })),
@@ -74,6 +71,11 @@ const queryClient = new QueryClient({
   },
 });
 
+function FixturesRedirect() {
+  const { tournamentId = '' } = useParams();
+  return <Navigate to={`/tournaments/${tournamentId}?tab=fixtures`} replace />;
+}
+
 function RouteFallback() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-10 sm:px-8">
@@ -109,7 +111,7 @@ export function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/tournaments" element={<TournamentsPage />} />
                 <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
-                <Route path="/tournaments/:tournamentId/fixtures" element={<FixturesPage />} />
+                <Route path="/tournaments/:tournamentId/fixtures" element={<FixturesRedirect />} />
                 <Route path="/teams/:teamId" element={<TeamDetailPage />} />
 
                 <Route path="/matches/:matchId" element={<MatchRoute />} />
@@ -124,8 +126,7 @@ export function App() {
                   <main className="mx-auto max-w-2xl px-5 py-16">
                     <EmptyState
                       title="Page not found"
-                      description="Check the link or return to your matches."
-                      action={<ButtonLink to="/dashboard">Open dashboard</ButtonLink>}
+                      action={<ButtonLink to="/dashboard">Go to matches</ButtonLink>}
                     />
                   </main>
                 }

@@ -78,7 +78,7 @@ export function NotificationBell() {
           aria-label="Notifications"
           className={cn(
             'sheet-in absolute right-0 z-40 mt-2.5 w-[min(22rem,calc(100vw-2.5rem))]',
-            'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-[var(--shadow-md)]',
+            'overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised',
           )}
         >
           <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5">

@@ -531,7 +531,6 @@
   color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   cursor: pointer;
 }
 
@@ -564,7 +563,6 @@
   border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--surface-raised) 88%, transparent);
   backdrop-filter: blur(16px);
-  box-shadow: 0 16px 48px rgb(0 0 0 / 0.28);
   animation: eng-sheet-in 160ms var(--ease);
 }
 

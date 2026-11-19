@@ -1,420 +1,345 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Wordmark } from '@/components/Wordmark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { BrandIcon } from '@/components/ui/BrandIcon';
-import { BallChip } from '@/components/ui/Score';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { TeamMark } from '@/components/ui/Pill';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { HeroStage, TABS, TournamentPhone } from './HomeDemos';
+import { OfflineDrawing, OneLinkDrawing, PlayoffDrawing } from './HomeDrawings';
 import './home.css';
 
+const TICKER: Array<[string, string, string, string, string]> = [
+  ['HAR', 'Harbour CC', '164/7', 'Oakley Town', '152/9'],
+  ['STA', 'St Albans Rd', '122/4', 'Westbury', '121'],
+  ['RVF', 'Riverside FC', '2', 'Parkside FC', '1'],
+  ['NOR', 'Northgate XI', '180/6', 'Eastfield', '141'],
+  ['MIL', 'Millbrook', '3', 'Harbour Utd', '3'],
+  ['EAS', 'Eastfield', '98/2', 'Millbrook', '97'],
+];
+
+const FEATURES = [
+  {
+    title: 'One link, one score',
+    body: 'Share the match link once. The rope, the clubhouse and the away end see the same ball the moment it’s scored. No app, no sign-up.',
+    Drawing: OneLinkDrawing,
+  },
+  {
+    title: 'The signal can wait',
+    body: 'Lost bars at the far end of the ground? Cricket balls save on the scorer’s phone and sync in the order they were bowled.',
+    Drawing: OfflineDrawing,
+  },
+  {
+    title: 'The table sets the bracket',
+    body: 'Every result moves points and net run rate. When the league ends, the top four drop straight into the playoffs.',
+    Drawing: PlayoffDrawing,
+  },
+];
+
+const TAB_COPY: Record<(typeof TABS)[number][0], [string, string]> = {
+  matches: ['Fixtures and results', 'Live games up top, today’s next, results below. Assign a scorer in one tap.'],
+  table: ['Standings that keep themselves', 'Points, net run rate and the playoff line, updated after every result.'],
+  teams: ['Squads, sorted', 'Rosters for every side, with a nudge when a team is short for Saturday.'],
+};
+
+const STEPS = [
+  ['Set up the league', 'Add teams, pick overs or halves, choose league, knockout or both.'],
+  ['Score from the boundary', 'Big keys, one thumb. Runs, extras, wickets, goals and cards.'],
+  ['Share one link', 'Fans follow live. Scorecards export to PDF when the day is done.'],
+];
+
 const QUESTIONS = [
-  ['Do spectators need an account?', 'No. Share the match link and anyone can follow the game.'],
-  [
-    'Can I score cricket offline?',
-    'Deliveries save on your phone and sync in order when the connection returns.',
-  ],
-  [
-    'Which sports are supported?',
-    'Cricket and football, with fixtures, live scores, standings and PDF scorecards.',
-  ],
+  ['Do spectators need an account?', 'No. Share the match link and anyone can follow the game in a browser.'],
+  ['Can I score cricket offline?', 'Yes. Deliveries save on your phone and sync in order when the connection returns.'],
+  ['Which sports are supported?', 'Cricket and football, with fixtures, live scores, standings and PDF scorecards.'],
+  ['What about rain?', 'Revised targets use DLS, so a shortened chase still has a fair number to aim at.'],
+  ['What does it cost?', 'Nothing. Howzat is free for local clubs and leagues.'],
 ];
 
 export function HomePage() {
   const { user } = useAuth();
   const destination = user ? '/dashboard' : '/login?mode=register&next=tournament';
+  const cta = user ? 'Open dashboard' : 'Start a tournament';
+
   return (
-    <div className="landing">
-      <a className="skip-link" href="#landing-main">
+    <div className="hz">
+      <a className="skip-link" href="#hz-main">
         Skip to content
       </a>
-      <div className="landing-header-shell">
-        <header className="landing-nav">
+      <header className="hz-nav">
+        <div className="hz-wrap hz-nav-in">
           <Link to="/" aria-label="Howzat home">
-            <Wordmark tone="inverse" />
+            <Wordmark size="sm" />
           </Link>
           <nav aria-label="Homepage">
-            <a href="#the-game">The game</a>
-            <a href="#features">The toolkit</a>
-            <a href="#how">How it works</a>
+            <a href="#live">Live</a>
+            <a href="#toolkit">Toolkit</a>
+            <a href="#league">League</a>
+            <a href="#faq">Questions</a>
           </nav>
-          <div className="landing-nav-actions">
-            <ThemeToggle tone="inverse" />
-            <Link to={user ? '/dashboard' : '/login'} className="landing-signin">
-              {user ? 'Dashboard' : 'Sign in'} <span aria-hidden>↗</span>
+          <div className="hz-nav-end">
+            <ThemeToggle />
+            <Link to={user ? '/dashboard' : '/login'} className="hz-btn hz-btn-quiet">
+              {user ? 'Dashboard' : 'Sign in'}
             </Link>
           </div>
-        </header>
-      </div>
-      <main id="landing-main">
-        <div className="landing-hero-shell">
-          <section className="landing-hero" aria-labelledby="landing-title">
-            <div className="landing-hero-copy">
-              <span className="landing-kicker">
-                <span />
-                For the love of the local game
+        </div>
+      </header>
+
+      <main id="hz-main">
+        <section className="hz-hero" aria-labelledby="hz-title">
+          <div className="hz-wrap hz-hero-grid">
+            <div className="hz-kicker">
+              <span className="hz-live-dot" />
+              Cricket and football scoring for local leagues
+            </div>
+            <h1 id="hz-title" className="hz-title">
+              <span className="hz-line">
+                <span style={{ '--d': 0 } as React.CSSProperties}>Every</span>{' '}
+                <span style={{ '--d': 1 } as React.CSSProperties}>ball,</span>
               </span>
-              <h1 id="landing-title" className="landing-title">
-                Your game.
-                <br />
-                <span>On the record.</span>
-              </h1>
-              <p className="landing-hero-note">Cricket. Football. Every moment counts.</p>
-              <div className="landing-actions">
-                <Link to={destination} className="landing-button landing-button-purple">
-                  {user ? 'Open dashboard' : 'Start a tournament'} <span aria-hidden>↗</span>
+              <span className="hz-line hz-title-quiet">
+                <span style={{ '--d': 2 } as React.CSSProperties}>on</span>{' '}
+                <span style={{ '--d': 3 } as React.CSSProperties}>the</span>{' '}
+                <span style={{ '--d': 4 } as React.CSSProperties}>record.</span>
+              </span>
+            </h1>
+            <div className="hz-hero-aside">
+              <p>
+                Score from the boundary on one phone. Everyone else follows on one link, a beat
+                later, ball by ball.
+              </p>
+              <div className="hz-actions">
+                <Link to={destination} className="hz-btn hz-btn-primary">
+                  {cta}
+                  <span className="hz-arrow" aria-hidden>
+                    →
+                  </span>
                 </Link>
-                <a href="#the-game" className="landing-text-link">
-                  Take a look <span aria-hidden>↓</span>
+                <a href="#live" className="hz-btn hz-btn-ghost">
+                  Try the scorer
                 </a>
               </div>
-              <div className="landing-hero-tags">
-                <span>Free to play</span>
-                <span>Made for matchday</span>
-              </div>
             </div>
-            <HeroArtwork />
-          </section>
-          <ul className="landing-capabilities">
-            <li>
-              <BrandIcon kind="cricket" />
-              Cricket & football
-            </li>
-            <li>
-              <BrandIcon kind="link" />
-              One link for every fan
-            </li>
-            <li>
-              <BrandIcon kind="bolt" />
-              Offline cricket scoring
-            </li>
-          </ul>
+          </div>
+          <div id="live" className="hz-wrap hz-stage-wrap">
+            <div className="hz-stage-legend" aria-hidden>
+              <span>Spectator view</span>
+              <span>Scorer’s phone</span>
+            </div>
+            <HeroStage />
+          </div>
+        </section>
+
+        <div className="hz-ticker" aria-label="Recent results">
+          <div className="hz-ticker-track">
+            {[0, 1].map((copy) => (
+              <ul key={copy} aria-hidden={copy === 1}>
+                {TICKER.map(([k, a, sa, b, sb]) => (
+                  <li key={a + b}>
+                    <TeamMark shortName={k} color="#8c8984" size="sm" />
+                    <b>{a}</b>
+                    <span className="hz-tick-score">{sa}</span>
+                    <span className="hz-tick-v">v</span>
+                    <span>{b}</span>
+                    <span className="hz-tick-score">{sb}</span>
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
         </div>
 
-        <section
-          id="the-game"
-          className="landing-section landing-demo-section"
-          aria-labelledby="demo-title"
-        >
-          <div className="landing-section-copy">
-            <span className="landing-label">Front row. From anywhere.</span>
-            <h2 id="demo-title">
-              A proper view
+        <section id="toolkit" className="hz-section" aria-labelledby="hz-toolkit">
+          <div className="hz-wrap">
+            <SectionHead index="01" label="Toolkit" id="hz-toolkit">
+              The quiet work
               <br />
-              of the game.
-            </h2>
-            <p>Live scores. The players at the crease. Every ball, on one link.</p>
-            <a href="#features" className="landing-text-link">
-              Meet your matchday toolkit <span aria-hidden>↗</span>
-            </a>
-          </div>
-          <MatchPreview />
-        </section>
-
-        <section
-          id="features"
-          className="landing-section landing-features"
-          aria-labelledby="features-title"
-        >
-          <div className="landing-section-heading">
-            <span className="landing-label">Small effort. Big matchday.</span>
-            <h2 id="features-title">
-              Everything around
-              <br />
-              the game, sorted.
-            </h2>
-          </div>
-          <div className="landing-feature-grid">
-            <article className="landing-feature landing-feature-fixtures">
-              <div className="landing-feature-top">
-                <span className="landing-number">01 / ORGANISE</span>
-                <BrandIcon kind="trophy" />
-              </div>
-              <h3>Fixtures to finals.</h3>
-              <p>Teams, schedules and standings. Together.</p>
-              <div className="fixture-preview" aria-label="Example tournament fixtures">
-                <div className="fixture-preview-head">
-                  <span>Sunday League</span>
-                  <span>Fixtures</span>
-                </div>
-                {[
-                  ['Riverside', 'Parkside', 'SAT 10:00'],
-                  ['North End', 'Westfield', 'SAT 14:00'],
-                  ['Riverside', 'North End', 'SUN 10:00'],
-                ].map(([a, b, time]) => (
-                  <div className="fixture-preview-row" key={`${a}-${b}`}>
-                    <span className="fixture-preview-time">{time}</span>
-                    <strong>
-                      {a}
-                      <span>v</span>
-                      {b}
-                    </strong>
-                    <span aria-hidden>↗</span>
+              behind a match.
+            </SectionHead>
+            <div className="hz-plates">
+              {FEATURES.map(({ title, body, Drawing }, i) => (
+                <ScrollReveal key={title} index={i} as="article" className="hz-plate">
+                  <div className="hz-plate-art">
+                    <Drawing />
                   </div>
-                ))}
-              </div>
-              <div className="landing-feature-foot">
-                <span>Leagues & playoffs</span>
-                <span aria-hidden>↗</span>
-              </div>
-            </article>
-            <article className="landing-feature landing-feature-share">
-              <BrandIcon kind="link" />
-              <span className="landing-number">02 / FOLLOW</span>
-              <h3>
-                One link.
-                <br />
-                Everyone’s in.
-              </h3>
-              <p>No spectator sign-up.</p>
-              <div className="share-preview" aria-hidden>
-                <span>howzat / matchday</span>
-                <span>↗</span>
-              </div>
-            </article>
-            <article className="landing-feature landing-feature-offline">
-              <BrandIcon kind="bolt" />
-              <span className="landing-number">03 / KEEP SCORING</span>
-              <h3>The signal can wait.</h3>
-              <p>Cricket balls save locally. Sync comes next.</p>
-              <span className="offline-preview">
-                <span aria-hidden>✓</span> Saved on your phone
-              </span>
-            </article>
+                  <div className="hz-plate-copy">
+                    <span className="hz-plate-n">0{i + 1}</span>
+                    <h3>{title}</h3>
+                    <p>{body}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
-          <ul className="landing-tools">
-            <li>Live scorecards</li>
-            <li>Automatic standings</li>
-            <li>PDF exports</li>
-            <li>DLS targets</li>
-          </ul>
         </section>
 
-        <section id="how" className="landing-how-band" aria-labelledby="how-title">
-          <div className="landing-section">
-            <div className="landing-section-heading">
-              <span className="landing-label">Less admin. More game.</span>
-              <h2 id="how-title">Three steps to the first whistle.</h2>
-            </div>
-            <ol className="landing-steps">
-              {[
-                ['Pick your game', 'Add teams. Choose your format.'],
-                ['Make it count', 'Record balls, goals and big moments.'],
-                ['Bring everyone along', 'Share the live link. That’s it.'],
-              ].map(([title, body], i) => (
-                <li key={title}>
-                  <span className="landing-step-number">0{i + 1}</span>
+        <LeagueSection />
+
+        <section className="hz-section hz-steps-section" aria-labelledby="hz-steps">
+          <div className="hz-wrap">
+            <SectionHead index="03" label="How it works" id="hz-steps">
+              Toss to table
+              <br />
+              in three steps.
+            </SectionHead>
+            <ol className="hz-steps">
+              {STEPS.map(([title, body], i) => (
+                <ScrollReveal key={title} index={i} as="li">
+                  <span className="hz-step-n">{i + 1}</span>
                   <h3>{title}</h3>
                   <p>{body}</p>
-                </li>
+                </ScrollReveal>
               ))}
             </ol>
           </div>
         </section>
 
-        <section className="landing-section landing-faq" aria-labelledby="faq-title">
-          <div>
-            <span className="landing-label">Before the toss</span>
-            <h2 id="faq-title">A few quick answers.</h2>
-            <BrandIcon kind="football" className="landing-faq-icon" />
-          </div>
-          <div className="landing-questions">
-            {QUESTIONS.map(([q, a]) => (
-              <details key={q}>
-                <summary>
-                  {q}
-                  <span aria-hidden>+</span>
-                </summary>
-                <p>{a}</p>
-              </details>
-            ))}
+        <section id="faq" className="hz-section" aria-labelledby="hz-faq">
+          <div className="hz-wrap hz-faq">
+            <SectionHead index="04" label="Questions" id="hz-faq">
+              Before
+              <br />
+              the toss.
+            </SectionHead>
+            <div className="hz-questions">
+              {QUESTIONS.map(([q, a]) => (
+                <details key={q}>
+                  <summary>
+                    {q}
+                    <span className="hz-plus" aria-hidden />
+                  </summary>
+                  <p>{a}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
-        <section className="landing-finale" aria-labelledby="finale-title">
-          <BrandIcon kind="trophy" />
-          <h2 id="finale-title">
-            Good games deserve
-            <br />
-            <span>a proper record.</span>
-          </h2>
-          <Link to={destination} className="landing-button landing-button-ink">
-            {user ? 'Open dashboard' : 'Start your tournament'} <span aria-hidden>↗</span>
-          </Link>
+
+        <section className="hz-finale" aria-labelledby="hz-finale">
+          <div className="hz-wrap">
+            <h2 id="hz-finale" className="hz-finale-word" aria-label="Howzat?">
+              {'Howzat?'.split('').map((c, i) => (
+                <span key={i} style={{ '--d': i } as React.CSSProperties} aria-hidden>
+                  {c}
+                </span>
+              ))}
+            </h2>
+            <div className="hz-finale-row">
+              <p>Good games deserve a proper record. Set up your league in a few minutes.</p>
+              <Link to={destination} className="hz-btn hz-btn-primary hz-btn-lg">
+                {cta}
+                <span className="hz-arrow" aria-hidden>
+                  →
+                </span>
+              </Link>
+            </div>
+          </div>
         </section>
       </main>
-      <footer className="landing-footer">
-        <Link to="/" aria-label="Howzat home">
-          <Wordmark />
-        </Link>
-        <span>For the game. For everyone.</span>
-        <div>
-          <Link to="/engineering">Under the hood</Link>
-          <Link to={user ? '/dashboard' : '/login'}>
-            {user ? 'Dashboard' : 'Sign in'} <span aria-hidden>↗</span>
-          </Link>
+
+      <footer className="hz-footer">
+        <div className="hz-wrap hz-footer-in">
+          <Wordmark size="sm" />
+          <span>howzat.ramaa.tech</span>
+          <nav aria-label="Footer">
+            <Link to="/engineering">Under the hood</Link>
+            <Link to={user ? '/dashboard' : '/login'}>{user ? 'Dashboard' : 'Sign in'}</Link>
+          </nav>
         </div>
       </footer>
     </div>
   );
 }
 
-function MatchPreview() {
-  const [sport, setSport] = useState<'cricket' | 'football'>('cricket');
-  const cricket = sport === 'cricket';
+function SectionHead({
+  index,
+  label,
+  id,
+  children,
+}: {
+  index: string;
+  label: string;
+  id: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="landing-match-preview">
-      <div className="landing-preview-top">
-        <div role="group" aria-label="Preview sport">
-          {(['cricket', 'football'] as const).map((s) => (
-            <button type="button" key={s} aria-pressed={sport === s} onClick={() => setSport(s)}>
-              {s}
-            </button>
-          ))}
-        </div>
-        <span>Example match</span>
-      </div>
-      <div className="landing-demo-match">
-        <div className="landing-demo-league">
-          <span>Sunday League</span>
-          <span className="landing-demo-live">
-            <span />
-            {cricket ? '17.2 overs' : '64′'}
-          </span>
-        </div>
-        <div className="landing-demo-team">
-          <TeamMark shortName={cricket ? 'RCC' : 'RFC'} color="#7a5bc7" size="md" />
-          <span>Riverside {cricket ? 'CC' : 'FC'}</span>
-          <strong>{cricket ? '146/3' : '2'}</strong>
-        </div>
-        <div className="landing-demo-team landing-demo-opponent">
-          <TeamMark shortName={cricket ? 'PCC' : 'PFC'} color="#d17c52" size="md" />
-          <span>Parkside {cricket ? 'CC' : 'FC'}</span>
-          <span>{cricket ? 'Yet to bat' : '1'}</span>
-        </div>
-        {cricket ? (
-          <>
-            <div className="landing-demo-batters">
-              <div>
-                <span>
-                  A. Sharma <span className="landing-demo-striker">●</span>
-                </span>
-                <strong>
-                  62 <span>(41)</span>
-                </strong>
-              </div>
-              <div>
-                <span>R. Patel</span>
-                <strong>
-                  28 <span>(19)</span>
-                </strong>
-              </div>
-            </div>
-            <div className="landing-demo-over">
-              <span>This over</span>
-              {['1', '0', '4', '1', '6', '2'].map((display, i) => (
-                <BallChip key={i} display={display} size="sm" />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="landing-demo-goals">
-            <div>
-              <span className="tabular">52′</span>
-              <strong>A. Morgan</strong>
-              <span>Goal</span>
-            </div>
-            <div>
-              <span className="tabular">64′</span>
-              <strong>S. Carter</strong>
-              <span>Goal</span>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="landing-preview-caption">
-        <span aria-hidden>↗</span> A view for every fan.
-      </div>
+    <div className="hz-head">
+      <span className="hz-head-meta">
+        <span className="hz-head-n">{index}</span>
+        {label}
+      </span>
+      <h2 id={id}>{children}</h2>
     </div>
   );
 }
 
-function HeroArtwork() {
+function LeagueSection() {
+  const [tab, setTab] = useState<(typeof TABS)[number][0]>('matches');
+  const [touched, setTouched] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || touched || typeof IntersectionObserver === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let timer = 0;
+    const io = new IntersectionObserver(([e]) => {
+      window.clearInterval(timer);
+      if (!e.isIntersecting) return;
+      timer = window.setInterval(() => {
+        setTab((t) => TABS[(TABS.findIndex(([k]) => k === t) + 1) % TABS.length][0]);
+      }, 4200);
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      window.clearInterval(timer);
+    };
+  }, [touched]);
+
+  const pick = (t: typeof tab) => {
+    setTouched(true);
+    setTab(t);
+  };
+
   return (
-    <div className="landing-art">
-      <svg
-        viewBox="0 0 560 460"
-        fill="none"
-        role="img"
-        aria-label="A colourful cricket scoreboard, bat and ball"
-      >
-        <ellipse cx="310" cy="406" rx="222" ry="29" fill="#151519" />
-        <path
-          d="M111 118c0-17 14-31 31-31h305c17 0 31 14 31 31v197c0 17-14 31-31 31H142c-17 0-31-14-31-31Z"
-          fill="#504279"
-          transform="rotate(-7 294 216) translate(12 14)"
-        />
-        <g transform="rotate(-7 294 216)">
-          <rect x="111" y="87" width="367" height="259" rx="29" fill="#c6b5fa" />
-          <rect x="130" y="106" width="329" height="221" rx="19" fill="#b29ae9" />
-          <path d="M147 155h295" stroke="#8e70cc" strokeWidth="2" />
-          <text
-            x="149"
-            y="139"
-            fill="#392c56"
-            fontFamily="var(--font-sans)"
-            fontSize="13"
-            fontWeight="700"
-            letterSpacing="2"
-          >
-            SUNDAY LEAGUE
-          </text>
-          <rect x="372" y="119" width="68" height="24" rx="12" fill="#daf48b" />
-          <text
-            x="406"
-            y="135"
-            fill="#354122"
-            fontFamily="var(--font-sans)"
-            fontSize="11"
-            fontWeight="700"
-            textAnchor="middle"
-          >
-            LIVE
-          </text>
-          <text
-            x="149"
-            y="249"
-            fill="#2f2349"
-            fontFamily="var(--font-sans)"
-            fontSize="81"
-            fontWeight="700"
-            letterSpacing="-5"
-          >
-            146/3
-          </text>
-          <text x="214" y="293" fill="#49366c" fontFamily="var(--font-sans)" fontSize="15">
-            RIVERSIDE CC
-          </text>
-        </g>
-        <g transform="rotate(28 442 277)">
-          <rect x="427" y="84" width="24" height="123" rx="12" fill="#66528e" />
-          <path d="M431 107h16m-16 16h16m-16 16h16m-16 16h16" stroke="#a58bc8" strokeWidth="3" />
-          <rect x="403" y="187" width="72" height="224" rx="33" fill="#e7ca87" />
-          <path d="M438 206v177" stroke="#f9e5b3" strokeWidth="8" strokeLinecap="round" />
-          <path d="M458 216v160" stroke="#caab69" strokeWidth="6" strokeLinecap="round" />
-        </g>
-        <circle cx="126" cy="350" r="72" fill="#e48065" />
-        <path d="M127 278a72 72 0 0 1 0 144c31-47 28-99 0-144Z" fill="#c56754" />
-        <path d="M108 281c45 41 52 86 21 139" stroke="#f8cfb8" strokeWidth="7" />
-        <path
-          d="M98 288c41 39 47 83 18 128"
-          stroke="#f8cfb8"
-          strokeWidth="2"
-          strokeDasharray="4 6"
-        />
-        <path d="m465 40 5 16 16 5-16 5-5 16-5-16-16-5 16-5Z" fill="#dcf39c" />
-        <path d="m85 190 4 12 12 4-12 4-4 12-4-12-12-4 12-4Z" fill="#d6c5ff" />
-        <circle cx="505" cy="338" r="8" fill="#e9a681" />
-      </svg>
-    </div>
+    <section id="league" ref={ref} className="hz-section hz-league" aria-labelledby="hz-league">
+      <div className="hz-wrap hz-league-grid">
+        <div>
+          <SectionHead index="02" label="League" id="hz-league">
+            Fixtures to finals,
+            <br />
+            in one place.
+          </SectionHead>
+          <ul className="hz-tablist">
+            {TABS.map(([t]) => (
+              <li key={t}>
+                <button
+                  type="button"
+                  aria-pressed={tab === t}
+                  onClick={() => pick(t)}
+                  onMouseEnter={() => pick(t)}
+                  onFocus={() => pick(t)}
+                >
+                  <span className="hz-tablist-bar" aria-hidden />
+                  <b>{TAB_COPY[t][0]}</b>
+                  <span>{TAB_COPY[t][1]}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <ul className="hz-extras-list">
+            <li>PDF scorecards</li>
+            <li>DLS targets</li>
+            <li>Football timelines</li>
+            <li>Player profiles</li>
+          </ul>
+        </div>
+        <div className="hz-league-stage">
+          <TournamentPhone tab={tab} onTab={pick} />
+        </div>
+      </div>
+    </section>
   );
 }

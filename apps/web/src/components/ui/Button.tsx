@@ -16,14 +16,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variants: Record<Variant, string> = {
   primary: 'btn-primary font-medium',
   secondary: 'btn-secondary font-medium',
-  quiet: 'font-medium text-secondary hover:text-primary hover:bg-hover',
-  danger: 'font-medium border border-line text-alert hover:border-[var(--alert)]',
+  quiet: 'font-semibold text-secondary hover:bg-sunken',
+  danger: 'font-semibold bg-alert-soft text-alert',
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-11 px-4 text-[0.8125rem] gap-2',
-  md: 'h-11 px-5 text-sm gap-2',
-  lg: 'h-12 px-6 text-sm gap-2',
+  sm: 'h-9 px-4 text-sm gap-2',
+  md: 'h-11 px-5 text-[0.9375rem] gap-2',
+  lg: 'h-12 px-5 text-[0.9375rem] gap-2',
 };
 
 export function ButtonLink({
@@ -38,7 +38,7 @@ export function ButtonLink({
   disabled?: boolean;
 }) {
   const classes = cn(
-    'button inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] font-medium',
+    'button inline-flex shrink-0 items-center justify-center',
     variants[variant],
     sizes[size],
     className,
